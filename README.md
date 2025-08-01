@@ -355,6 +355,112 @@ Para soporte técnico o consultas:
 - Verifica los logs del servidor
 - Consulta la documentación de Node.js y Express
 
+## 🚀 Gitflow y Versionado
+
+### 📋 **Estructura de Branches**
+
+Este proyecto sigue las mejores prácticas de **Gitflow**:
+
+- **`main`** - Código de producción estable
+- **`develop`** - Rama de desarrollo principal
+- **`feature/*`** - Nuevas funcionalidades
+- **`hotfix/*`** - Correcciones urgentes de producción
+- **`release/*`** - Preparación de releases
+
+### 🏷️ **Sistema de Versionado Semántico**
+
+Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
+
+- **MAJOR** (1.x.x): Cambios incompatibles con versiones anteriores
+- **MINOR** (x.1.x): Nuevas funcionalidades compatibles
+- **PATCH** (x.x.1): Correcciones de bugs compatibles
+
+### 📦 **Versiones Actuales**
+
+| Versión | Fecha | Funcionalidades |
+|---------|-------|-----------------|
+| **v1.0.0** | Inicial | Portfolio básico con galería y hero dinámico |
+| **v1.1.0** | - | Lightbox mejorado con ajuste a pantalla y tamaño real |
+| **v1.2.0** | - | Sistema completo de gestión de álbumes |
+| **v1.2.1** | - | Correcciones: acciones en lightbox, visibilidad de menús, botón eliminar álbum |
+
+### 🔄 **Flujo de Trabajo para Nuevas Funcionalidades**
+
+#### 1. **Crear Feature Branch**
+```bash
+# Desde develop
+git checkout develop
+git pull origin develop
+git checkout -b feature/nueva-funcionalidad
+```
+
+#### 2. **Desarrollar y Commit**
+```bash
+# Hacer cambios
+git add .
+git commit -m "✨ Add nueva funcionalidad"
+```
+
+#### 3. **Merge a Develop**
+```bash
+git checkout develop
+git merge feature/nueva-funcionalidad
+git push origin develop
+```
+
+#### 4. **Crear Release**
+```bash
+# Cuando develop esté estable
+git checkout -b release/v1.3.0
+# Hacer ajustes finales si es necesario
+git checkout main
+git merge release/v1.3.0
+git tag -a v1.3.0 -m "🎉 Nueva funcionalidad implementada"
+git push origin main --tags
+```
+
+### 🚨 **Hotfix para Producción**
+
+```bash
+# Desde main
+git checkout main
+git checkout -b hotfix/critical-bug-fix
+# Hacer corrección
+git commit -m "🔧 Fix critical bug"
+git checkout main
+git merge hotfix/critical-bug-fix
+git tag -a v1.2.2 -m "🔧 Critical bug fix"
+git push origin main --tags
+```
+
+### 📊 **Comandos Útiles**
+
+```bash
+# Ver todas las versiones
+git tag -l
+
+# Ver información de una versión
+git show v1.2.0
+
+# Ver diferencias entre versiones
+git diff v1.1.0..v1.2.0
+
+# Crear tag para el último commit
+git tag -a v1.2.2 -m "🔧 Bug fix description"
+git push origin v1.2.2
+```
+
+### 🎯 **Convenciones de Commits**
+
+- **✨** `feat:` Nueva funcionalidad
+- **🔧** `fix:` Corrección de bug
+- **📝** `docs:` Documentación
+- **🎨** `style:` Cambios de estilo/formato
+- **♻️** `refactor:` Refactorización de código
+- **⚡** `perf:` Mejoras de rendimiento
+- **🧪** `test:` Agregar o modificar tests
+- **🔧** `chore:` Tareas de mantenimiento
+
 ---
 
 **Desarrollado con ❤️ para el mundo de la moda y la fotografía**
