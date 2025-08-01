@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería - Portfolio de Moda</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">
+                    <h1>LUZ</h1>
+                    <span class="brand-subtitle">Portfolio de Moda</span>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="#gallery" class="nav-link">Galería</a>
+                <a href="#about" class="nav-link">Sobre Mí</a>
+                <a href="#contact" class="nav-link">Contacto</a>
+                <a href="/login" class="nav-link login-link">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Acceder
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h2 class="hero-title">Galería de Moda</h2>
+            <p class="hero-subtitle">Descubre la elegancia y el estilo a través de la fotografía de moda</p>
+            <div class="hero-cta">
+                <button class="btn-primary" onclick="document.getElementById('gallery').scrollIntoView()">
+                    <i class="fas fa-camera"></i>
+                    Ver Galería
+                </button>
+            </div>
+        </div>
+        <div class="hero-background"></div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="gallery-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Galería de Fotos</h2>
+                <p>Una colección de momentos capturados con estilo y elegancia</p>
+            </div>
+            <div class="gallery-grid" id="gallery-grid">
+                <!-- Las imágenes se cargarán dinámicamente aquí -->
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>Sobre Luz</h2>
+                    <p>Modelo profesional con pasión por la fotografía de moda. Cada sesión es una oportunidad para contar una historia única a través de la lente.</p>
+                    <div class="about-stats">
+                        <div class="stat">
+                            <span class="stat-number">50+</span>
+                            <span class="stat-label">Sesiones</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">100+</span>
+                            <span class="stat-label">Fotos</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">3+</span>
+                            <span class="stat-label">Años</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-image">
+                    <div class="image-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Contacto</h2>
+                <p>¿Interesado en trabajar juntos? ¡Hablemos!</p>
+            </div>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <i class="fab fa-instagram"></i>
+                        <a href="https://instagram.com/maria_luzcm" target="_blank" class="contact-link">@maria_luzcm</a>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fab fa-whatsapp"></i>
+                        <a href="https://wa.me/5491153257400" target="_blank" class="contact-link">+54 9 11 5325-7400</a>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>maria@luz.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Buenos Aires, Argentina</span>
+                    </div>
+                </div>
+                <div class="social-links">
+                    <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Luz - Portfolio de Moda. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="/js/gallery-public.js"></script>
+</body>
+</html> 
