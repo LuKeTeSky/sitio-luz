@@ -150,15 +150,39 @@ class AlbumsManager {
         albumDiv.innerHTML = `
             <div class="album-header">
                 <h4 class="album-name">${album.name}</h4>
-                <span class="album-count">${album.images ? album.images.length : 0}</span>
+                <div class="album-actions">
+                    <span class="album-count">${album.images ? album.images.length : 0}</span>
+                    <button class="album-delete-btn" title="Eliminar álbum">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
             ${album.campaign ? `<div class="album-campaign">${album.campaign}</div>` : ''}
             ${album.description ? `<p class="album-description">${album.description}</p>` : ''}
         `;
 
         // Event listeners para el álbum
-        albumDiv.addEventListener('click', () => this.selectAlbum(album));
-        albumDiv.addEventListener('dblclick', () => this.editAlbum(album));
+        albumDiv.addEventListener('click', (e) => {
+            // No seleccionar si se hace clic en el botón de eliminar
+            if (!e.target.closest('.album-delete-btn')) {
+                this.selectAlbum(album);
+            }
+        });
+        albumDiv.addEventListener('dblclick', (e) => {
+            // No editar si se hace clic en el botón de eliminar
+            if (!e.target.closest('.album-delete-btn')) {
+                this.editAlbum(album);
+            }
+        });
+
+        // Event listener para el botón de eliminar
+        const deleteBtn = albumDiv.querySelector('.album-delete-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteAlbum(album.id);
+            });
+        }
 
         return albumDiv;
     }

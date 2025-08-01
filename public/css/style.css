@@ -1249,6 +1249,41 @@ body {
   font-weight: 500;
 }
 
+.album-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.album-delete-btn {
+  background: rgba(220, 53, 69, 0.2);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: #dc3545;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.album-item:hover .album-delete-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.album-delete-btn:hover {
+  background: rgba(220, 53, 69, 0.8);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+}
+
 .album-campaign {
   color: #d4af37;
   font-size: 0.85rem;
