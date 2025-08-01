@@ -96,6 +96,16 @@ function createGalleryItem(imageData, index) {
     setHeroImage(imageData.filename);
   };
   
+  // Botón de álbumes
+  const albumBtn = document.createElement('button');
+  albumBtn.className = 'gallery-action-btn album-btn';
+  albumBtn.innerHTML = '<i class="fas fa-book-open"></i>';
+  albumBtn.title = 'Agregar a álbum';
+  albumBtn.onclick = (e) => {
+    e.stopPropagation();
+    showAlbumSelector(imageData.filename, albumBtn);
+  };
+  
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'gallery-action-btn delete-btn';
   deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
@@ -108,6 +118,7 @@ function createGalleryItem(imageData, index) {
   actions.appendChild(coverBtn);
   actions.appendChild(heroBtn);
   actions.appendChild(expandBtn);
+  actions.appendChild(albumBtn);
   actions.appendChild(deleteBtn);
   
   overlay.appendChild(info);
@@ -223,6 +234,56 @@ function openLightbox(index) {
   counter.className = 'lightbox-counter';
   counter.textContent = `${index + 1} / ${allImages.length}`;
 
+  // Botones de acción del lightbox
+  const lightboxActions = document.createElement('div');
+  lightboxActions.className = 'lightbox-actions';
+
+  // Botón de portada
+  const coverBtn = document.createElement('button');
+  coverBtn.className = 'lightbox-action-btn cover-btn';
+  coverBtn.innerHTML = '<i class="fas fa-star"></i>';
+  coverBtn.title = 'Establecer como portada';
+  coverBtn.onclick = (e) => {
+    e.stopPropagation();
+    toggleCoverImage(imageData.filename, index);
+  };
+
+  // Botón de hero
+  const heroBtn = document.createElement('button');
+  heroBtn.className = 'lightbox-action-btn hero-btn';
+  heroBtn.innerHTML = '<i class="fas fa-home"></i>';
+  heroBtn.title = 'Establecer como imagen del hero';
+  heroBtn.onclick = (e) => {
+    e.stopPropagation();
+    setHeroImage(imageData.filename);
+  };
+
+  // Botón de álbumes
+  const albumBtn = document.createElement('button');
+  albumBtn.className = 'lightbox-action-btn album-btn';
+  albumBtn.innerHTML = '<i class="fas fa-book-open"></i>';
+  albumBtn.title = 'Agregar a álbum';
+  albumBtn.onclick = (e) => {
+    e.stopPropagation();
+    showAlbumSelector(imageData.filename, albumBtn);
+  };
+
+  // Botón de eliminar
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'lightbox-action-btn delete-btn';
+  deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+  deleteBtn.title = 'Eliminar foto';
+  deleteBtn.onclick = (e) => {
+    e.stopPropagation();
+    deleteImage(imageData.filename, index);
+    overlay.remove();
+  };
+
+  lightboxActions.appendChild(coverBtn);
+  lightboxActions.appendChild(heroBtn);
+  lightboxActions.appendChild(albumBtn);
+  lightboxActions.appendChild(deleteBtn);
+
   container.appendChild(fullImg);
   container.appendChild(closeBtn);
   container.appendChild(prevBtn);
@@ -233,6 +294,7 @@ function openLightbox(index) {
   container.appendChild(resetZoomBtn);
   container.appendChild(info);
   container.appendChild(counter);
+  container.appendChild(lightboxActions);
   overlay.appendChild(container);
   document.body.appendChild(overlay);
 
@@ -420,7 +482,7 @@ function toggleCoverImage(filename, index) {
 // Función para actualizar botones de portada
 function updateCoverButtons() {
   const coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
-  const coverButtons = document.querySelectorAll('.cover-btn');
+  const coverButtons = document.querySelectorAll('.cover-btn, .lightbox-action-btn.cover-btn');
   
   coverButtons.forEach((btn, index) => {
     const imageData = allImages[index];
@@ -731,7 +793,7 @@ function updateHeroButtons() {
   fetch('/api/hero')
     .then(response => response.json())
     .then(config => {
-      const heroButtons = document.querySelectorAll('.hero-btn');
+      const heroButtons = document.querySelectorAll('.hero-btn, .lightbox-action-btn.hero-btn');
       
       heroButtons.forEach((btn, index) => {
         const imageData = allImages[index];
@@ -758,3 +820,84 @@ window.addEventListener('load', () => {
   setupScrollAnimations();
   updateHeroButtons();
 });
+
+// Función para mostrar el selector de álbumes
+function showAlbumSelector(imageFilename, albumBtn) {
+  // Verificar si el gestor de álbumes está disponible
+  if (!window.albumsManager) {
+    showNotification('Sistema de álbumes no disponible', 'error');
+    return;
+  }
+
+  const albums = window.albumsManager.getAlbums();
+  
+  // Crear selector de álbumes
+  const selector = document.createElement('div');
+  selector.className = 'album-selector';
+  
+  if (albums.length === 0) {
+    selector.innerHTML = `
+      <div class="album-option">
+        <span class="album-option-name">No hay álbumes creados</span>
+      </div>
+      <div class="album-option" onclick="window.albumsManager.openCreateModal()">
+        <span class="album-option-name">Crear nuevo álbum</span>
+      </div>
+    `;
+  } else {
+    albums.forEach(album => {
+      const option = document.createElement('div');
+      option.className = 'album-option';
+      option.innerHTML = `
+        <span class="album-option-name">${album.name}</span>
+        <span class="album-option-count">${album.images ? album.images.length : 0}</span>
+      `;
+      
+      option.addEventListener('click', async () => {
+        const success = await window.albumsManager.addImageToAlbum(imageFilename, album.id);
+        if (success) {
+          selector.classList.remove('active');
+        }
+      });
+      
+      selector.appendChild(option);
+    });
+  }
+  
+  // Agregar opción para crear nuevo álbum
+  const createOption = document.createElement('div');
+  createOption.className = 'album-option';
+  createOption.innerHTML = '<span class="album-option-name">+ Crear nuevo álbum</span>';
+  createOption.addEventListener('click', () => {
+    window.albumsManager.openCreateModal();
+    selector.classList.remove('active');
+  });
+  selector.appendChild(createOption);
+  
+  // Posicionar y mostrar el selector
+  albumBtn.appendChild(selector);
+  selector.classList.add('active');
+  
+  // Ajustar posición si está en el lightbox
+  if (albumBtn.classList.contains('lightbox-action-btn')) {
+    selector.style.position = 'absolute';
+    selector.style.top = '100%';
+    selector.style.left = '50%';
+    selector.style.transform = 'translateX(-50%)';
+    selector.style.marginTop = '10px';
+    selector.style.zIndex = '1000';
+  }
+  
+  // Cerrar selector al hacer clic fuera
+  const closeSelector = (e) => {
+    if (!selector.contains(e.target) && !albumBtn.contains(e.target)) {
+      selector.classList.remove('active');
+      document.removeEventListener('click', closeSelector);
+    }
+  };
+  
+  // Esperar un frame para evitar que se cierre inmediatamente
+  requestAnimationFrame(() => {
+    document.addEventListener('click', closeSelector);
+  });
+}

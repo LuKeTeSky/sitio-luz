@@ -351,6 +351,226 @@ app.delete('/api/images/:filename', (req, res) => {
   }
 });
 
+// 📚 API para álbumes (solo para usuarios logueados)
+
+// Función para obtener la ruta del archivo de álbumes
+function getAlbumsFilePath() {
+  return path.join(__dirname, 'albums.json');
+}
+
+// Función para cargar álbumes desde el archivo
+function loadAlbums() {
+  try {
+    const albumsPath = getAlbumsFilePath();
+    if (fs.existsSync(albumsPath)) {
+      const data = fs.readFileSync(albumsPath, 'utf8');
+      return JSON.parse(data);
+    }
+    return [];
+  } catch (error) {
+    console.error('Error cargando álbumes:', error);
+    return [];
+  }
+}
+
+// Función para guardar álbumes en el archivo
+function saveAlbums(albums) {
+  try {
+    const albumsPath = getAlbumsFilePath();
+    fs.writeFileSync(albumsPath, JSON.stringify(albums, null, 2));
+  } catch (error) {
+    console.error('Error guardando álbumes:', error);
+    throw error;
+  }
+}
+
+// GET /api/albums - Obtener todos los álbumes
+app.get('/api/albums', (req, res) => {
+  try {
+    const albums = loadAlbums();
+    res.json(albums);
+  } catch (error) {
+    console.error('Error obteniendo álbumes:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/albums - Crear nuevo álbum
+app.post('/api/albums', express.json(), (req, res) => {
+  try {
+    const { name, description, campaign } = req.body;
+    
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'El nombre del álbum es requerido' });
+    }
+    
+    const albums = loadAlbums();
+    
+    // Generar ID único
+    const newId = Date.now().toString();
+    
+    const newAlbum = {
+      id: newId,
+      name: name.trim(),
+      description: description ? description.trim() : '',
+      campaign: campaign ? campaign.trim() : '',
+      images: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    albums.push(newAlbum);
+    saveAlbums(albums);
+    
+    res.status(201).json(newAlbum);
+    
+  } catch (error) {
+    console.error('Error creando álbum:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// PUT /api/albums/:id - Actualizar álbum
+app.put('/api/albums/:id', express.json(), (req, res) => {
+  try {
+    const albumId = req.params.id;
+    const { name, description, campaign } = req.body;
+    
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'El nombre del álbum es requerido' });
+    }
+    
+    const albums = loadAlbums();
+    const albumIndex = albums.findIndex(album => album.id === albumId);
+    
+    if (albumIndex === -1) {
+      return res.status(404).json({ error: 'Álbum no encontrado' });
+    }
+    
+    albums[albumIndex] = {
+      ...albums[albumIndex],
+      name: name.trim(),
+      description: description ? description.trim() : '',
+      campaign: campaign ? campaign.trim() : '',
+      updatedAt: new Date().toISOString()
+    };
+    
+    saveAlbums(albums);
+    
+    res.json(albums[albumIndex]);
+    
+  } catch (error) {
+    console.error('Error actualizando álbum:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// DELETE /api/albums/:id - Eliminar álbum
+app.delete('/api/albums/:id', (req, res) => {
+  try {
+    const albumId = req.params.id;
+    const albums = loadAlbums();
+    const albumIndex = albums.findIndex(album => album.id === albumId);
+    
+    if (albumIndex === -1) {
+      return res.status(404).json({ error: 'Álbum no encontrado' });
+    }
+    
+    albums.splice(albumIndex, 1);
+    saveAlbums(albums);
+    
+    res.json({ 
+      success: true, 
+      message: 'Álbum eliminado exitosamente',
+      albumId: albumId
+    });
+    
+  } catch (error) {
+    console.error('Error eliminando álbum:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/albums/:id/images - Agregar imagen a álbum
+app.post('/api/albums/:id/images', express.json(), (req, res) => {
+  try {
+    const albumId = req.params.id;
+    const { imageId } = req.body;
+    
+    if (!imageId) {
+      return res.status(400).json({ error: 'Se requiere el ID de la imagen' });
+    }
+    
+    // Verificar que la imagen existe
+    const imagePath = path.join(__dirname, 'public/uploads', imageId);
+    if (!fs.existsSync(imagePath)) {
+      return res.status(404).json({ error: 'Imagen no encontrada' });
+    }
+    
+    const albums = loadAlbums();
+    const albumIndex = albums.findIndex(album => album.id === albumId);
+    
+    if (albumIndex === -1) {
+      return res.status(404).json({ error: 'Álbum no encontrado' });
+    }
+    
+    // Verificar que la imagen no esté ya en el álbum
+    if (albums[albumIndex].images.includes(imageId)) {
+      return res.status(400).json({ error: 'La imagen ya está en este álbum' });
+    }
+    
+    albums[albumIndex].images.push(imageId);
+    albums[albumIndex].updatedAt = new Date().toISOString();
+    
+    saveAlbums(albums);
+    
+    res.json({
+      success: true,
+      message: 'Imagen agregada al álbum exitosamente',
+      album: albums[albumIndex]
+    });
+    
+  } catch (error) {
+    console.error('Error agregando imagen al álbum:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// DELETE /api/albums/:id/images/:imageId - Remover imagen de álbum
+app.delete('/api/albums/:id/images/:imageId', (req, res) => {
+  try {
+    const albumId = req.params.id;
+    const imageId = req.params.imageId;
+    
+    const albums = loadAlbums();
+    const albumIndex = albums.findIndex(album => album.id === albumId);
+    
+    if (albumIndex === -1) {
+      return res.status(404).json({ error: 'Álbum no encontrado' });
+    }
+    
+    const imageIndex = albums[albumIndex].images.indexOf(imageId);
+    if (imageIndex === -1) {
+      return res.status(404).json({ error: 'Imagen no encontrada en el álbum' });
+    }
+    
+    albums[albumIndex].images.splice(imageIndex, 1);
+    albums[albumIndex].updatedAt = new Date().toISOString();
+    
+    saveAlbums(albums);
+    
+    res.json({
+      success: true,
+      message: 'Imagen removida del álbum exitosamente',
+      album: albums[albumIndex]
+    });
+    
+  } catch (error) {
+    console.error('Error removiendo imagen del álbum:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // 🚀 Iniciar el servidor
 app.listen(3000, () => {
   console.log('Servidor activo en http://localhost:3000');
