@@ -28,6 +28,7 @@ app.use((req, res, next) => {
     '/uploads', 
     '/js',
     '/api/images', // API pública para obtener imágenes
+    '/api/hero', // API pública para obtener configuración del hero
     '/gallery' // Ruta pública para la galería
   ];
   
@@ -261,6 +262,65 @@ app.get('/api/images', (req, res) => {
     res.json(images);
   } catch (error) {
     console.error('Error leyendo directorio de uploads:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// 🎯 API para obtener la configuración del hero (pública)
+app.get('/api/hero', (req, res) => {
+  try {
+    const configPath = path.join(__dirname, 'hero-config.json');
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      res.json(config);
+    } else {
+      // Configuración por defecto
+      res.json({ 
+        heroImage: 'luz-hero.jpg',
+        title: 'LUZ',
+        subtitle: 'Portfolio de Moda & Fotografía'
+      });
+    }
+  } catch (error) {
+    console.error('Error leyendo configuración del hero:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// 🎯 API para establecer la imagen del hero (solo para usuarios logueados)
+app.post('/api/hero', express.json(), (req, res) => {
+  try {
+    const { heroImage, title, subtitle } = req.body;
+    
+    if (!heroImage) {
+      return res.status(400).json({ error: 'Se requiere una imagen para el hero' });
+    }
+    
+    // Verificar que la imagen existe
+    const imagePath = path.join(__dirname, 'public/uploads', heroImage);
+    if (!fs.existsSync(imagePath)) {
+      return res.status(404).json({ error: 'Imagen no encontrada' });
+    }
+    
+    const config = {
+      heroImage,
+      title: title || 'LUZ',
+      subtitle: subtitle || 'Portfolio de Moda & Fotografía',
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Guardar configuración
+    const configPath = path.join(__dirname, 'hero-config.json');
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    
+    res.json({ 
+      success: true, 
+      message: 'Imagen del hero actualizada exitosamente',
+      config: config
+    });
+    
+  } catch (error) {
+    console.error('Error guardando configuración del hero:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

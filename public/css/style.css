@@ -653,6 +653,21 @@ body {
   background: #d4af37;
 }
 
+.gallery-action-btn.hero-btn {
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+}
+
+.gallery-action-btn.hero-btn:hover {
+  background: rgba(212, 175, 55, 0.9);
+  color: white;
+}
+
+.gallery-action-btn.hero-btn.active {
+  background: rgba(212, 175, 55, 0.9);
+  color: white;
+}
+
 .gallery-action-btn.active {
   background: #d4af37;
   color: white;
@@ -851,6 +866,30 @@ body {
   border-radius: 0;
   box-shadow: none;
   animation: zoomIn 0.4s ease;
+  transition: transform 0.3s ease;
+  cursor: grab;
+}
+
+.lightbox-image:active {
+  cursor: grabbing;
+}
+
+.lightbox-image.lightbox-fit-screen {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+}
+
+.lightbox-image.lightbox-real-size {
+  max-width: none;
+  max-height: none;
+  object-fit: none;
+  width: auto;
+  height: auto;
+}
+
+.lightbox-image.lightbox-zoomed {
+  cursor: grab;
 }
 
 .lightbox-close {
@@ -901,6 +940,27 @@ body {
 
 .lightbox-next {
   right: -70px;
+}
+
+.lightbox-size-toggle {
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.lightbox-zoom-in {
+  top: 20px;
+  right: 20px;
+}
+
+.lightbox-zoom-out {
+  top: 80px;
+  right: 20px;
+}
+
+.lightbox-reset-zoom {
+  top: 140px;
+  right: 20px;
 }
 
 .lightbox-info {
@@ -1011,6 +1071,34 @@ body {
   
   .lightbox-info {
     bottom: 20px;
+  }
+  
+  .lightbox-size-toggle,
+  .lightbox-zoom-in,
+  .lightbox-zoom-out,
+  .lightbox-reset-zoom {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  .lightbox-size-toggle {
+    top: -40px;
+  }
+  
+  .lightbox-zoom-in {
+    top: 10px;
+    right: 10px;
+  }
+  
+  .lightbox-zoom-out {
+    top: 60px;
+    right: 10px;
+  }
+  
+  .lightbox-reset-zoom {
+    top: 110px;
+    right: 10px;
   }
 }
 

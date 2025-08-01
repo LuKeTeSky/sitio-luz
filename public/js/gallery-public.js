@@ -98,7 +98,19 @@ function openLightbox(index) {
                 <button class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)">
                     <i class="fas fa-chevron-right"></i>
                 </button>
-                <img src="/uploads/${imageData.filename}" alt="${imageData.title || 'Foto de modelo'}" class="lightbox-image">
+                <button class="lightbox-nav lightbox-size-toggle" onclick="toggleImageSize()" title="Cambiar a tamaño real">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <button class="lightbox-nav lightbox-zoom-in" onclick="zoomImage(1.2)" title="Acercar">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="lightbox-nav lightbox-zoom-out" onclick="zoomImage(0.8)" title="Alejar">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="lightbox-nav lightbox-reset-zoom" onclick="resetImageZoom()" title="Restablecer zoom">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <img src="/uploads/${imageData.filename}" alt="${imageData.title || 'Foto de modelo'}" class="lightbox-image lightbox-fit-screen">
                 <div class="lightbox-info">
                     <div class="lightbox-title">${imageData.title || 'Foto de Moda'}</div>
                     <div class="lightbox-description">${imageData.description || 'Capturado con estilo'}</div>
@@ -135,6 +147,18 @@ function navigateLightbox(direction) {
     const fullImg = document.querySelector('.lightbox-image');
     fullImg.src = `/uploads/${newImageData.filename}`;
     fullImg.alt = newImageData.title || 'Foto de modelo';
+    
+    // Resetear zoom y tamaño al cambiar de imagen
+    fullImg.classList.remove('lightbox-real-size', 'lightbox-zoomed');
+    fullImg.classList.add('lightbox-fit-screen');
+    fullImg.style.transform = 'scale(1)';
+    
+    // Actualizar botón de tamaño
+    const sizeToggleBtn = document.querySelector('.lightbox-size-toggle');
+    if (sizeToggleBtn) {
+        sizeToggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        sizeToggleBtn.title = 'Cambiar a tamaño real';
+    }
 
     // Actualizar información
     const info = document.querySelector('.lightbox-info');
@@ -160,6 +184,72 @@ function handleLightboxKeyboard(event) {
         case 'ArrowRight':
             navigateLightbox(1);
             break;
+    }
+}
+
+// Función para cambiar entre ajuste a pantalla y tamaño real
+function toggleImageSize() {
+    const img = document.querySelector('.lightbox-image');
+    const toggleBtn = document.querySelector('.lightbox-size-toggle');
+    
+    if (img.classList.contains('lightbox-fit-screen')) {
+        // Cambiar a tamaño real
+        img.classList.remove('lightbox-fit-screen');
+        img.classList.add('lightbox-real-size');
+        toggleBtn.innerHTML = '<i class="fas fa-compress"></i>';
+        toggleBtn.title = 'Ajustar a pantalla';
+    } else {
+        // Cambiar a ajuste a pantalla
+        img.classList.remove('lightbox-real-size');
+        img.classList.add('lightbox-fit-screen');
+        toggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        toggleBtn.title = 'Cambiar a tamaño real';
+    }
+    
+    // Resetear zoom al cambiar modo
+    img.classList.remove('lightbox-zoomed');
+    img.style.transform = 'scale(1)';
+}
+
+// Función para hacer zoom en la imagen
+function zoomImage(factor) {
+    const img = document.querySelector('.lightbox-image');
+    const currentScale = parseFloat(img.style.transform.replace('scale(', '').replace(')', '') || 1);
+    const newScale = Math.max(0.5, Math.min(3, currentScale * factor));
+    
+    img.style.transform = `scale(${newScale})`;
+    img.classList.add('lightbox-zoomed');
+    
+    // Si está en modo real-size, cambiar a fit-screen para mejor zoom
+    if (img.classList.contains('lightbox-real-size')) {
+        img.classList.remove('lightbox-real-size');
+        img.classList.add('lightbox-fit-screen');
+        
+        // Actualizar botón de tamaño
+        const toggleBtn = document.querySelector('.lightbox-size-toggle');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+            toggleBtn.title = 'Cambiar a tamaño real';
+        }
+    }
+}
+
+// Función para resetear el zoom de la imagen
+function resetImageZoom() {
+    const img = document.querySelector('.lightbox-image');
+    const toggleBtn = document.querySelector('.lightbox-size-toggle');
+    
+    img.style.transform = 'scale(1)';
+    img.classList.remove('lightbox-zoomed');
+    
+    // Volver al modo ajuste a pantalla por defecto
+    img.classList.remove('lightbox-real-size');
+    img.classList.add('lightbox-fit-screen');
+    
+    // Actualizar botón de tamaño
+    if (toggleBtn) {
+        toggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        toggleBtn.title = 'Cambiar a tamaño real';
     }
 }
 

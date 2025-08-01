@@ -87,6 +87,15 @@ function createGalleryItem(imageData, index) {
     openLightbox(index);
   };
   
+  const heroBtn = document.createElement('button');
+  heroBtn.className = 'gallery-action-btn hero-btn';
+  heroBtn.innerHTML = '<i class="fas fa-home"></i>';
+  heroBtn.title = 'Establecer como imagen del hero';
+  heroBtn.onclick = (e) => {
+    e.stopPropagation();
+    setHeroImage(imageData.filename);
+  };
+  
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'gallery-action-btn delete-btn';
   deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
@@ -97,6 +106,7 @@ function createGalleryItem(imageData, index) {
   };
   
   actions.appendChild(coverBtn);
+  actions.appendChild(heroBtn);
   actions.appendChild(expandBtn);
   actions.appendChild(deleteBtn);
   
@@ -156,6 +166,7 @@ function openLightbox(index) {
   fullImg.src = `/uploads/${imageData.filename}`;
   fullImg.alt = imageData.title || 'Foto de modelo';
   fullImg.classList.add('lightbox-image');
+  fullImg.classList.add('lightbox-fit-screen'); // Por defecto ajustado a pantalla
 
   const closeBtn = document.createElement('button');
   closeBtn.innerHTML = '<i class="fas fa-times"></i>';
@@ -171,6 +182,33 @@ function openLightbox(index) {
   nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
   nextBtn.className = 'lightbox-nav lightbox-next';
   nextBtn.onclick = () => navigateLightbox(1);
+
+  // Botón para cambiar entre ajuste a pantalla y tamaño real
+  const sizeToggleBtn = document.createElement('button');
+  sizeToggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+  sizeToggleBtn.className = 'lightbox-nav lightbox-size-toggle';
+  sizeToggleBtn.title = 'Cambiar a tamaño real';
+  sizeToggleBtn.onclick = () => toggleImageSize(fullImg, sizeToggleBtn);
+
+  // Botones de zoom
+  const zoomInBtn = document.createElement('button');
+  zoomInBtn.innerHTML = '<i class="fas fa-search-plus"></i>';
+  zoomInBtn.className = 'lightbox-nav lightbox-zoom-in';
+  zoomInBtn.title = 'Acercar';
+  zoomInBtn.onclick = () => zoomImage(fullImg, 1.2);
+
+  const zoomOutBtn = document.createElement('button');
+  zoomOutBtn.innerHTML = '<i class="fas fa-search-minus"></i>';
+  zoomOutBtn.className = 'lightbox-nav lightbox-zoom-out';
+  zoomOutBtn.title = 'Alejar';
+  zoomOutBtn.onclick = () => zoomImage(fullImg, 0.8);
+
+  // Botón de reset zoom
+  const resetZoomBtn = document.createElement('button');
+  resetZoomBtn.innerHTML = '<i class="fas fa-undo"></i>';
+  resetZoomBtn.className = 'lightbox-nav lightbox-reset-zoom';
+  resetZoomBtn.title = 'Restablecer zoom';
+  resetZoomBtn.onclick = () => resetImageZoom(fullImg, sizeToggleBtn);
 
   // Información de la imagen
   const info = document.createElement('div');
@@ -189,6 +227,10 @@ function openLightbox(index) {
   container.appendChild(closeBtn);
   container.appendChild(prevBtn);
   container.appendChild(nextBtn);
+  container.appendChild(sizeToggleBtn);
+  container.appendChild(zoomInBtn);
+  container.appendChild(zoomOutBtn);
+  container.appendChild(resetZoomBtn);
   container.appendChild(info);
   container.appendChild(counter);
   overlay.appendChild(container);
@@ -234,6 +276,18 @@ function openLightbox(index) {
     fullImg.src = `/uploads/${newImageData.filename}`;
     fullImg.alt = newImageData.title || 'Foto de modelo';
     
+    // Resetear zoom y tamaño al cambiar de imagen
+    fullImg.classList.remove('lightbox-real-size', 'lightbox-zoomed');
+    fullImg.classList.add('lightbox-fit-screen');
+    fullImg.style.transform = 'scale(1)';
+    
+    // Actualizar botón de tamaño
+    const sizeToggleBtn = document.querySelector('.lightbox-size-toggle');
+    if (sizeToggleBtn) {
+      sizeToggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+      sizeToggleBtn.title = 'Cambiar a tamaño real';
+    }
+    
     // Actualizar información
     info.innerHTML = `
       <div class="lightbox-title">${newImageData.title || 'Foto de Moda'}</div>
@@ -242,6 +296,65 @@ function openLightbox(index) {
     
     // Actualizar contador
     counter.textContent = `${newIndex + 1} / ${allImages.length}`;
+  }
+}
+
+// Función para cambiar entre ajuste a pantalla y tamaño real
+function toggleImageSize(img, toggleBtn) {
+  if (img.classList.contains('lightbox-fit-screen')) {
+    // Cambiar a tamaño real
+    img.classList.remove('lightbox-fit-screen');
+    img.classList.add('lightbox-real-size');
+    toggleBtn.innerHTML = '<i class="fas fa-compress"></i>';
+    toggleBtn.title = 'Ajustar a pantalla';
+  } else {
+    // Cambiar a ajuste a pantalla
+    img.classList.remove('lightbox-real-size');
+    img.classList.add('lightbox-fit-screen');
+    toggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+    toggleBtn.title = 'Cambiar a tamaño real';
+  }
+  
+  // Resetear zoom al cambiar modo
+  img.classList.remove('lightbox-zoomed');
+  img.style.transform = 'scale(1)';
+}
+
+// Función para hacer zoom en la imagen
+function zoomImage(img, factor) {
+  const currentScale = parseFloat(img.style.transform.replace('scale(', '').replace(')', '') || 1);
+  const newScale = Math.max(0.5, Math.min(3, currentScale * factor));
+  
+  img.style.transform = `scale(${newScale})`;
+  img.classList.add('lightbox-zoomed');
+  
+  // Si está en modo real-size, cambiar a fit-screen para mejor zoom
+  if (img.classList.contains('lightbox-real-size')) {
+    img.classList.remove('lightbox-real-size');
+    img.classList.add('lightbox-fit-screen');
+    
+    // Actualizar botón de tamaño
+    const toggleBtn = document.querySelector('.lightbox-size-toggle');
+    if (toggleBtn) {
+      toggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+      toggleBtn.title = 'Cambiar a tamaño real';
+    }
+  }
+}
+
+// Función para resetear el zoom de la imagen
+function resetImageZoom(img, toggleBtn) {
+  img.style.transform = 'scale(1)';
+  img.classList.remove('lightbox-zoomed');
+  
+  // Volver al modo ajuste a pantalla por defecto
+  img.classList.remove('lightbox-real-size');
+  img.classList.add('lightbox-fit-screen');
+  
+  // Actualizar botón de tamaño
+  if (toggleBtn) {
+    toggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+    toggleBtn.title = 'Cambiar a tamaño real';
   }
 }
 
@@ -581,7 +694,67 @@ function setupScrollAnimations() {
   });
 }
 
+// Función para establecer imagen del hero
+async function setHeroImage(filename) {
+  try {
+    const response = await fetch('/api/hero', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        heroImage: filename,
+        title: 'LUZ',
+        subtitle: 'Portfolio de Moda & Fotografía'
+      })
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      showNotification('¡Imagen del hero actualizada exitosamente!', 'success');
+      
+      // Actualizar botones de hero
+      updateHeroButtons();
+      
+    } else {
+      throw new Error('Error al actualizar la imagen del hero');
+    }
+    
+  } catch (error) {
+    console.error('Error:', error);
+    showNotification('Error al actualizar la imagen del hero', 'error');
+  }
+}
+
+// Función para actualizar botones de hero
+function updateHeroButtons() {
+  fetch('/api/hero')
+    .then(response => response.json())
+    .then(config => {
+      const heroButtons = document.querySelectorAll('.hero-btn');
+      
+      heroButtons.forEach((btn, index) => {
+        const imageData = allImages[index];
+        if (imageData && config.heroImage === imageData.filename) {
+          btn.classList.add('active');
+          btn.innerHTML = '<i class="fas fa-home"></i>';
+          btn.style.background = 'rgba(212, 175, 55, 0.9)';
+          btn.style.color = 'white';
+        } else {
+          btn.classList.remove('active');
+          btn.innerHTML = '<i class="fas fa-home"></i>';
+          btn.style.background = 'rgba(255, 255, 255, 0.9)';
+          btn.style.color = '#333';
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Error cargando configuración del hero:', error);
+    });
+}
+
 // Inicializar animaciones cuando se carga la página
 window.addEventListener('load', () => {
   setupScrollAnimations();
+  updateHeroButtons();
 });
