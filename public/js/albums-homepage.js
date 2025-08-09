@@ -131,10 +131,189 @@ class AlbumsHomepageManager {
         });
     }
 
-    openAlbumView(albumId) {
-        // Por ahora, redirigir a la galería con un parámetro para filtrar por álbum
-        // En el futuro, esto podría abrir una vista modal o una página dedicada
-        window.location.href = `/gallery?album=${albumId}`;
+    async openAlbumView(albumId) {
+        // Buscar el álbum por ID
+        const album = this.albums.find(a => a.id === albumId);
+        if (!album) return;
+
+        // Mostrar las fotos del álbum en la sección de galería de la misma página
+        await this.displayAlbumInGallery(album);
+        
+        // Hacer scroll suave a la galería
+        document.getElementById('gallery')?.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+
+    async displayAlbumInGallery(album) {
+        try {
+            // Obtener todas las imágenes
+            const response = await fetch('/api/images');
+            const allImages = await response.json();
+            
+            // Filtrar solo las imágenes del álbum seleccionado
+            const albumImages = allImages.filter(image => 
+                album.images && album.images.includes(image.filename)
+            );
+            
+            const galleryGrid = document.getElementById('gallery-grid');
+            if (!galleryGrid) return;
+            
+            // Limpiar galería
+            galleryGrid.innerHTML = '';
+            
+            if (albumImages.length === 0) {
+                // Mostrar mensaje cuando el álbum está vacío
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'album-empty-message';
+                emptyMessage.innerHTML = `
+                    <div class="empty-album-content">
+                        <i class="fas fa-images"></i>
+                        <h3>Álbum vacío</h3>
+                        <p>El álbum "${album.name}" no tiene fotos disponibles.</p>
+                        <button class="btn-show-all" onclick="homepageAlbums.showAllImages()">
+                            Ver todas las fotos
+                        </button>
+                    </div>
+                `;
+                galleryGrid.appendChild(emptyMessage);
+            } else {
+                // Mostrar encabezado del álbum
+                const albumHeader = document.createElement('div');
+                albumHeader.className = 'album-header';
+                albumHeader.innerHTML = `
+                    <div class="album-info">
+                        <h3><i class="fas fa-book-open"></i> ${album.name}</h3>
+                        ${album.description ? `<p class="album-description">${album.description}</p>` : ''}
+                        ${album.campaign ? `<span class="album-campaign">Campaña: ${album.campaign}</span>` : ''}
+                        <span class="album-count">${albumImages.length} foto${albumImages.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <button class="btn-show-all" onclick="homepageAlbums.showAllImages()">
+                        <i class="fas fa-th"></i> Ver todas las fotos
+                    </button>
+                `;
+                galleryGrid.appendChild(albumHeader);
+                
+                // Mostrar las imágenes del álbum
+                albumImages.forEach((image, index) => {
+                    const galleryItem = this.createGalleryItem(image, index, albumImages);
+                    galleryGrid.appendChild(galleryItem);
+                });
+            }
+            
+            // Actualizar el título de la sección
+            const sectionHeader = document.querySelector('#gallery .section-header h2');
+            if (sectionHeader) {
+                sectionHeader.innerHTML = `<i class="fas fa-book-open"></i> ${album.name}`;
+            }
+            
+        } catch (error) {
+            console.error('Error cargando imágenes del álbum:', error);
+        }
+    }
+
+    createGalleryItem(imageData, index, albumImages) {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        
+        const img = document.createElement('img');
+        img.src = `/uploads/${imageData.filename}`;
+        img.alt = imageData.title || 'Foto';
+        img.loading = 'lazy';
+        
+        // Al hacer clic en la imagen, abrir lightbox con solo las imágenes del álbum
+        img.addEventListener('click', () => {
+            this.openPublicLightbox(index, albumImages);
+        });
+        
+        item.appendChild(img);
+        return item;
+    }
+
+    openPublicLightbox(index, images) {
+        // Crear lightbox simple para la página pública
+        const overlay = document.createElement('div');
+        overlay.className = 'lightbox-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            cursor: pointer;
+        `;
+
+        const img = document.createElement('img');
+        img.src = `/uploads/${images[index].filename}`;
+        img.style.cssText = `
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 10px;
+        `;
+
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '×';
+        closeBtn.style.cssText = `
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            z-index: 10001;
+        `;
+
+        closeBtn.onclick = () => overlay.remove();
+        overlay.onclick = (e) => {
+            if (e.target === overlay) overlay.remove();
+        };
+
+        overlay.appendChild(img);
+        overlay.appendChild(closeBtn);
+        document.body.appendChild(overlay);
+    }
+
+    async showAllImages() {
+        // Restaurar título original
+        const sectionHeader = document.querySelector('#gallery .section-header h2');
+        if (sectionHeader) {
+            sectionHeader.textContent = 'Galería de Fotos';
+        }
+        
+        // Usar la función global de gallery-public.js si está disponible
+        if (window.loadGalleryImages) {
+            await window.loadGalleryImages();
+        } else {
+            // Fallback: mostrar todas las imágenes manualmente
+            try {
+                const response = await fetch('/api/images');
+                const allImages = await response.json();
+                
+                const galleryGrid = document.getElementById('gallery-grid');
+                if (!galleryGrid) return;
+                
+                // Limpiar galería
+                galleryGrid.innerHTML = '';
+                
+                // Mostrar todas las imágenes
+                allImages.forEach((image, index) => {
+                    const galleryItem = this.createGalleryItem(image, index, allImages);
+                    galleryGrid.appendChild(galleryItem);
+                });
+                
+            } catch (error) {
+                console.error('Error cargando todas las imágenes:', error);
+            }
+        }
     }
 
     escapeHtml(text) {
@@ -166,5 +345,5 @@ class AlbumsHomepageManager {
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-    new AlbumsHomepageManager();
+    window.homepageAlbums = new AlbumsHomepageManager();
 }); 

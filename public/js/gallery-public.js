@@ -35,7 +35,7 @@ function loadHeroImage() {
 }
 
 // Función para cargar imágenes de la galería
-async function loadGalleryImages() {
+window.loadGalleryImages = async function loadGalleryImages() {
     try {
         const response = await fetch('/api/images');
         if (response.ok) {
