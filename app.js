@@ -5,7 +5,31 @@ const fs = require('fs');
 const session = require('express-session');
 
 const app = express();
-const upload = multer({ dest: 'public/uploads/' });
+
+// 📁 Configuración de multer con límites y validación
+const upload = multer({
+  dest: 'public/uploads/',
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB por archivo
+    files: 10 // Máximo 10 archivos simultáneos
+  },
+  fileFilter: (req, file, cb) => {
+    // Validar tipo de archivo
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedExtensions = /\.(jpg|jpeg|png|gif|webp)$/i;
+    
+    const mimeTypeValid = allowedMimeTypes.includes(file.mimetype);
+    const extensionValid = allowedExtensions.test(file.originalname);
+    
+    if (mimeTypeValid && extensionValid) {
+      return cb(null, true);
+    } else {
+      const error = new Error('Solo se permiten imágenes (JPG, JPEG, PNG, GIF, WebP). Tamaño máximo: 5MB');
+      error.code = 'INVALID_FILE_TYPE';
+      return cb(error, false);
+    }
+  }
+});
 
 // 🚨 Acá va la línea para servir CSS, imágenes y otros archivos públicos
 app.use(express.static('public'));
@@ -220,46 +244,92 @@ app.get('/gallery', (req, res) => {
 });
 
 // 📤 Subida de fotos (solo para usuarios logueados) - Soporte múltiple
-app.post('/upload', upload.array('photo', 10), (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ error: 'No se subió ningún archivo' });
-  }
-  
-  const uploadedFiles = [];
-  
-  try {
-    // Procesar cada archivo subido
-    req.files.forEach((file, index) => {
-      const originalName = file.originalname;
-      const extension = path.extname(originalName);
-      const newFileName = Date.now() + '_' + index + extension;
-      const newPath = path.join('public/uploads', newFileName);
-      
-      fs.renameSync(file.path, newPath);
-      
-      uploadedFiles.push({
-        originalName: originalName,
-        filename: newFileName,
-        size: file.size
+app.post('/upload', (req, res) => {
+  upload.array('photo', 10)(req, res, (err) => {
+    // Manejar errores de multer/validación
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ 
+          error: 'Archivo demasiado grande. Tamaño máximo: 5MB por imagen',
+          code: 'FILE_TOO_LARGE'
+        });
+      }
+      if (err.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({ 
+          error: 'Demasiados archivos. Máximo: 10 imágenes simultáneas',
+          code: 'TOO_MANY_FILES'
+        });
+      }
+      if (err.code === 'INVALID_FILE_TYPE') {
+        return res.status(400).json({ 
+          error: err.message,
+          code: 'INVALID_FILE_TYPE'
+        });
+      }
+      console.error('Error de upload:', err);
+      return res.status(500).json({ 
+        error: 'Error en la subida de archivos',
+        code: 'UPLOAD_ERROR'
       });
-    });
+    }
     
-    const message = req.files.length === 1 
-      ? 'Foto subida exitosamente' 
-      : `${req.files.length} fotos subidas exitosamente`;
+    // Validar que se subieron archivos
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ 
+        error: 'No se subió ningún archivo',
+        code: 'NO_FILES'
+      });
+    }
     
-    res.json({ 
-      success: true, 
-      files: uploadedFiles,
-      count: req.files.length,
-      message: message
-    });
+    const uploadedFiles = [];
     
-  } catch (error) {
-    console.error('Error procesando archivos:', error);
-    res.status(500).json({ error: 'Error procesando los archivos' });
-  }
+    try {
+      // Procesar cada archivo subido
+      req.files.forEach((file, index) => {
+        const originalName = file.originalname;
+        const extension = path.extname(originalName).toLowerCase();
+        const newFileName = Date.now() + '_' + index + extension;
+        const newPath = path.join('public/uploads', newFileName);
+        
+        fs.renameSync(file.path, newPath);
+        
+        uploadedFiles.push({
+          originalName: originalName,
+          filename: newFileName,
+          size: file.size,
+          sizeFormatted: formatFileSize(file.size)
+        });
+      });
+      
+      const message = req.files.length === 1 
+        ? 'Foto subida exitosamente' 
+        : `${req.files.length} fotos subidas exitosamente`;
+      
+      res.json({ 
+        success: true, 
+        files: uploadedFiles,
+        count: req.files.length,
+        message: message
+      });
+      
+    } catch (error) {
+      console.error('Error procesando archivos:', error);
+      res.status(500).json({ 
+        error: 'Error procesando los archivos',
+        code: 'PROCESSING_ERROR'
+      });
+    }
+  });
 });
+
+// 📏 Función auxiliar para formatear tamaños de archivo
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
 // 🖼️ API para obtener lista de imágenes (pública)
 app.get('/api/images', (req, res) => {

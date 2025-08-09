@@ -1238,6 +1238,75 @@ body.admin-page {
   }
 }
 
+/* ===== ESTILOS PARA INFORMACIÓN DE UPLOAD ===== */
+
+.upload-info {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(212, 175, 55, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.upload-limits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+}
+
+.upload-limits span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: var(--lv-text-light);
+  background: rgba(255, 255, 255, 0.5);
+  padding: 5px 10px;
+  border-radius: 15px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.upload-limits span i {
+  color: var(--lv-gold);
+  font-size: 0.8rem;
+}
+
+.file-validation-info {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  display: none;
+}
+
+.file-validation-info.success {
+  display: block;
+  background: rgba(40, 167, 69, 0.1);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+  color: #155724;
+}
+
+.file-validation-info.error {
+  display: block;
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: #721c24;
+}
+
+@media (max-width: 768px) {
+  .upload-limits {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .upload-limits span {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+  }
+}
+
 /* ===== ESTILOS PARA ÁLBUMES ===== */
 
 /* Sección de álbumes en el inicio */

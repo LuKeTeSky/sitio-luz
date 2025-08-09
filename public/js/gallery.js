@@ -733,6 +733,67 @@ function createCoverItem(imageData, isHeroImage = false) {
   return item;
 }
 
+// Función para validar archivos seleccionados
+function validateFiles(files) {
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  const maxFiles = 10;
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  const allowedExtensions = /\.(jpg|jpeg|png|gif|webp)$/i;
+  
+  const errors = [];
+  const validFiles = [];
+  let totalSize = 0;
+  
+  // Validar cantidad de archivos
+  if (files.length > maxFiles) {
+    errors.push(`❌ Demasiados archivos: ${files.length}/${maxFiles} (máximo 10)`);
+  }
+  
+  // Validar cada archivo
+  Array.from(files).forEach((file, index) => {
+    const fileErrors = [];
+    
+    // Validar tipo de archivo
+    const typeValid = allowedTypes.includes(file.type) && allowedExtensions.test(file.name);
+    if (!typeValid) {
+      fileErrors.push(`tipo no válido (${file.type || 'desconocido'})`);
+    }
+    
+    // Validar tamaño
+    if (file.size > maxSize) {
+      fileErrors.push(`muy grande (${formatFileSize(file.size)} > 5MB)`);
+    }
+    
+    totalSize += file.size;
+    
+    if (fileErrors.length > 0) {
+      errors.push(`❌ ${file.name}: ${fileErrors.join(', ')}`);
+    } else {
+      validFiles.push(file);
+    }
+  });
+  
+  const summary = validFiles.length > 0 
+    ? `✅ ${validFiles.length} archivo${validFiles.length !== 1 ? 's' : ''} válido${validFiles.length !== 1 ? 's' : ''} (${formatFileSize(totalSize)} total)`
+    : '';
+  
+  return {
+    valid: errors.length === 0 && validFiles.length > 0,
+    errors: errors,
+    validFiles: validFiles,
+    summary: summary
+  };
+}
+
+// Función auxiliar para formatear tamaños de archivo
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 // Función para configurar el formulario de subida
 function setupUploadForm() {
   const form = document.querySelector('.upload-form');
@@ -741,20 +802,46 @@ function setupUploadForm() {
   
   if (!form || !fileInput || !fileLabel) return;
   
-  // Actualizar label cuando se seleccionan archivos
+  // Actualizar label cuando se seleccionan archivos con validación
   fileInput.addEventListener('change', (e) => {
     const files = e.target.files;
+    const validationInfo = document.querySelector('.file-validation-info');
+    
     if (files.length > 0) {
-      const fileText = files.length === 1 
-        ? files[0].name 
-        : `${files.length} archivos seleccionados`;
+      // Validar archivos
+      const validation = validateFiles(files);
       
-      fileLabel.innerHTML = `
-        <i class="fas fa-check"></i>
-        <span>${fileText}</span>
-      `;
-      fileLabel.style.borderColor = '#28a745';
-      fileLabel.style.background = 'rgba(40, 167, 69, 0.1)';
+      if (validation.valid) {
+        const fileText = files.length === 1 
+          ? files[0].name 
+          : `${files.length} archivos seleccionados`;
+        
+        fileLabel.innerHTML = `
+          <i class="fas fa-check"></i>
+          <span>${fileText}</span>
+        `;
+        fileLabel.style.borderColor = '#28a745';
+        fileLabel.style.background = 'rgba(40, 167, 69, 0.1)';
+        
+        // Mostrar información de los archivos
+        if (validationInfo) {
+          validationInfo.innerHTML = validation.summary;
+          validationInfo.className = 'file-validation-info success';
+        }
+      } else {
+        fileLabel.innerHTML = `
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>Archivos con errores</span>
+        `;
+        fileLabel.style.borderColor = '#dc3545';
+        fileLabel.style.background = 'rgba(220, 53, 69, 0.1)';
+        
+        // Mostrar errores
+        if (validationInfo) {
+          validationInfo.innerHTML = validation.errors.join('<br>');
+          validationInfo.className = 'file-validation-info error';
+        }
+      }
     }
   });
   
@@ -813,7 +900,32 @@ function setupUploadForm() {
         
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al subir las imágenes');
+        
+        // Mostrar errores específicos según el código
+        let errorMessage = errorData.error || 'Error al subir las imágenes';
+        let errorType = 'error';
+        
+        switch (errorData.code) {
+          case 'FILE_TOO_LARGE':
+            errorMessage = '📁 ' + errorData.error;
+            errorType = 'warning';
+            break;
+          case 'TOO_MANY_FILES':
+            errorMessage = '📊 ' + errorData.error;
+            errorType = 'warning';
+            break;
+          case 'INVALID_FILE_TYPE':
+            errorMessage = '📷 ' + errorData.error;
+            errorType = 'warning';
+            break;
+          case 'NO_FILES':
+            errorMessage = '❌ ' + errorData.error;
+            break;
+          default:
+            errorMessage = '⚠️ ' + errorMessage;
+        }
+        
+        throw new Error(errorMessage);
       }
       
     } catch (error) {
