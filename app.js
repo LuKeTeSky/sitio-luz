@@ -434,20 +434,30 @@ app.get('/api/images', (req, res) => {
   }
 });
 
+// 💾 Hero config en memoria para producción
+let heroConfig = {
+  heroImage: 'luz-hero.jpg',
+  title: 'LUZ',
+  subtitle: 'Portfolio de Moda & Fotografía'
+};
+
 // 🎯 API para obtener la configuración del hero (pública)
 app.get('/api/hero', (req, res) => {
   try {
+    // En producción, usar memoria
+    if (process.env.NODE_ENV === 'production') {
+      res.json(heroConfig);
+      return;
+    }
+    
+    // En desarrollo, usar archivo
     const configPath = path.join(__dirname, 'hero-config.json');
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       res.json(config);
     } else {
       // Configuración por defecto
-      res.json({ 
-        heroImage: 'luz-hero.jpg',
-        title: 'LUZ',
-        subtitle: 'Portfolio de Moda & Fotografía'
-      });
+      res.json(heroConfig);
     }
   } catch (error) {
     console.error('Error leyendo configuración del hero:', error);
@@ -477,9 +487,16 @@ app.post('/api/hero', express.json(), (req, res) => {
       updatedAt: new Date().toISOString()
     };
     
-    // Guardar configuración
-    const configPath = path.join(__dirname, 'hero-config.json');
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    // Guardar configuración en memoria o archivo
+    if (process.env.NODE_ENV === 'production') {
+      heroConfig = config; // Guardar en memoria
+      console.log('💾 Hero config guardado en memoria:', config);
+    } else {
+      // En desarrollo, guardar en archivo
+      const configPath = path.join(__dirname, 'hero-config.json');
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+      console.log('📁 Hero config guardado en archivo:', configPath);
+    }
     
     res.json({ 
       success: true, 
@@ -553,9 +570,36 @@ function getAlbumsFilePath() {
   return path.join(__dirname, 'albums.json');
 }
 
-// Función para cargar álbumes desde el archivo
+// 💾 Almacenamiento en memoria para producción
+let albumsData = [];
+let albumsInitialized = false;
+
+// Función para cargar álbumes desde el archivo o memoria
 function loadAlbums() {
   try {
+    // En producción, usar memoria
+    if (process.env.NODE_ENV === 'production') {
+      if (!albumsInitialized) {
+        // Inicializar con álbumes de ejemplo en primera carga
+        albumsData = [
+          {
+            id: Date.now().toString(),
+            name: "Portfolio Principal",
+            description: "Mejores trabajos de moda y fotografía",
+            campaign: "Colección 2025",
+            images: [],
+            order: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ];
+        albumsInitialized = true;
+        console.log('✨ Álbumes inicializados en memoria para producción');
+      }
+      return [...albumsData]; // Retornar copia
+    }
+    
+    // En desarrollo, usar archivo
     const albumsPath = getAlbumsFilePath();
     if (fs.existsSync(albumsPath)) {
       const data = fs.readFileSync(albumsPath, 'utf8');
@@ -568,11 +612,20 @@ function loadAlbums() {
   }
 }
 
-// Función para guardar álbumes en el archivo
+// Función para guardar álbumes en el archivo o memoria
 function saveAlbums(albums) {
   try {
+    // En producción, guardar en memoria
+    if (process.env.NODE_ENV === 'production') {
+      albumsData = [...albums]; // Guardar copia en memoria
+      console.log(`💾 Álbumes guardados en memoria: ${albums.length} álbumes`);
+      return;
+    }
+    
+    // En desarrollo, guardar en archivo
     const albumsPath = getAlbumsFilePath();
     fs.writeFileSync(albumsPath, JSON.stringify(albums, null, 2));
+    console.log(`📁 Álbumes guardados en archivo: ${albumsPath}`);
   } catch (error) {
     console.error('Error guardando álbumes:', error);
     throw error;
