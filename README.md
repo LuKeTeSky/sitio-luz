@@ -445,17 +445,17 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 
 | Versión | Fecha | Estado | Funcionalidades Principales |
 |---------|-------|--------|------------------------------|
-| **v1.0.0** | Dic 2024 | Inicial | Portfolio básico con galería y hero dinámico |
-| **v1.1.0** | Dic 2024 | Stable | Lightbox mejorado con ajuste a pantalla y tamaño real |
-| **v1.2.0** | Dic 2024 | Stable | Sistema completo de gestión de álbumes |
-| **v1.2.1** | Dic 2024 | Stable | Correcciones: acciones lightbox, menús, eliminar álbum |
-| **v1.3.0** | Ene 2025 | Stable | Navegación mejorada, reordenamiento de secciones |
-| **v1.4.0** | 01 Ene 2025 | Stable | Diseño Louis Vuitton + álbumes en homepage |
-| **v1.5.0** | 09 Ene 2025 | Stable | Gitflow completo + navegación navbar mejorada |
-| **v1.6.0** | 09 Ene 2025 | **🟢 ACTUAL** | **Subida múltiple + Auto-agregado + Drag & drop** |
+| **v1.0.0** | Jul 2025 | Inicial | Portfolio básico con galería y hero dinámico |
+| **v1.1.0** | Jul 2025 | Stable | Lightbox mejorado con ajuste a pantalla y tamaño real |
+| **v1.2.0** | Jul 2025 | Stable | Sistema completo de gestión de álbumes |
+| **v1.2.1** | Jul 2025 | Stable | Correcciones: acciones lightbox, menús, eliminar álbum |
+| **v1.3.0** | Ago 2025 | Stable | Navegación mejorada, reordenamiento de secciones |
+| **v1.4.0** | 01 Ago 2025 | Stable | Diseño Louis Vuitton + álbumes en homepage |
+| **v1.5.0** | 09 Ago 2025 | Stable | Gitflow completo + navegación navbar mejorada |
+| **v1.6.0** | 09 Ago 2025 | **🟢 ACTUAL** | **Subida múltiple + Auto-agregado + Drag & drop** |
 
 #### 🔄 **Versión Actual: v1.6.0**
-- **Fecha de lanzamiento**: 9 de enero de 2025
+- **Fecha de lanzamiento**: 9 de agosto de 2025
 - **Características principales**: Subida múltiple, auto-agregado inteligente, reordenamiento drag & drop
 - **Estado**: Estable y en producción
 - **Próxima versión**: v1.7.0 (en desarrollo)
