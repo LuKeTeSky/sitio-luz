@@ -219,25 +219,46 @@ app.get('/gallery', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'gallery-public.html'));
 });
 
-// 📤 Subida de foto (solo para usuarios logueados)
-app.post('/upload', upload.single('photo'), (req, res) => {
-  if (!req.file) {
+// 📤 Subida de fotos (solo para usuarios logueados) - Soporte múltiple
+app.post('/upload', upload.array('photo', 10), (req, res) => {
+  if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: 'No se subió ningún archivo' });
   }
   
-  // Renombrar el archivo con un nombre más amigable
-  const originalName = req.file.originalname;
-  const extension = path.extname(originalName);
-  const newFileName = Date.now() + extension;
-  const newPath = path.join('public/uploads', newFileName);
+  const uploadedFiles = [];
   
-  fs.renameSync(req.file.path, newPath);
-  
-  res.json({ 
-    success: true, 
-    filename: newFileName,
-    message: 'Foto subida exitosamente' 
-  });
+  try {
+    // Procesar cada archivo subido
+    req.files.forEach((file, index) => {
+      const originalName = file.originalname;
+      const extension = path.extname(originalName);
+      const newFileName = Date.now() + '_' + index + extension;
+      const newPath = path.join('public/uploads', newFileName);
+      
+      fs.renameSync(file.path, newPath);
+      
+      uploadedFiles.push({
+        originalName: originalName,
+        filename: newFileName,
+        size: file.size
+      });
+    });
+    
+    const message = req.files.length === 1 
+      ? 'Foto subida exitosamente' 
+      : `${req.files.length} fotos subidas exitosamente`;
+    
+    res.json({ 
+      success: true, 
+      files: uploadedFiles,
+      count: req.files.length,
+      message: message
+    });
+    
+  } catch (error) {
+    console.error('Error procesando archivos:', error);
+    res.status(500).json({ error: 'Error procesando los archivos' });
+  }
 });
 
 // 🖼️ API para obtener lista de imágenes (pública)

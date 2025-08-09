@@ -677,13 +677,17 @@ function setupUploadForm() {
   
   if (!form || !fileInput || !fileLabel) return;
   
-  // Actualizar label cuando se selecciona un archivo
+  // Actualizar label cuando se seleccionan archivos
   fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    const files = e.target.files;
+    if (files.length > 0) {
+      const fileText = files.length === 1 
+        ? files[0].name 
+        : `${files.length} archivos seleccionados`;
+      
       fileLabel.innerHTML = `
         <i class="fas fa-check"></i>
-        <span>${file.name}</span>
+        <span>${fileText}</span>
       `;
       fileLabel.style.borderColor = '#28a745';
       fileLabel.style.background = 'rgba(40, 167, 69, 0.1)';
@@ -698,8 +702,20 @@ function setupUploadForm() {
     const submitBtn = form.querySelector('.btn-upload');
     const originalText = submitBtn.innerHTML;
     
-    // Mostrar estado de carga
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+    const selectedFiles = fileInput.files;
+    
+    if (selectedFiles.length === 0) {
+      showNotification('Por favor selecciona al menos una imagen', 'error');
+      return;
+    }
+    
+    // Mostrar estado de carga con contador
+    const fileCount = selectedFiles.length;
+    const loadingText = fileCount === 1 
+      ? '<i class="fas fa-spinner fa-spin"></i> Subiendo foto...' 
+      : `<i class="fas fa-spinner fa-spin"></i> Subiendo ${fileCount} fotos...`;
+    
+    submitBtn.innerHTML = loadingText;
     submitBtn.disabled = true;
     
     try {
@@ -709,8 +725,10 @@ function setupUploadForm() {
       });
       
       if (response.ok) {
-        // Mostrar mensaje de éxito
-        showNotification('¡Foto subida exitosamente!', 'success');
+        const result = await response.json();
+        
+        // Mostrar mensaje de éxito personalizado
+        showNotification(result.message || '¡Fotos subidas exitosamente!', 'success');
         
         // Recargar galería
         setTimeout(() => {
@@ -720,19 +738,20 @@ function setupUploadForm() {
         // Resetear formulario
         form.reset();
         fileLabel.innerHTML = `
-          <i class="fas fa-image"></i>
-          <span>Seleccionar imagen</span>
+          <i class="fas fa-images"></i>
+          <span>Seleccionar imágenes</span>
         `;
         fileLabel.style.borderColor = '#d4af37';
         fileLabel.style.background = 'rgba(212, 175, 55, 0.05)';
         
       } else {
-        throw new Error('Error al subir la imagen');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al subir las imágenes');
       }
       
     } catch (error) {
       console.error('Error:', error);
-      showNotification('Error al subir la imagen', 'error');
+      showNotification(error.message || 'Error al subir las imágenes', 'error');
     } finally {
       submitBtn.innerHTML = originalText;
       submitBtn.disabled = false;
