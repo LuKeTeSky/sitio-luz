@@ -34,8 +34,8 @@ function loadHeroImage() {
     }
 }
 
-// Función para cargar imágenes de la galería
-window.loadGalleryImages = async function loadGalleryImages() {
+// Función para cargar imágenes de la galería (público)
+async function loadGalleryImages() {
     try {
         const response = await fetch('/api/images');
         if (response.ok) {
@@ -340,4 +340,7 @@ function setupScrollAnimations() {
 // Inicializar animaciones cuando se carga la página
 window.addEventListener('load', () => {
   setupScrollAnimations();
-}); 
+});
+
+// Hacer función disponible globalmente para homepage
+window.loadPublicGallery = loadGalleryImages; 

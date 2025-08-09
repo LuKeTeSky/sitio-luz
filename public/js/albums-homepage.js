@@ -290,8 +290,8 @@ class AlbumsHomepageManager {
         }
         
         // Usar la función global de gallery-public.js si está disponible
-        if (window.loadGalleryImages) {
-            await window.loadGalleryImages();
+        if (window.loadPublicGallery) {
+            await window.loadPublicGallery();
         } else {
             // Fallback: mostrar todas las imágenes manualmente
             try {

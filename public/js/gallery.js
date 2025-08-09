@@ -17,8 +17,8 @@ let currentImageIndex = 0;
 let allImages = [];
 let coverImages = [];
 
-// Función para cargar imágenes de la galería
-window.loadGalleryImages = async function loadGalleryImages() {
+// Función para cargar imágenes de la galería (admin)
+async function loadGalleryImages() {
   try {
     const response = await fetch('/api/images');
     const images = await response.json();
@@ -43,6 +43,9 @@ window.loadGalleryImages = async function loadGalleryImages() {
     loadSampleImages();
   }
 }
+
+// Hacer función disponible globalmente para admin
+window.loadAdminGallery = loadGalleryImages;
 
 // Función para crear un elemento de galería
 function createGalleryItem(imageData, index) {
@@ -163,8 +166,8 @@ function setupLightbox() {
 }
 
 // Función para abrir el lightbox estilo Louis Vuitton
-window.openLightbox = function openLightbox(index, customImages = null) {
-  // Usar imágenes personalizadas o todas las imágenes
+function openLightbox(index, customImages = null) {
+  // Usar imágenes personalizadas o todas las imágenes  
   const imagesToUse = customImages || allImages;
   currentImageIndex = index;
   const imageData = imagesToUse[index];

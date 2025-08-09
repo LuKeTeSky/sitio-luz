@@ -317,8 +317,8 @@ class AlbumsManager {
         }
         
         // Recargar todas las imágenes (usar función existente de gallery.js)
-        if (window.loadGalleryImages) {
-            window.loadGalleryImages();
+        if (window.loadAdminGallery) {
+            window.loadAdminGallery();
         }
     }
 
