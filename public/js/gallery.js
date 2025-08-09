@@ -585,16 +585,39 @@ function loadCoverSettings() {
 }
 
 // Función para actualizar la sección de fotos de portada
-function updateCoverSection() {
+async function updateCoverSection() {
   const coverGrid = document.getElementById('cover-grid');
   const coverEmpty = document.getElementById('cover-empty');
   const coverSection = document.querySelector('.cover-section');
   
   if (!coverGrid || !coverEmpty) return;
   
+  // Obtener tanto las imágenes de cover como la imagen del hero actual
   const coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
+  let currentHeroImage = null;
   
-  if (coverImages.length === 0) {
+  try {
+    const response = await fetch('/api/hero');
+    if (response.ok) {
+      const heroConfig = await response.json();
+      currentHeroImage = heroConfig.image || heroConfig.heroImage;
+    }
+  } catch (error) {
+    console.log('No se pudo obtener configuración del hero:', error);
+  }
+  
+  // Crear lista unificada de imágenes de portada (hero + cover images, sin duplicados)
+  const allCoverImages = [];
+  
+  // Agregar imagen del hero primero si existe y no está en coverImages
+  if (currentHeroImage && !coverImages.includes(currentHeroImage)) {
+    allCoverImages.push(currentHeroImage);
+  }
+  
+  // Agregar las demás imágenes de cover
+  allCoverImages.push(...coverImages);
+  
+  if (allCoverImages.length === 0) {
     coverGrid.style.display = 'none';
     coverEmpty.style.display = 'block';
     coverSection.classList.remove('has-cover-image');
@@ -605,8 +628,8 @@ function updateCoverSection() {
   coverEmpty.style.display = 'none';
   coverGrid.innerHTML = '';
   
-  // Tomar la primera imagen como fondo principal
-  const firstImageData = allImages.find(img => img.filename === coverImages[0]);
+  // Tomar la primera imagen como fondo principal (prioridad al hero)
+  const firstImageData = allImages.find(img => img.filename === allCoverImages[0]);
   if (firstImageData && coverSection) {
     coverSection.classList.add('has-cover-image');
     // Crear un fondo sutil con la primera imagen
@@ -616,19 +639,20 @@ function updateCoverSection() {
     coverSection.style.backgroundAttachment = 'fixed';
   }
   
-  coverImages.forEach(filename => {
+  allCoverImages.forEach(filename => {
     const imageData = allImages.find(img => img.filename === filename);
     if (imageData) {
-      const coverItem = createCoverItem(imageData);
+      const isHeroImage = filename === currentHeroImage;
+      const coverItem = createCoverItem(imageData, isHeroImage);
       coverGrid.appendChild(coverItem);
     }
   });
 }
 
 // Función para crear un elemento de portada
-function createCoverItem(imageData) {
+function createCoverItem(imageData, isHeroImage = false) {
   const item = document.createElement('div');
-  item.className = 'cover-item';
+  item.className = `cover-item ${isHeroImage ? 'hero-image' : ''}`;
   
   const img = document.createElement('img');
   img.src = `/uploads/${imageData.filename}`;
@@ -639,19 +663,40 @@ function createCoverItem(imageData) {
   
   const info = document.createElement('div');
   info.className = 'cover-info';
+  
+  // Si es la imagen del hero, mostrarlo con un badge especial
+  const titleText = isHeroImage ? 
+    `${imageData.title || 'Foto de Portada'} ✨` : 
+    imageData.title || 'Foto de Portada';
+  const descriptionText = isHeroImage ? 
+    '🏠 Imagen Principal del Home' : 
+    imageData.description || 'Destacada';
+  
   info.innerHTML = `
-    <h3>${imageData.title || 'Foto de Portada'}</h3>
-    <p>${imageData.description || 'Destacada'}</p>
+    <h3>${titleText}</h3>
+    <p>${descriptionText}</p>
   `;
   
   const removeBtn = document.createElement('button');
   removeBtn.className = 'cover-remove';
   removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-  removeBtn.title = 'Remover de portada';
-  removeBtn.onclick = (e) => {
-    e.stopPropagation();
-    toggleCoverImage(imageData.filename);
-  };
+  
+  if (isHeroImage) {
+    removeBtn.title = 'Remover como imagen principal';
+    removeBtn.onclick = (e) => {
+      e.stopPropagation();
+      // Para la imagen del hero, preguntamos si quiere removerla como hero
+      if (confirm('¿Quieres remover esta imagen como imagen principal del home?')) {
+        setHeroImage(''); // Remover hero image
+      }
+    };
+  } else {
+    removeBtn.title = 'Remover de portada';
+    removeBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleCoverImage(imageData.filename);
+    };
+  }
   
   overlay.appendChild(info);
   item.appendChild(img);
@@ -921,6 +966,11 @@ async function setHeroImage(filename) {
       
       // Actualizar botones de hero
       updateHeroButtons();
+      
+      // Actualizar también la sección de portada para mostrar la nueva imagen del hero
+      setTimeout(() => {
+        updateCoverSection();
+      }, 500);
       
     } else {
       throw new Error('Error al actualizar la imagen del hero');

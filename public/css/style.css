@@ -538,6 +538,33 @@ body.admin-page {
   transform: scale(1.1);
 }
 
+/* Estilos especiales para la imagen del hero en la sección de portada */
+.cover-item.hero-image {
+  border: 3px solid var(--lv-gold);
+  box-shadow: 0 15px 40px rgba(196, 166, 97, 0.3), 0 0 20px rgba(196, 166, 97, 0.2);
+  position: relative;
+}
+
+.cover-item.hero-image::before {
+  content: '👑';
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: var(--lv-gold);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 10;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.cover-item.hero-image:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 60px rgba(196, 166, 97, 0.4), 0 0 30px rgba(196, 166, 97, 0.3);
+}
+
 .cover-empty {
   text-align: center;
   padding: 60px 20px;
