@@ -18,7 +18,7 @@ let allImages = [];
 let coverImages = [];
 
 // Función para cargar imágenes de la galería
-async function loadGalleryImages() {
+window.loadGalleryImages = async function loadGalleryImages() {
   try {
     const response = await fetch('/api/images');
     const images = await response.json();
@@ -163,9 +163,11 @@ function setupLightbox() {
 }
 
 // Función para abrir el lightbox estilo Louis Vuitton
-function openLightbox(index) {
+window.openLightbox = function openLightbox(index, customImages = null) {
+  // Usar imágenes personalizadas o todas las imágenes
+  const imagesToUse = customImages || allImages;
   currentImageIndex = index;
-  const imageData = allImages[index];
+  const imageData = imagesToUse[index];
   
   const overlay = document.createElement('div');
   overlay.classList.add('lightbox-overlay');
@@ -330,9 +332,9 @@ function openLightbox(index) {
 
   // Función para navegar en el lightbox
   function navigateLightbox(direction) {
-    const newIndex = (currentImageIndex + direction + allImages.length) % allImages.length;
+    const newIndex = (currentImageIndex + direction + imagesToUse.length) % imagesToUse.length;
     currentImageIndex = newIndex;
-    const newImageData = allImages[newIndex];
+    const newImageData = imagesToUse[newIndex];
     
     // Actualizar imagen
     fullImg.src = `/uploads/${newImageData.filename}`;

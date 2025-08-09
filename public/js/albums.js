@@ -201,8 +201,125 @@ class AlbumsManager {
 
         this.currentAlbum = album;
         
-        // Aquí se puede agregar lógica para mostrar las fotos del álbum
+        // Mostrar las fotos del álbum seleccionado
+        this.displayAlbumImages(album);
+        
+        // Scroll suave a la galería
+        document.getElementById('gallery')?.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+        });
+        
         console.log('Álbum seleccionado:', album);
+    }
+
+    async displayAlbumImages(album) {
+        try {
+            // Obtener todas las imágenes
+            const response = await fetch('/api/images');
+            const allImages = await response.json();
+            
+            // Filtrar solo las imágenes del álbum seleccionado
+            const albumImages = allImages.filter(image => 
+                album.images && album.images.includes(image.filename)
+            );
+            
+            const galleryGrid = document.getElementById('gallery-grid');
+            if (!galleryGrid) return;
+            
+            // Limpiar galería
+            galleryGrid.innerHTML = '';
+            
+            if (albumImages.length === 0) {
+                // Mostrar mensaje cuando el álbum está vacío
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'album-empty-message';
+                emptyMessage.innerHTML = `
+                    <div class="empty-album-content">
+                        <i class="fas fa-images"></i>
+                        <h3>Álbum vacío</h3>
+                        <p>El álbum "${album.name}" no tiene fotos aún.</p>
+                        <p>Agrega fotos haciendo clic en el botón 📚 en cualquier imagen de la galería completa.</p>
+                        <button class="btn-show-all" onclick="albumsManager.showAllImages()">
+                            Ver todas las fotos
+                        </button>
+                    </div>
+                `;
+                galleryGrid.appendChild(emptyMessage);
+            } else {
+                // Mostrar encabezado del álbum
+                const albumHeader = document.createElement('div');
+                albumHeader.className = 'album-header';
+                albumHeader.innerHTML = `
+                    <div class="album-info">
+                        <h3><i class="fas fa-book-open"></i> ${album.name}</h3>
+                        ${album.description ? `<p class="album-description">${album.description}</p>` : ''}
+                        ${album.campaign ? `<span class="album-campaign">Campaña: ${album.campaign}</span>` : ''}
+                        <span class="album-count">${albumImages.length} foto${albumImages.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <button class="btn-show-all" onclick="albumsManager.showAllImages()">
+                        <i class="fas fa-th"></i> Ver todas las fotos
+                    </button>
+                `;
+                galleryGrid.appendChild(albumHeader);
+                
+                // Mostrar las imágenes del álbum
+                albumImages.forEach((image, index) => {
+                    const galleryItem = this.createAlbumGalleryItem(image, index, albumImages);
+                    galleryGrid.appendChild(galleryItem);
+                });
+            }
+            
+            // Actualizar el título de la sección
+            const sectionHeader = document.querySelector('#gallery .section-header h2');
+            if (sectionHeader) {
+                sectionHeader.innerHTML = `<i class="fas fa-book-open"></i> ${album.name}`;
+            }
+            
+        } catch (error) {
+            console.error('Error cargando imágenes del álbum:', error);
+        }
+    }
+
+    createAlbumGalleryItem(imageData, index, albumImages) {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        
+        const img = document.createElement('img');
+        img.src = `/uploads/${imageData.filename}`;
+        img.alt = imageData.title || 'Foto';
+        img.loading = 'lazy';
+        
+        // Al hacer clic en la imagen, abrir lightbox con solo las imágenes del álbum
+        img.addEventListener('click', () => {
+            if (window.openLightbox) {
+                window.openLightbox(index, albumImages);
+            }
+        });
+        
+        item.appendChild(img);
+        return item;
+    }
+
+    showAllImages() {
+        // Mostrar todas las imágenes de nuevo
+        this.currentAlbum = null;
+        
+        // Remover selección de álbumes
+        document.querySelectorAll('.album-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Restaurar título original
+        const sectionHeader = document.querySelector('#gallery .section-header h2');
+        if (sectionHeader) {
+            sectionHeader.textContent = 'Galería de Fotos';
+        }
+        
+        // Recargar todas las imágenes (usar función existente de gallery.js)
+        if (window.loadGalleryImages) {
+            window.loadGalleryImages();
+        }
     }
 
     editAlbum(album) {
@@ -505,6 +622,102 @@ style.textContent = `
         .mobile-menu-btn {
             display: none;
         }
+    }
+    
+    .album-header {
+        grid-column: 1 / -1;
+        background: linear-gradient(135deg, var(--lv-gold) 0%, var(--lv-gold-dark) 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .album-info h3 {
+        margin: 0 0 8px 0;
+        font-size: 1.4rem;
+        font-weight: 600;
+    }
+    
+    .album-description {
+        margin: 5px 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+    
+    .album-campaign {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 8px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: inline-block;
+        margin: 5px 5px 0 0;
+    }
+    
+    .album-count {
+        background: rgba(255, 255, 255, 0.3);
+        padding: 4px 8px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: inline-block;
+        margin: 5px 0 0 0;
+    }
+    
+    .album-empty-message {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        border: 2px dashed rgba(212, 175, 55, 0.3);
+    }
+    
+    .empty-album-content i {
+        font-size: 4rem;
+        color: rgba(212, 175, 55, 0.4);
+        margin-bottom: 20px;
+        display: block;
+    }
+    
+    .empty-album-content h3 {
+        color: var(--lv-text);
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+    }
+    
+    .empty-album-content p {
+        color: var(--lv-text-light);
+        margin: 10px 0;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .btn-show-all {
+        background: linear-gradient(135deg, var(--lv-gold) 0%, var(--lv-gold-dark) 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-show-all:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
     }
 `;
 document.head.appendChild(style); 
