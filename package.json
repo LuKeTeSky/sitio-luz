@@ -12,8 +12,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.0",
+    "dotenv": "^16.0.3",
     "express": "^5.1.0",
+    "express-rate-limit": "^6.7.0",
     "express-session": "^1.18.2",
+    "helmet": "^6.1.5",
     "multer": "^2.0.2"
   }
 }

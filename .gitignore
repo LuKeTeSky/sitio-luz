@@ -1,15 +1,35 @@
-# Node.js
-node_modules/
-npm-debug.log
-yarn-error.log
+# 🔒 Archivos de seguridad y configuración
 .env
-.DS_Store
-dist/
-coverage/
-.vscode/
-*.log
+.env.local
+.env.production
 
-# Archivos de configuración del sitio
-uploads/
-hero-config.json
+# 📦 Dependencias
+node_modules/
+
+# 📁 Uploads (excepto archivos de ejemplo)
+public/uploads/*
+!public/uploads/.gitkeep
+!public/uploads/luz-hero.jpg
+
+# 📊 Logs y archivos temporales
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 🗃️ Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# 🔧 Archivos de desarrollo
+*.tmp
+*.temp
+.cache/
+
+# 📋 Datos dinámicos
 albums.json
+hero-config.json
+
+# 🚀 Archivos de deployment
+.vercel
+.netlify

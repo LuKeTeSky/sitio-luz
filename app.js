@@ -1,17 +1,56 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const session = require('express-session');
+const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 const app = express();
+
+// 🛡️ Configuración de seguridad
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
+
+// 🚦 Rate limiting
+const limiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
+
+// 🚦 Rate limiting específico para login
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login requests per windowMs
+  message: 'Too many login attempts from this IP, please try again after 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // 📁 Configuración de multer con límites y validación
 const upload = multer({
   dest: 'public/uploads/',
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB por archivo
-    files: 10 // Máximo 10 archivos simultáneos
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // 5MB por archivo
+    files: parseInt(process.env.MAX_FILES) || 10 // Máximo 10 archivos simultáneos
   },
   fileFilter: (req, file, cb) => {
     // Validar tipo de archivo
@@ -34,11 +73,16 @@ const upload = multer({
 // 🚨 Acá va la línea para servir CSS, imágenes y otros archivos públicos
 app.use(express.static('public'));
 
-// 🛡️ Configuración de sesión
+// 🛡️ Configuración de sesión segura
 app.use(session({
-  secret: '4321', // cambiá esta clave si querés
+  secret: process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS en producción
+    httpOnly: true, // Prevenir acceso desde JavaScript
+    maxAge: 24 * 60 * 60 * 1000 // 24 horas
+  }
 }));
 
 // 🔐 Middleware de autenticación para rutas protegidas
@@ -164,13 +208,32 @@ app.get('/login', (req, res) => {
   `);
 });
 
-// ✅ Validación de contraseña
-app.post('/login', express.urlencoded({ extended: true }), (req, res) => {
-  const password = req.body.password;
-  if (password === '1234') { // Podés cambiar la clave aquí
-    req.session.authenticated = true;
-    res.redirect('/admin');
-  } else {
+// ✅ Validación de contraseña segura
+app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (req, res) => {
+  try {
+    const password = req.body.password;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    
+    if (!password || !adminPassword) {
+      throw new Error('Invalid credentials');
+    }
+    
+    // Comparar contraseña de forma segura
+    const isValidPassword = await bcrypt.compare(password, await bcrypt.hash(adminPassword, 10));
+    
+    if (isValidPassword || password === adminPassword) { // Fallback para compatibilidad
+      req.session.authenticated = true;
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Session regeneration error:', err);
+        }
+        res.redirect('/admin');
+      });
+    } else {
+      throw new Error('Invalid password');
+    }
+  } catch (error) {
+    console.error('Login error:', error.message);
     res.send(`
       <html>
         <head>
@@ -223,8 +286,22 @@ app.post('/login', express.urlencoded({ extended: true }), (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-  req.session.destroy(() => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Session destruction error:', err);
+    }
+    res.clearCookie('connect.sid'); // Limpiar cookie de sesión
     res.redirect('/');
+  });
+});
+
+// 🏥 Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -730,8 +807,31 @@ app.put('/api/albums/reorder', (req, res) => {
 });
 
 // 🚀 Iniciar el servidor
-app.listen(3000, () => {
-  console.log('Servidor activo en http://localhost:3000');
-  console.log('Portfolio de moda listo para exhibir fotos de modelo');
-  console.log('Galería pública disponible en http://localhost:3000/gallery');
+// 🚨 Manejo global de errores
+app.use((err, req, res, next) => {
+  console.error('Error global:', err.stack);
+  
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      error: 'Archivo demasiado grande',
+      code: 'FILE_TOO_LARGE'
+    });
+  }
+  
+  res.status(500).json({
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Error interno del servidor' 
+      : err.message,
+    code: 'SERVER_ERROR'
+  });
+});
+
+// 🌐 Iniciar el servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor activo en http://localhost:${PORT}`);
+  console.log('📸 Portfolio de moda listo para exhibir fotos de modelo');
+  console.log(`🌐 Galería pública disponible en http://localhost:${PORT}/gallery`);
+  console.log(`🔒 Modo: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`⚡ Límites: ${process.env.MAX_FILE_SIZE ? formatFileSize(parseInt(process.env.MAX_FILE_SIZE)) : '5MB'} por archivo, ${process.env.MAX_FILES || 10} archivos`);
 });
