@@ -34,16 +34,100 @@ function loadHeroImage() {
     }
 }
 
+// Función para ordenar imágenes por prioridad (mismo sistema que admin)
+function sortImagesByPriority(images, albums, heroConfig) {
+  // Crear un map para rápido acceso a información de álbumes
+  const albumImageMap = new Map();
+  
+  albums.forEach((album, albumIndex) => {
+    if (album.images && Array.isArray(album.images)) {
+      album.images.forEach(imageFilename => {
+        albumImageMap.set(imageFilename, {
+          albumOrder: album.order || albumIndex,
+          albumName: album.name
+        });
+      });
+    }
+  });
+  
+  // Obtener imagen de portada actual
+  const coverImage = heroConfig && heroConfig.image ? heroConfig.image : null;
+  
+  // Clasificar imágenes
+  const categorizedImages = {
+    cover: [],
+    albumImages: [],
+    unassigned: []
+  };
+  
+  images.forEach(image => {
+    if (coverImage && image.filename === coverImage) {
+      // Esta es la imagen de portada
+      categorizedImages.cover.push({
+        ...image,
+        category: 'cover',
+        priority: 0
+      });
+    } else if (albumImageMap.has(image.filename)) {
+      // Esta imagen pertenece a un álbum
+      const albumInfo = albumImageMap.get(image.filename);
+      categorizedImages.albumImages.push({
+        ...image,
+        category: 'album',
+        albumOrder: albumInfo.albumOrder,
+        albumName: albumInfo.albumName,
+        priority: 1 + albumInfo.albumOrder
+      });
+    } else {
+      // Imagen sin asignar
+      categorizedImages.unassigned.push({
+        ...image,
+        category: 'unassigned',
+        priority: 1000 // Al final
+      });
+    }
+  });
+  
+  // Ordenar imágenes de álbumes por orden de álbum
+  categorizedImages.albumImages.sort((a, b) => a.albumOrder - b.albumOrder);
+  
+  // Combinar todas las categorías en orden
+  return [
+    ...categorizedImages.cover,
+    ...categorizedImages.albumImages,
+    ...categorizedImages.unassigned
+  ];
+}
+
 // Función para cargar imágenes de la galería (público)
 async function loadGalleryImages() {
     try {
-        const response = await fetch('/api/images');
-        if (response.ok) {
-            allImages = await response.json();
+        const [imagesResponse, albumsResponse, heroResponse] = await Promise.all([
+            fetch('/api/images'),
+            fetch('/api/albums'),
+            fetch('/api/hero')
+        ]);
+        
+        if (imagesResponse.ok && albumsResponse.ok && heroResponse.ok) {
+            const images = await imagesResponse.json();
+            const albums = await albumsResponse.json();
+            const heroConfig = await heroResponse.json();
+            
+            // Ordenar imágenes según prioridad: portada primero, luego por álbumes según su orden
+            const orderedImages = sortImagesByPriority(images, albums, heroConfig);
+            
+            allImages = orderedImages;
             displayGalleryImages();
             loadHeroImage(); // Cargar imagen de hero después de obtener las imágenes
         } else {
-            console.error('Error cargando imágenes:', response.statusText);
+            console.error('Error cargando datos:', imagesResponse.statusText);
+            // Fallback: cargar solo imágenes sin ordenamiento
+            const response = await fetch('/api/images');
+            if (response.ok) {
+                allImages = await response.json();
+                displayGalleryImages();
+                loadHeroImage();
+            }
         }
     } catch (error) {
         console.error('Error de red:', error);
