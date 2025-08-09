@@ -359,13 +359,20 @@ Para soporte técnico o consultas:
 
 ### 📋 **Estructura de Branches**
 
-Este proyecto sigue las mejores prácticas de **Gitflow**:
+Este proyecto sigue las mejores prácticas de **Gitflow** con versionado semántico:
 
-- **`main`** - Código de producción estable
-- **`develop`** - Rama de desarrollo principal
-- **`feature/*`** - Nuevas funcionalidades
+- **`main`** - Código de producción estable y releases
+- **`develop`** - Rama de desarrollo principal e integración
+- **`feature/*`** - Nuevas funcionalidades y mejoras
+- **`release/*`** - Preparación y pruebas de releases
 - **`hotfix/*`** - Correcciones urgentes de producción
-- **`release/*`** - Preparación de releases
+
+### 🔄 **Flujo de Rollback Seguro**
+
+El sistema está diseñado para rollback fácil:
+- Cada release tiene su propia rama `release/v1.x.x`
+- Si algo falla, cambiar a la rama de release anterior
+- Los tags marcan puntos estables para volver atrás
 
 ### 🏷️ **Sistema de Versionado Semántico**
 
@@ -383,40 +390,68 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.1.0** | - | Lightbox mejorado con ajuste a pantalla y tamaño real |
 | **v1.2.0** | - | Sistema completo de gestión de álbumes |
 | **v1.2.1** | - | Correcciones: acciones en lightbox, visibilidad de menús, botón eliminar álbum |
+| **v1.3.0** | 2024-01 | Navegación mejorada de álbumes, reordenamiento de secciones |
+
+### 🛡️ **Rollback de Emergencia**
+
+Si necesitas volver a una versión anterior:
+
+```zsh
+# Opción 1: Cambiar a una rama de release específica
+git checkout release/v1.2.0
+
+# Opción 2: Rollback con tag
+git checkout v1.2.0
+
+# Opción 3: Crear branch de emergencia desde tag
+git checkout -b emergency/rollback-v1.2.0 v1.2.0
+```
 
 ### 🔄 **Flujo de Trabajo para Nuevas Funcionalidades**
 
-#### 1. **Crear Feature Branch**
+#### 1. **Crear Feature Branch desde Develop**
 ```zsh
-# Desde develop
+# Siempre partir desde develop
 git checkout develop
 git pull origin develop
-git checkout -b feature/nueva-funcionalidad
+git checkout -b feature/nombre-descriptivo
 ```
 
 #### 2. **Desarrollar y Commit**
 ```zsh
 # Hacer cambios
 git add .
-git commit -m "✨ Add nueva funcionalidad"
+git commit -m "✨ feat: descripción de la funcionalidad"
+git push origin feature/nombre-descriptivo
 ```
 
 #### 3. **Merge a Develop**
 ```zsh
 git checkout develop
-git merge feature/nueva-funcionalidad
+git merge feature/nombre-descriptivo
 git push origin develop
 ```
 
-#### 4. **Crear Release**
+#### 4. **Crear Release Branch**
 ```zsh
-# Cuando develop esté estable
-git checkout -b release/v1.3.0
-# Hacer ajustes finales si es necesario
+# Para nueva versión
+git checkout develop
+git checkout -b release/v1.4.0
+git push origin release/v1.4.0
+```
+
+#### 5. **Finalizar Release**
+```zsh
+# Mergear a main
 git checkout main
-git merge release/v1.3.0
-git tag -a v1.3.0 -m "🎉 Nueva funcionalidad implementada"
+git merge release/v1.4.0
+git tag -a v1.4.0 -m "🎉 Release v1.4.0: Descripción"
 git push origin main --tags
+
+# Mergear de vuelta a develop
+git checkout develop
+git merge main
+git push origin develop
 ```
 
 ### 🚨 **Hotfix para Producción**
@@ -448,6 +483,33 @@ git diff v1.1.0..v1.2.0
 # Crear tag para el último commit
 git tag -a v1.2.2 -m "🔧 Bug fix description"
 git push origin v1.2.2
+```
+
+### 🚨 **Procedimiento de Rollback Seguro**
+
+#### **Cuando algo falla en producción:**
+
+```zsh
+# 1. Identificar la última versión estable
+git tag -l | grep v1
+
+# 2. Cambiar a la rama de release anterior
+git checkout release/v1.2.0
+
+# 3. O crear rama de emergencia desde tag
+git checkout -b emergency/rollback-from-v1.3.0 v1.2.0
+
+# 4. Desplegar desde la versión estable
+npm start
+```
+
+#### **Para volver a develop después del rollback:**
+
+```zsh
+# Mergear los cambios de la rama de emergencia si es necesario
+git checkout develop
+git merge emergency/rollback-from-v1.3.0
+git push origin develop
 ```
 
 ### 🎯 **Convenciones de Commits**
