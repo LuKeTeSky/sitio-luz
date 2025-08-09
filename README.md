@@ -2,6 +2,33 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
+## 🎯 **Novedades Principales v1.6.0**
+
+### 📤 **Subida Múltiple de Fotos**
+- **Hasta 10 fotos simultáneas** en una sola operación
+- **Selección múltiple** con Ctrl/Cmd+Click o Shift+Click
+- **Contador dinámico** de archivos seleccionados
+- **Progreso inteligente** con notificaciones personalizadas
+
+### 🔗 **Auto-Agregado Inteligente**
+- **Selecciona álbum → Sube fotos → Automáticamente en el álbum**
+- **Sin pasos manuales** adicionales
+- **Notificaciones contextuales** con nombre del álbum
+- **Actualización en tiempo real** de la vista del álbum
+
+### 🎨 **Reordenamiento Drag & Drop**
+- **Arrastra álbumes** para cambiar su orden en el sidebar
+- **Indicadores visuales** durante el arrastre (grip handle ⋮⋮)
+- **Orden reflejado** automáticamente en la galería principal
+- **Persistencia** del orden personalizado
+
+### 📸 **Ordenamiento Inteligente de Galería**
+- **Portada primero**: Imagen del hero siempre al inicio
+- **Álbumes ordenados**: Según tu orden personalizado
+- **Fotos libres al final**: Imágenes sin asignar
+
+---
+
 ## ✨ Características Principales
 
 ### 🎨 **Diseño y UX**
@@ -23,13 +50,19 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 ### 📚 **Sistema de Álbumes**
 - **Menú lateral estilo Louis Vuitton** para gestión de álbumes
 - **Crear álbumes por campaña** con nombre, descripción y campaña
-- **Selección múltiple** de fotos para álbumes
+- **Auto-agregado inteligente** - fotos se agregan automáticamente al álbum seleccionado
+- **Drag & drop para reordenar** álbumes en el sidebar con indicadores visuales
+- **Orden personalizable** que se refleja en la galería principal
+- **Selección múltiple** de fotos para álbumes (método manual alternativo)
 - **Botón flotante** para crear álbumes cuando el sidebar está colapsado
 - **Edición y eliminación** de álbumes existentes
 
 ### 🎯 **Gestión de Contenido**
 - **Panel de administración** con autenticación
-- **Subida de fotos** con drag & drop
+- **Subida múltiple de fotos** (hasta 10 archivos) con drag & drop
+- **Auto-agregado** de fotos a álbum seleccionado
+- **Ordenamiento inteligente** de galería (portada → álbumes → fotos libres)
+- **Drag & drop para reordenar álbumes** en el sidebar
 - **Configuración dinámica del hero** (imagen, título, subtítulo)
 - **Sección de fotos de portada** destacadas
 - **Notificaciones en tiempo real** para todas las acciones
@@ -95,11 +128,20 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 
 ### 📸 **Subir Fotos**
 
+#### Subida Individual o Múltiple
 1. Accede al panel de administración
 2. Ve a la sección "Subir Fotos"
-3. Haz clic en "Seleccionar imagen" o arrastra una foto
-4. Haz clic en "Subir Foto"
-5. La foto aparecerá automáticamente en la galería
+3. **Opción A**: Haz clic en "Seleccionar imágenes" y elige una o múltiples fotos (Ctrl/Cmd+Click)
+4. **Opción B**: Arrastra una o múltiples fotos al área de subida
+5. Haz clic en "Subir Fotos"
+6. Las fotos aparecerán automáticamente en la galería
+
+#### Auto-Agregado a Álbum (Nuevo)
+1. **Selecciona un álbum** en el sidebar izquierdo antes de subir
+2. Sube las fotos normalmente
+3. **✨ Las fotos se agregarán automáticamente** al álbum seleccionado
+4. Recibirás una notificación confirmando el agregado
+5. La vista del álbum se actualizará automáticamente
 
 ### 🎯 **Configurar Imagen del Hero**
 
@@ -133,9 +175,17 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 
 #### Gestionar Álbumes
 - **Ver álbumes**: Usa el menú lateral izquierdo
+- **Seleccionar álbum**: Haz clic en el álbum para verlo activo (activará auto-agregado)
+- **Reordenar álbumes**: Arrastra los álbumes para cambiar su orden ⋮⋮ (aparece al hacer hover)
 - **Editar álbum**: Haz doble clic en el álbum
-- **Seleccionar álbum**: Haz clic en el álbum para verlo activo
+- **Eliminar álbum**: Usa el botón 🗑️ en cada álbum
 - **Botón flotante**: Cuando el sidebar está colapsado, aparece un botón flotante para crear álbumes
+
+#### Orden de Galería Inteligente
+Las fotos se muestran automáticamente en este orden:
+1. **🖼️ Foto de portada** (imagen del hero) - siempre primera
+2. **📚 Fotos de álbumes** - según el orden personalizado de álbumes
+3. **📷 Fotos libres** - fotos sin asignar a álbumes
 
 ### 🔍 **Usar el Lightbox**
 
@@ -240,10 +290,11 @@ sitio-luz/
 │   ├── css/
 │   │   └── style.css     # Estilos principales
 │   ├── js/
-│   │   ├── gallery.js    # Funcionalidad de galería
-│   │   ├── albums.js     # Gestión de álbumes
-│   │   ├── hero-loader.js # Carga dinámica del hero
-│   │   └── gallery-public.js # Galería pública
+│   │   ├── gallery.js           # Funcionalidad de galería admin (subida múltiple, auto-agregado)
+│   │   ├── albums.js            # Gestión de álbumes (drag & drop, reordenamiento)
+│   │   ├── albums-homepage.js   # Gestión de álbumes página pública
+│   │   ├── hero-loader.js       # Carga dinámica del hero
+│   │   └── gallery-public.js    # Galería pública
 │   └── uploads/          # Imágenes subidas
 └── node_modules/         # Dependencias (generado)
 ```
@@ -309,6 +360,8 @@ En los archivos HTML, modifica los enlaces de Google Fonts:
 ### Las fotos no se suben
 - Verifica que la carpeta `public/uploads/` exista
 - Asegúrate de que el servidor tenga permisos de escritura
+- **Límite de archivos**: Máximo 10 fotos por subida
+- **Tamaño**: Verifica que las imágenes no sean demasiado grandes
 - Revisa la consola del navegador para errores
 
 ### El panel de administración no carga
@@ -320,6 +373,12 @@ En los archivos HTML, modifica los enlaces de Google Fonts:
 - Verifica que el archivo `albums.json` se pueda crear
 - Asegúrate de que el servidor tenga permisos de escritura
 - Revisa la consola del navegador para errores de red
+
+### Las fotos no se agregan automáticamente al álbum
+- Asegúrate de **seleccionar el álbum primero** (clic en el álbum del sidebar)
+- Verifica que el álbum esté marcado como activo (color dorado)
+- Si no hay álbum seleccionado, usa el método manual (botón 📚)
+- Revisa las notificaciones para confirmar el auto-agregado
 
 ## 📱 Compatibilidad
 
@@ -391,7 +450,8 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.2.0** | - | Sistema completo de gestión de álbumes |
 | **v1.2.1** | - | Correcciones: acciones en lightbox, visibilidad de menús, botón eliminar álbum |
 | **v1.3.0** | 2024-01 | Navegación mejorada de álbumes, reordenamiento de secciones |
-| **v1.5.0** | 2024-01 | **[ACTUAL]** Experiencia completa: diseño LV + navegación mejorada + Gitflow |
+| **v1.5.0** | 2024-01 | Experiencia completa: diseño LV + navegación mejorada + Gitflow |
+| **v1.6.0** | 2024-01 | **[ACTUAL]** Subida múltiple + Auto-agregado + Reordenamiento drag & drop |
 
 ### 🛡️ **Rollback de Emergencia**
 
