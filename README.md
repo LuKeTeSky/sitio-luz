@@ -50,24 +50,24 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 ### Pasos de Instalación
 
 1. **Clonar el repositorio**
-   ```bash
+   ```zsh
    git clone <url-del-repositorio>
    cd sitio-luz
    ```
 
 2. **Instalar dependencias**
-   ```bash
+   ```zsh
    npm install
    ```
 
 3. **Configurar variables de entorno** (opcional)
-   ```bash
+   ```zsh
    # Crear archivo .env
    echo "SESSION_SECRET=tu_clave_secreta_aqui" > .env
    ```
 
 4. **Iniciar el servidor**
-   ```bash
+   ```zsh
    # Opción 1: Usar npm (recomendado)
    npm start
    
@@ -150,7 +150,7 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 ## 🛠️ Comandos del Servidor
 
 ### Iniciar el Servidor
-```bash
+```zsh
 # Desarrollo
 npm start
 
@@ -162,7 +162,7 @@ npm run dev
 ```
 
 ### Detener el Servidor
-```bash
+```zsh
 # En Windows
 taskkill /f /im node.exe
 
@@ -173,9 +173,9 @@ pkill node
 ```
 
 ### Reiniciar el Servidor
-```bash
-# Detener y volver a iniciar
-taskkill /f /im node.exe && npm start
+```zsh
+# En Mac/Linux (detener y volver a iniciar)
+pkill node && npm start
 ```
 
 ### 🚀 Scripts de Inicio Rápido
@@ -190,7 +190,7 @@ npm start
 ```
 
 #### Linux/Mac
-```bash
+```zsh
 # Hacer ejecutable el script (solo la primera vez)
 chmod +x start.sh
 
@@ -387,7 +387,7 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 ### 🔄 **Flujo de Trabajo para Nuevas Funcionalidades**
 
 #### 1. **Crear Feature Branch**
-```bash
+```zsh
 # Desde develop
 git checkout develop
 git pull origin develop
@@ -395,21 +395,21 @@ git checkout -b feature/nueva-funcionalidad
 ```
 
 #### 2. **Desarrollar y Commit**
-```bash
+```zsh
 # Hacer cambios
 git add .
 git commit -m "✨ Add nueva funcionalidad"
 ```
 
 #### 3. **Merge a Develop**
-```bash
+```zsh
 git checkout develop
 git merge feature/nueva-funcionalidad
 git push origin develop
 ```
 
 #### 4. **Crear Release**
-```bash
+```zsh
 # Cuando develop esté estable
 git checkout -b release/v1.3.0
 # Hacer ajustes finales si es necesario
@@ -421,7 +421,7 @@ git push origin main --tags
 
 ### 🚨 **Hotfix para Producción**
 
-```bash
+```zsh
 # Desde main
 git checkout main
 git checkout -b hotfix/critical-bug-fix
@@ -435,7 +435,7 @@ git push origin main --tags
 
 ### 📊 **Comandos Útiles**
 
-```bash
+```zsh
 # Ver todas las versiones
 git tag -l
 
