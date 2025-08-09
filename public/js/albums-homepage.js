@@ -179,34 +179,34 @@ class AlbumsHomepageManager {
                 `;
                 galleryGrid.appendChild(emptyMessage);
             } else {
-                // Mostrar encabezado del álbum
-                const albumHeader = document.createElement('div');
-                albumHeader.className = 'album-header';
-                albumHeader.innerHTML = `
-                    <div class="album-info">
-                        <h3><i class="fas fa-book-open"></i> ${album.name}</h3>
-                        ${album.description ? `<p class="album-description">${album.description}</p>` : ''}
-                        ${album.campaign ? `<span class="album-campaign">Campaña: ${album.campaign}</span>` : ''}
-                        <span class="album-count">${albumImages.length} foto${albumImages.length !== 1 ? 's' : ''}</span>
-                    </div>
-                    <button class="btn-show-all" onclick="homepageAlbums.showAllImages()">
-                        <i class="fas fa-th"></i> Ver todas las fotos
-                    </button>
-                `;
-                galleryGrid.appendChild(albumHeader);
-                
-                // Mostrar las imágenes del álbum
+                // Mostrar las imágenes del álbum directamente (sin encabezado duplicado)
                 albumImages.forEach((image, index) => {
                     const galleryItem = this.createGalleryItem(image, index, albumImages);
                     galleryGrid.appendChild(galleryItem);
                 });
             }
             
-            // Actualizar el título de la sección
+            // Actualizar el título de la sección con información completa del álbum
             const sectionHeader = document.querySelector('#gallery .section-header h2');
             if (sectionHeader) {
-                sectionHeader.innerHTML = `<i class="fas fa-book-open"></i> ${album.name}`;
+                const albumInfo = [];
+                if (album.description) albumInfo.push(album.description);
+                if (album.campaign) albumInfo.push(`Campaña: ${album.campaign}`);
+                albumInfo.push(`${albumImages.length} foto${albumImages.length !== 1 ? 's' : ''}`);
+                
+                const infoText = albumInfo.length > 0 ? ` • ${albumInfo.join(' • ')}` : '';
+                sectionHeader.innerHTML = `<i class="fas fa-book-open"></i> ${album.name}${infoText}`;
             }
+            
+            // Agregar botón "Ver todas las fotos" al final de la galería
+            const showAllBtn = document.createElement('div');
+            showAllBtn.className = 'show-all-button-container';
+            showAllBtn.innerHTML = `
+                <button class="btn-show-all-public" onclick="homepageAlbums.showAllImages()">
+                    <i class="fas fa-th"></i> Ver todas las fotos
+                </button>
+            `;
+            galleryGrid.appendChild(showAllBtn);
             
         } catch (error) {
             console.error('Error cargando imágenes del álbum:', error);
@@ -346,4 +346,56 @@ class AlbumsHomepageManager {
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
     window.homepageAlbums = new AlbumsHomepageManager();
-}); 
+});
+
+// Agregar estilos CSS para el botón "Ver todas las fotos" en vista pública
+const publicAlbumStyles = document.createElement('style');
+publicAlbumStyles.textContent = `
+    .show-all-button-container {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: center;
+        padding: 30px 20px;
+        margin-top: 20px;
+    }
+
+    .btn-show-all-public {
+        background: linear-gradient(135deg, var(--lv-gold) 0%, var(--lv-gold-dark) 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 25px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95rem;
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+    }
+
+    .btn-show-all-public:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+        background: linear-gradient(135deg, var(--lv-gold-dark) 0%, var(--lv-gold) 100%);
+    }
+
+    .btn-show-all-public:active {
+        transform: translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .show-all-button-container {
+            padding: 20px 15px;
+            margin-top: 15px;
+        }
+        
+        .btn-show-all-public {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+        }
+    }
+`;
+document.head.appendChild(publicAlbumStyles); 
