@@ -272,11 +272,17 @@ class AlbumsManager {
                         <h3>Álbum vacío</h3>
                         <p>El álbum "${album.name}" no tiene fotos aún.</p>
                         <p>Agrega fotos haciendo clic en el botón 📚 en cualquier imagen de la galería completa.</p>
-                        <button class="btn-show-all" onclick="albumsManager.showAllImages()">
+                        <button class="btn-show-all" id="btn-show-all-empty">
                             Ver todas las fotos
                         </button>
                     </div>
                 `;
+                
+                // Agregar event listener al botón
+                const showAllBtn = emptyMessage.querySelector('#btn-show-all-empty');
+                if (showAllBtn) {
+                    showAllBtn.addEventListener('click', () => this.showAllImages());
+                }
                 galleryGrid.appendChild(emptyMessage);
             } else {
                 // Mostrar encabezado del álbum
@@ -289,10 +295,16 @@ class AlbumsManager {
                         ${album.campaign ? `<span class="album-campaign">Campaña: ${album.campaign}</span>` : ''}
                         <span class="album-count">${albumImages.length} foto${albumImages.length !== 1 ? 's' : ''}</span>
                     </div>
-                    <button class="btn-show-all" onclick="albumsManager.showAllImages()">
+                    <button class="btn-show-all" id="btn-show-all-header">
                         <i class="fas fa-th"></i> Ver todas las fotos
                     </button>
                 `;
+                
+                // Agregar event listener al botón
+                const showAllHeaderBtn = albumHeader.querySelector('#btn-show-all-header');
+                if (showAllHeaderBtn) {
+                    showAllHeaderBtn.addEventListener('click', () => this.showAllImages());
+                }
                 galleryGrid.appendChild(albumHeader);
                 
                 // Mostrar las imágenes del álbum
@@ -334,6 +346,8 @@ class AlbumsManager {
     }
 
     showAllImages() {
+        console.log('showAllImages() llamado');
+        
         // Mostrar todas las imágenes de nuevo
         this.currentAlbum = null;
         this.selectedAlbum = null; // Limpiar selección para auto-agregado
@@ -348,12 +362,20 @@ class AlbumsManager {
         const sectionHeader = document.querySelector('#gallery .section-header h2');
         if (sectionHeader) {
             sectionHeader.textContent = 'Galería de Fotos';
+            console.log('Título restaurado a "Galería de Fotos"');
+        } else {
+            console.warn('No se encontró el header de la galería');
         }
         
         // Recargar todas las imágenes (usar función existente de gallery.js)
         if (window.loadAdminGallery) {
+            console.log('Llamando a loadAdminGallery...');
             window.loadAdminGallery();
+        } else {
+            console.error('loadAdminGallery no está disponible');
         }
+        
+        console.log('showAllImages() completado');
     }
 
     // Método para obtener el álbum actualmente seleccionado (usado por gallery.js)
