@@ -730,6 +730,9 @@ function setupUploadForm() {
         // Mostrar mensaje de éxito personalizado
         showNotification(result.message || '¡Fotos subidas exitosamente!', 'success');
         
+        // Si hay un álbum seleccionado, agregar las fotos automáticamente
+        await handleAutoAddToSelectedAlbum(result.files);
+        
         // Recargar galería
         setTimeout(() => {
           loadGalleryImages();
@@ -1041,4 +1044,55 @@ function showAlbumSelector(imageFilename, albumBtn) {
   requestAnimationFrame(() => {
     document.addEventListener('click', closeSelector);
   });
+}
+
+// Función para agregar automáticamente fotos al álbum seleccionado
+async function handleAutoAddToSelectedAlbum(uploadedFiles) {
+  // Verificar si hay un álbum seleccionado actualmente
+  if (!window.albumsManager) {
+    return;
+  }
+
+  const selectedAlbum = window.albumsManager.getSelectedAlbum();
+  if (!selectedAlbum) {
+    return; // No hay álbum seleccionado
+  }
+
+  let addedCount = 0;
+  let errors = 0;
+
+  // Agregar cada archivo subido al álbum seleccionado
+  for (const file of uploadedFiles) {
+    try {
+      const success = await window.albumsManager.addImageToAlbum(file.filename, selectedAlbum.id);
+      if (success) {
+        addedCount++;
+      } else {
+        errors++;
+      }
+    } catch (error) {
+      console.error('Error agregando imagen al álbum:', error);
+      errors++;
+    }
+  }
+
+  // Mostrar notificación del resultado
+  if (addedCount > 0) {
+    const message = addedCount === 1 
+      ? `Foto agregada automáticamente al álbum "${selectedAlbum.name}"` 
+      : `${addedCount} fotos agregadas automáticamente al álbum "${selectedAlbum.name}"`;
+    
+    showNotification(message, 'success');
+    
+    // Actualizar la vista del álbum si está siendo mostrado
+    if (window.albumsManager.isShowingAlbum(selectedAlbum.id)) {
+      setTimeout(() => {
+        window.albumsManager.displayAlbumImages(selectedAlbum);
+      }, 1500);
+    }
+  }
+
+  if (errors > 0) {
+    showNotification(`Error agregando ${errors} imagen(es) al álbum`, 'error');
+  }
 }

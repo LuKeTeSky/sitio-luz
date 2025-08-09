@@ -3,6 +3,8 @@ class AlbumsManager {
     constructor() {
         this.albums = [];
         this.currentAlbum = null;
+        this.selectedAlbum = null; // Álbum actualmente seleccionado
+        this.currentlyShowingAlbumId = null; // ID del álbum que se está mostrando en galería
         this.isEditing = false;
         this.editingAlbumId = null;
         
@@ -207,6 +209,7 @@ class AlbumsManager {
         }
 
         this.currentAlbum = album;
+        this.selectedAlbum = album; // Guardar como álbum seleccionado para auto-agregado
         
         // Mostrar las fotos del álbum seleccionado
         this.displayAlbumImages(album);
@@ -222,6 +225,9 @@ class AlbumsManager {
 
     async displayAlbumImages(album) {
         try {
+            // Marcar que se está mostrando este álbum
+            this.currentlyShowingAlbumId = album.id;
+            
             // Obtener todas las imágenes
             const response = await fetch('/api/images');
             const allImages = await response.json();
@@ -311,6 +317,8 @@ class AlbumsManager {
     showAllImages() {
         // Mostrar todas las imágenes de nuevo
         this.currentAlbum = null;
+        this.selectedAlbum = null; // Limpiar selección para auto-agregado
+        this.currentlyShowingAlbumId = null; // No mostrando álbum específico
         
         // Remover selección de álbumes
         document.querySelectorAll('.album-item').forEach(item => {
@@ -327,6 +335,21 @@ class AlbumsManager {
         if (window.loadAdminGallery) {
             window.loadAdminGallery();
         }
+    }
+
+    // Método para obtener el álbum actualmente seleccionado (usado por gallery.js)
+    getSelectedAlbum() {
+        return this.selectedAlbum;
+    }
+
+    // Método para verificar si se está mostrando un álbum específico
+    isShowingAlbum(albumId) {
+        return this.currentlyShowingAlbumId === albumId;
+    }
+
+    // Método para obtener todos los álbumes (usado por gallery.js)
+    getAlbums() {
+        return this.albums;
     }
 
     editAlbum(album) {
