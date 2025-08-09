@@ -717,22 +717,64 @@ function setupSmoothScrolling() {
   const links = document.querySelectorAll('a[href^="#"]');
   
   links.forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const targetId = link.getAttribute('href');
-      const targetElement = document.querySelector(targetId);
-      
-      if (targetElement) {
-        const headerHeight = document.querySelector('.header').offsetHeight;
-        const targetPosition = targetElement.offsetTop - headerHeight - 20;
+    // Manejar el botón específico de galería de manera especial
+    if (link.id === 'gallery-nav-btn') {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleGalleryNavigation();
+      });
+    } else {
+      // Comportamiento normal para otros enlaces
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href');
+        const targetElement = document.querySelector(targetId);
         
-        window.scrollTo({
-          top: targetPosition,
-          behavior: 'smooth'
-        });
-      }
-    });
+        if (targetElement) {
+          const headerHeight = document.querySelector('.header').offsetHeight;
+          const targetPosition = targetElement.offsetTop - headerHeight - 20;
+          
+          window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+        }
+      });
+    }
   });
+}
+
+// Función específica para manejar la navegación del botón Galería
+function handleGalleryNavigation() {
+  // 1. Limpiar cualquier selección de álbum activa
+  if (window.albumsManager) {
+    window.albumsManager.showAllImages();
+  }
+  
+  // 2. Recargar todas las imágenes en la galería
+  if (window.loadAdminGallery) {
+    window.loadAdminGallery();
+  }
+  
+  // 3. Restaurar título original
+  const sectionHeader = document.querySelector('#gallery .section-header h2');
+  if (sectionHeader) {
+    sectionHeader.textContent = 'Galería de Fotos';
+  }
+  
+  // 4. Hacer scroll a la galería
+  setTimeout(() => {
+    const targetElement = document.querySelector('#gallery');
+    if (targetElement) {
+      const headerHeight = document.querySelector('.header').offsetHeight;
+      const targetPosition = targetElement.offsetTop - headerHeight - 20;
+      
+      window.scrollTo({
+        top: targetPosition,
+        behavior: 'smooth'
+      });
+    }
+  }, 100); // Pequeño delay para que se carguen las imágenes
 }
 
 // Función para animar elementos cuando entran en el viewport
