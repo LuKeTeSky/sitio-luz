@@ -513,6 +513,8 @@ async function deleteImage(filename, index) {
     });
     
     if (response.ok) {
+      const result = await response.json();
+      
       // Mostrar mensaje de éxito
       showNotification('Foto eliminada exitosamente', 'success');
       
@@ -522,6 +524,23 @@ async function deleteImage(filename, index) {
       if (imageIndex > -1) {
         coverImages.splice(imageIndex, 1);
         localStorage.setItem('coverImages', JSON.stringify(coverImages));
+      }
+      
+      // Si se actualizaron álbumes, recargar los álbumes también
+      if (result.albumsUpdated && window.albumsManager) {
+        window.albumsManager.loadAlbums();
+        
+        // Si estamos mostrando un álbum específico, verificar si necesita actualización
+        if (window.albumsManager.currentlyShowingAlbumId) {
+          const currentAlbum = window.albumsManager.getAlbums().find(
+            album => album.id === window.albumsManager.currentlyShowingAlbumId
+          );
+          if (currentAlbum) {
+            setTimeout(() => {
+              window.albumsManager.displayAlbumImages(currentAlbum);
+            }, 300);
+          }
+        }
       }
       
       // Recargar galería

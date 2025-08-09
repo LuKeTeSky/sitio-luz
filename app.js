@@ -357,13 +357,40 @@ app.delete('/api/images/:filename', (req, res) => {
       return res.status(404).json({ error: 'Archivo no encontrado' });
     }
     
-    // Eliminar el archivo
+    // Eliminar el archivo físico
     fs.unlinkSync(filePath);
+    
+    // Limpiar referencias de la imagen en todos los álbumes
+    try {
+      const albums = loadAlbums();
+      let albumsModified = false;
+      
+      albums.forEach(album => {
+        if (album.images && album.images.includes(filename)) {
+          const imageIndex = album.images.indexOf(filename);
+          if (imageIndex > -1) {
+            album.images.splice(imageIndex, 1);
+            album.updatedAt = new Date().toISOString();
+            albumsModified = true;
+          }
+        }
+      });
+      
+      // Guardar álbumes solo si se modificaron
+      if (albumsModified) {
+        saveAlbums(albums);
+        console.log(`Imagen ${filename} eliminada de todos los álbumes`);
+      }
+    } catch (albumError) {
+      console.error('Error limpiando referencias en álbumes:', albumError);
+      // No fallar la eliminación de la imagen por esto
+    }
     
     res.json({ 
       success: true, 
       message: 'Foto eliminada exitosamente',
-      filename: filename
+      filename: filename,
+      albumsUpdated: true
     });
     
   } catch (error) {

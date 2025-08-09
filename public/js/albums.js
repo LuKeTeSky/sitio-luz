@@ -232,10 +232,29 @@ class AlbumsManager {
             const response = await fetch('/api/images');
             const allImages = await response.json();
             
-            // Filtrar solo las imágenes del álbum seleccionado
+            // Filtrar solo las imágenes del álbum seleccionado que realmente existen
             const albumImages = allImages.filter(image => 
-                album.images && album.images.includes(image.filename)
+                album.images && album.images.includes(image.filename) && image.filename
             );
+            
+            // Verificar si hay imágenes huérfanas (referencias en el álbum que ya no existen)
+            const existingImageFilenames = allImages.map(img => img.filename);
+            const orphanedImages = album.images ? album.images.filter(filename => 
+                !existingImageFilenames.includes(filename)
+            ) : [];
+            
+            // Si hay imágenes huérfanas, limpiarlas automáticamente
+            if (orphanedImages.length > 0) {
+                console.warn(`Álbum "${album.name}" contiene ${orphanedImages.length} referencia(s) a imagen(es) inexistente(s):`, orphanedImages);
+                console.log('Limpiando referencias huérfanas...');
+                
+                // Limpiar las referencias huérfanas automáticamente
+                try {
+                    await this.cleanupOrphanedImages(album.id, orphanedImages);
+                } catch (error) {
+                    console.error('Error limpiando referencias huérfanas:', error);
+                }
+            }
             
             const galleryGrid = document.getElementById('gallery-grid');
             if (!galleryGrid) return;
@@ -549,6 +568,34 @@ class AlbumsManager {
     // Método para obtener álbumes (para usar en gallery.js)
     getAlbums() {
         return this.albums;
+    }
+
+    // Método para limpiar referencias huérfanas de imágenes eliminadas
+    async cleanupOrphanedImages(albumId, orphanedImages) {
+        try {
+            // Remover cada imagen huérfana del álbum
+            for (const imageId of orphanedImages) {
+                const response = await fetch(`/api/albums/${albumId}/images/${imageId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    console.log(`Referencia huérfana ${imageId} eliminada del álbum ${albumId}`);
+                } else {
+                    console.warn(`No se pudo eliminar referencia huérfana ${imageId} del álbum ${albumId}`);
+                }
+            }
+            
+            // Recargar los álbumes después de la limpieza
+            await this.loadAlbums();
+            
+            this.showNotification(`${orphanedImages.length} referencia(s) de imagen(es) eliminada(s) limpiadas automáticamente`, 'info');
+            
+            return true;
+        } catch (error) {
+            console.error('Error en limpieza de referencias huérfanas:', error);
+            return false;
+        }
     }
 
     // Configurar botón flotante para crear álbum
