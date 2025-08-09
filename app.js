@@ -388,6 +388,8 @@ function saveAlbums(albums) {
 app.get('/api/albums', (req, res) => {
   try {
     const albums = loadAlbums();
+    // Ordenar álbumes por el campo order
+    albums.sort((a, b) => (a.order || 0) - (b.order || 0));
     res.json(albums);
   } catch (error) {
     console.error('Error obteniendo álbumes:', error);
@@ -415,6 +417,7 @@ app.post('/api/albums', express.json(), (req, res) => {
       description: description ? description.trim() : '',
       campaign: campaign ? campaign.trim() : '',
       images: [],
+      order: albums.length, // Agregar al final por defecto
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -567,6 +570,43 @@ app.delete('/api/albums/:id/images/:imageId', (req, res) => {
     
   } catch (error) {
     console.error('Error removiendo imagen del álbum:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// PUT /api/albums/reorder - Reordenar álbumes
+app.put('/api/albums/reorder', (req, res) => {
+  try {
+    const { albumsOrder } = req.body;
+    
+    if (!Array.isArray(albumsOrder)) {
+      return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes' });
+    }
+    
+    const albums = loadAlbums();
+    
+    // Actualizar el order de cada álbum según la nueva posición
+    albumsOrder.forEach((albumId, index) => {
+      const albumIndex = albums.findIndex(album => album.id === albumId);
+      if (albumIndex !== -1) {
+        albums[albumIndex].order = index;
+        albums[albumIndex].updatedAt = new Date().toISOString();
+      }
+    });
+    
+    // Ordenar álbumes por el campo order
+    albums.sort((a, b) => (a.order || 0) - (b.order || 0));
+    
+    saveAlbums(albums);
+    
+    res.json({
+      success: true,
+      message: 'Orden de álbumes actualizado exitosamente',
+      albums: albums
+    });
+    
+  } catch (error) {
+    console.error('Error reordenando álbumes:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

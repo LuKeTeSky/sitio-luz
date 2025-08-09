@@ -140,14 +140,21 @@ class AlbumsManager {
             const albumElement = this.createAlbumElement(album);
             albumsList.appendChild(albumElement);
         });
+
+        // Configurar drag & drop después de renderizar
+        this.setupDragAndDrop();
     }
 
     createAlbumElement(album) {
         const albumDiv = document.createElement('div');
         albumDiv.className = 'album-item';
         albumDiv.dataset.albumId = album.id;
+        albumDiv.draggable = true; // Hacer el elemento draggable
 
         albumDiv.innerHTML = `
+            <div class="album-drag-handle" title="Arrastrar para reordenar">
+                <i class="fas fa-grip-vertical"></i>
+            </div>
             <div class="album-header">
                 <h4 class="album-name">${album.name}</h4>
                 <div class="album-actions">
@@ -549,6 +556,189 @@ class AlbumsManager {
         // Estado inicial
         updateFloatingBtn();
     }
+
+    // Configurar eventos de drag & drop para reordenar álbumes
+    setupDragAndDrop() {
+        const albumsList = document.getElementById('albums-list');
+        if (!albumsList) return;
+
+        let draggedElement = null;
+        let draggedIndex = null;
+
+        albumsList.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('album-item')) {
+                draggedElement = e.target;
+                draggedIndex = Array.from(albumsList.children).indexOf(draggedElement);
+                
+                // Estilo visual durante drag
+                e.target.classList.add('dragging');
+                e.target.style.opacity = '0.5';
+                
+                // Configurar datos de transferencia
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', e.target.outerHTML);
+            }
+        });
+
+        albumsList.addEventListener('dragend', (e) => {
+            if (e.target.classList.contains('album-item')) {
+                e.target.classList.remove('dragging');
+                e.target.style.opacity = '';
+                
+                // Limpiar indicadores de drop
+                const items = albumsList.querySelectorAll('.album-item');
+                items.forEach(item => {
+                    item.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+            }
+        });
+
+        albumsList.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const targetItem = e.target.closest('.album-item');
+            if (targetItem && targetItem !== draggedElement) {
+                // Limpiar indicadores previos
+                const items = albumsList.querySelectorAll('.album-item');
+                items.forEach(item => {
+                    item.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+
+                // Determinar posición de drop
+                const rect = targetItem.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                
+                if (e.clientY < midY) {
+                    targetItem.classList.add('drag-over-top');
+                } else {
+                    targetItem.classList.add('drag-over-bottom');
+                }
+            }
+        });
+
+        albumsList.addEventListener('drop', (e) => {
+            e.preventDefault();
+            
+            const targetItem = e.target.closest('.album-item');
+            if (targetItem && targetItem !== draggedElement) {
+                const targetIndex = Array.from(albumsList.children).indexOf(targetItem);
+                
+                // Determinar nueva posición
+                const rect = targetItem.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                const insertAfter = e.clientY >= midY;
+                
+                let newIndex = targetIndex;
+                if (insertAfter) {
+                    newIndex = targetIndex + 1;
+                }
+
+                // Ajustar índice si movemos hacia arriba
+                if (draggedIndex < newIndex) {
+                    newIndex--;
+                }
+
+                // Reordenar elementos en el DOM
+                if (insertAfter && targetItem.nextSibling) {
+                    albumsList.insertBefore(draggedElement, targetItem.nextSibling);
+                } else if (!insertAfter) {
+                    albumsList.insertBefore(draggedElement, targetItem);
+                } else {
+                    albumsList.appendChild(draggedElement);
+                }
+
+                // Actualizar orden en el backend
+                this.updateAlbumsOrder();
+            }
+
+            // Limpiar indicadores de drop
+            const items = albumsList.querySelectorAll('.album-item');
+            items.forEach(item => {
+                item.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+        });
+    }
+
+    // Actualizar orden de álbumes en el backend
+    async updateAlbumsOrder() {
+        try {
+            const albumsList = document.getElementById('albums-list');
+            const albumItems = albumsList.querySelectorAll('.album-item');
+            
+            // Crear array con el nuevo orden de IDs
+            const albumsOrder = Array.from(albumItems).map(item => 
+                item.dataset.albumId
+            );
+
+            // Enviar al backend
+            const response = await fetch('/api/albums/reorder', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ albumsOrder })
+            });
+
+            if (response.ok) {
+                console.log('Orden de álbumes actualizado exitosamente');
+                
+                // Actualizar array local de álbumes
+                const newOrderedAlbums = [];
+                albumsOrder.forEach(albumId => {
+                    const album = this.albums.find(a => a.id === albumId);
+                    if (album) {
+                        newOrderedAlbums.push(album);
+                    }
+                });
+                this.albums = newOrderedAlbums;
+
+                // Recargar galería para reflejar nuevo orden
+                if (window.loadAdminGallery) {
+                    await window.loadAdminGallery();
+                }
+                
+                // Mostrar notificación
+                this.showNotification('Orden de álbumes actualizado', 'success');
+            } else {
+                console.error('Error actualizando orden de álbumes');
+                this.showNotification('Error al actualizar orden', 'error');
+                // Revertir a orden original
+                this.renderAlbums();
+            }
+        } catch (error) {
+            console.error('Error actualizando orden:', error);
+            this.showNotification('Error de conexión', 'error');
+            // Revertir a orden original
+            this.renderAlbums();
+        }
+    }
+
+    // Mostrar notificación temporal
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 10000;
+            font-size: 14px;
+            max-width: 300px;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
 }
 
 // Inicializar el gestor de álbumes cuando el DOM esté listo
@@ -718,6 +908,77 @@ style.textContent = `
     .btn-show-all:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+    }
+
+    /* Estilos para drag & drop de álbumes */
+    .album-item {
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .album-item.dragging {
+        opacity: 0.5 !important;
+        transform: rotate(5deg);
+        z-index: 1000;
+    }
+
+    .album-drag-handle {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(212, 175, 55, 0.1);
+        border-radius: 4px;
+        cursor: grab;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        color: #d4af37;
+        font-size: 12px;
+    }
+
+    .album-item:hover .album-drag-handle {
+        opacity: 1;
+    }
+
+    .album-drag-handle:hover {
+        background: rgba(212, 175, 55, 0.2);
+    }
+
+    .album-drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .album-item.drag-over-top {
+        border-top: 3px solid #d4af37;
+        transform: translateY(2px);
+    }
+
+    .album-item.drag-over-bottom {
+        border-bottom: 3px solid #d4af37;
+        transform: translateY(-2px);
+    }
+
+    .album-item.drag-over-top::before,
+    .album-item.drag-over-bottom::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #d4af37, transparent);
+        z-index: 10;
+    }
+
+    .album-item.drag-over-top::before {
+        top: -3px;
+    }
+
+    .album-item.drag-over-bottom::after {
+        bottom: -3px;
     }
 `;
 document.head.appendChild(style); 
