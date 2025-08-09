@@ -391,6 +391,7 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.2.0** | - | Sistema completo de gestión de álbumes |
 | **v1.2.1** | - | Correcciones: acciones en lightbox, visibilidad de menús, botón eliminar álbum |
 | **v1.3.0** | 2024-01 | Navegación mejorada de álbumes, reordenamiento de secciones |
+| **v1.5.0** | 2024-01 | **[ACTUAL]** Experiencia completa: diseño LV + navegación mejorada + Gitflow |
 
 ### 🛡️ **Rollback de Emergencia**
 
