@@ -10,12 +10,205 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Cargar configuración de portada
   loadCoverSettings();
+  
+  // Configurar drag & drop para la galería
+  setupGalleryDragAndDrop();
 });
 
 // Variables globales para el lightbox
 let currentImageIndex = 0;
 let allImages = [];
 let coverImages = [];
+
+// Variables para drag & drop
+let draggedElement = null;
+let draggedIndex = -1;
+let originalOrder = [];
+
+// Función para configurar drag & drop en la galería
+function setupGalleryDragAndDrop() {
+  const galleryGrid = document.getElementById('gallery-grid');
+  if (!galleryGrid) return;
+  
+  // Guardar orden original
+  originalOrder = [...allImages];
+  
+  // Agregar atributos de drag & drop a la grilla
+  galleryGrid.setAttribute('draggable', 'false');
+  galleryGrid.addEventListener('dragover', handleDragOver);
+  galleryGrid.addEventListener('drop', handleDrop);
+  galleryGrid.addEventListener('dragleave', handleDragLeave);
+}
+
+// Función para hacer elementos de galería arrastrables
+function makeGalleryItemDraggable(item, index) {
+  item.setAttribute('draggable', 'true');
+  item.setAttribute('data-index', index);
+  
+  item.addEventListener('dragstart', (e) => handleDragStart(e, index));
+  item.addEventListener('dragend', handleDragEnd);
+  item.addEventListener('dragover', handleDragOver);
+  item.addEventListener('drop', handleDrop);
+  item.addEventListener('dragenter', handleDragEnter);
+  item.addEventListener('dragleave', handleDragLeave);
+  
+  // Agregar indicador visual de que es arrastrable
+  item.classList.add('draggable');
+  
+  // Agregar tooltip
+  const tooltip = document.createElement('div');
+  tooltip.className = 'drag-tooltip';
+  tooltip.innerHTML = '<i class="fas fa-grip-vertical"></i>';
+  tooltip.title = 'Arrastra para reordenar';
+  item.appendChild(tooltip);
+}
+
+// Función para manejar inicio del drag
+function handleDragStart(e, index) {
+  draggedElement = e.target.closest('.gallery-item');
+  draggedIndex = index;
+  
+  // Guardar orden original si es la primera vez
+  if (originalOrder.length === 0) {
+    originalOrder = [...allImages];
+  }
+  
+  // Efecto visual durante el drag
+  e.target.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/html', e.target.outerHTML);
+  
+  // Agregar clase de drag activo
+  document.body.classList.add('dragging');
+}
+
+// Función para manejar fin del drag
+function handleDragEnd(e) {
+  e.target.style.opacity = '1';
+  draggedElement = null;
+  draggedIndex = -1;
+  
+  // Remover clase de drag activo
+  document.body.classList.remove('dragging');
+  
+  // Remover clases de drop zones
+  document.querySelectorAll('.gallery-item').forEach(item => {
+    item.classList.remove('drag-over', 'drop-zone');
+  });
+}
+
+// Función para manejar drag over
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+// Función para manejar drag enter
+function handleDragEnter(e) {
+  e.preventDefault();
+  const targetItem = e.target.closest('.gallery-item');
+  if (targetItem && targetItem !== draggedElement) {
+    targetItem.classList.add('drag-over');
+  }
+}
+
+// Función para manejar drag leave
+function handleDragLeave(e) {
+  const targetItem = e.target.closest('.gallery-item');
+  if (targetItem) {
+    targetItem.classList.remove('drag-over');
+  }
+}
+
+// Función para manejar drop
+function handleDrop(e) {
+  e.preventDefault();
+  
+  const targetItem = e.target.closest('.gallery-item');
+  if (!targetItem || !draggedElement || draggedIndex === -1) return;
+  
+  const targetIndex = parseInt(targetItem.getAttribute('data-index'));
+  if (targetIndex === draggedIndex) return;
+  
+  // Reordenar imágenes
+  reorderImages(draggedIndex, targetIndex);
+  
+  // Limpiar clases
+  targetItem.classList.remove('drag-over', 'drop-zone');
+}
+
+// Función para reordenar imágenes
+function reorderImages(fromIndex, toIndex) {
+  // Crear nueva lista ordenada
+  const newOrder = [...allImages];
+  const [movedImage] = newOrder.splice(fromIndex, 1);
+  newOrder.splice(toIndex, 0, movedImage);
+  
+  // Actualizar array global
+  allImages = newOrder;
+  
+  // Actualizar visualización
+  updateGalleryOrder();
+  
+  // Guardar nuevo orden en el servidor
+  saveGalleryOrder(newOrder);
+  
+  // Mostrar notificación
+  showNotification('Orden de la galería actualizado', 'success');
+}
+
+// Función para actualizar el orden visual de la galería
+function updateGalleryOrder() {
+  const galleryGrid = document.getElementById('gallery-grid');
+  if (!galleryGrid) return;
+  
+  // Limpiar grilla
+  galleryGrid.innerHTML = '';
+  
+  // Recrear elementos en el nuevo orden
+  allImages.forEach((image, index) => {
+    const galleryItem = createGalleryItem(image, index);
+    galleryGrid.appendChild(galleryItem);
+    
+    // Hacer arrastrable el nuevo elemento
+    makeGalleryItemDraggable(galleryItem, index);
+  });
+  
+  // Reconfigurar lightbox
+  setupLightbox();
+}
+
+// Función para guardar el nuevo orden en el servidor
+async function saveGalleryOrder(newOrder) {
+  try {
+    const imageOrder = newOrder.map((image, index) => ({
+      filename: image.filename,
+      order: index
+    }));
+    
+    const response = await fetch('/api/gallery/order', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ imageOrder })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al guardar el orden');
+    }
+    
+    console.log('Orden de galería guardado exitosamente');
+    
+  } catch (error) {
+    console.error('Error guardando orden de galería:', error);
+    showNotification('Error al guardar el orden', 'error');
+    
+    // Revertir cambios en caso de error
+    allImages = [...originalOrder];
+    updateGalleryOrder();
+  }
+}
 
 // Función para ordenar imágenes por prioridad
 function sortImagesByPriority(images, albums, heroConfig) {
@@ -85,10 +278,11 @@ function sortImagesByPriority(images, albums, heroConfig) {
 // Función para cargar imágenes de la galería (admin)
 async function loadGalleryImages() {
   try {
-    const [imagesResponse, albumsResponse, heroResponse] = await Promise.all([
+    const [imagesResponse, albumsResponse, heroResponse, orderResponse] = await Promise.all([
       fetch('/api/images'),
       fetch('/api/albums'),
-      fetch('/api/hero')
+      fetch('/api/hero'),
+      fetch('/api/gallery/order').catch(() => null) // Intentar cargar orden, pero no fallar si no existe
     ]);
     
     const images = await imagesResponse.json();
@@ -96,9 +290,35 @@ async function loadGalleryImages() {
     const heroConfig = await heroResponse.json();
     
     // Ordenar imágenes según prioridad: portada primero, luego por álbumes según su orden
-    const orderedImages = sortImagesByPriority(images, albums, heroConfig);
+    let orderedImages = sortImagesByPriority(images, albums, heroConfig);
+    
+    // Si hay un orden guardado, aplicarlo
+    if (orderResponse && orderResponse.ok) {
+      const orderData = await orderResponse.json();
+      if (orderData.order && orderData.order.length > 0) {
+        // Crear mapa de imágenes por filename
+        const imageMap = new Map(orderedImages.map(img => [img.filename, img]));
+        
+        // Aplicar orden guardado
+        const reorderedImages = [];
+        orderData.order.forEach(orderItem => {
+          if (imageMap.has(orderItem.filename)) {
+            reorderedImages.push(imageMap.get(orderItem.filename));
+            imageMap.delete(orderItem.filename);
+          }
+        });
+        
+        // Agregar imágenes que no están en el orden guardado
+        imageMap.forEach(img => reorderedImages.push(img));
+        
+        orderedImages = reorderedImages;
+        console.log('Orden de galería cargado desde configuración guardada');
+      }
+    }
     
     allImages = orderedImages;
+    originalOrder = [...orderedImages]; // Guardar orden original para drag & drop
+    
     const galleryGrid = document.getElementById('gallery-grid');
     if (!galleryGrid) return;
     
@@ -107,6 +327,8 @@ async function loadGalleryImages() {
     orderedImages.forEach((image, index) => {
       const galleryItem = createGalleryItem(image, index);
       galleryGrid.appendChild(galleryItem);
+      
+      // El elemento ya es arrastrable por createGalleryItem
     });
     
     // Configurar lightbox para las nuevas imágenes
@@ -208,6 +430,9 @@ function createGalleryItem(imageData, index) {
   item.addEventListener('click', () => {
     openLightbox(index);
   });
+  
+  // Hacer el elemento arrastrable
+  makeGalleryItemDraggable(item, index);
   
   return item;
 }

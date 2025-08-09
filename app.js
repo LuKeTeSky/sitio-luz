@@ -806,6 +806,92 @@ app.put('/api/albums/reorder', (req, res) => {
   }
 });
 
+// PUT /api/gallery/order - Reordenar imágenes de la galería
+app.put('/api/gallery/order', express.json(), (req, res) => {
+  try {
+    const { imageOrder } = req.body;
+    
+    if (!Array.isArray(imageOrder)) {
+      return res.status(400).json({ error: 'Se requiere un array de orden de imágenes' });
+    }
+    
+    // Cargar imágenes existentes
+    const uploadsDir = path.join(__dirname, 'public', 'uploads');
+    const imageFiles = fs.readdirSync(uploadsDir)
+      .filter(file => /\.(jpg|jpeg|png|gif|webp)$/i.test(file))
+      .map(filename => ({ filename }));
+    
+    // Crear mapa de archivos para validación
+    const fileMap = new Map(imageFiles.map(img => [img.filename, img]));
+    
+    // Validar que todas las imágenes en el orden existen
+    const validOrder = imageOrder.filter(item => {
+      if (!fileMap.has(item.filename)) {
+        console.warn(`Imagen no encontrada: ${item.filename}`);
+        return false;
+      }
+      return true;
+    });
+    
+    if (validOrder.length === 0) {
+      return res.status(400).json({ error: 'No se encontraron imágenes válidas para reordenar' });
+    }
+    
+    // Guardar el nuevo orden en un archivo de configuración
+    const orderConfigPath = path.join(__dirname, 'data', 'gallery-order.json');
+    const orderData = {
+      order: validOrder,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Crear directorio data si no existe
+    const dataDir = path.dirname(orderConfigPath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    fs.writeFileSync(orderConfigPath, JSON.stringify(orderData, null, 2));
+    
+    console.log(`Orden de galería actualizado: ${validOrder.length} imágenes`);
+    
+    res.json({
+      success: true,
+      message: 'Orden de galería actualizado exitosamente',
+      order: validOrder,
+      updatedAt: orderData.updatedAt
+    });
+    
+  } catch (error) {
+    console.error('Error reordenando galería:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// GET /api/gallery/order - Obtener orden actual de la galería
+app.get('/api/gallery/order', (req, res) => {
+  try {
+    const orderConfigPath = path.join(__dirname, 'data', 'gallery-order.json');
+    
+    if (!fs.existsSync(orderConfigPath)) {
+      return res.json({
+        order: [],
+        updatedAt: null
+      });
+    }
+    
+    const orderData = JSON.parse(fs.readFileSync(orderConfigPath, 'utf8'));
+    
+    res.json({
+      order: orderData.order || [],
+      updatedAt: orderData.updatedAt || null
+    });
+    
+  } catch (error) {
+    console.error('Error obteniendo orden de galería:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // 🚀 Iniciar el servidor
 // 🚨 Manejo global de errores
 app.use((err, req, res, next) => {
