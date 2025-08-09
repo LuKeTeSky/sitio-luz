@@ -441,17 +441,39 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 - **MINOR** (x.1.x): Nuevas funcionalidades compatibles
 - **PATCH** (x.x.1): Correcciones de bugs compatibles
 
-### 📦 **Versiones Actuales**
+### 📦 **Historial de Versiones**
 
-| Versión | Fecha | Funcionalidades |
-|---------|-------|-----------------|
-| **v1.0.0** | Inicial | Portfolio básico con galería y hero dinámico |
-| **v1.1.0** | - | Lightbox mejorado con ajuste a pantalla y tamaño real |
-| **v1.2.0** | - | Sistema completo de gestión de álbumes |
-| **v1.2.1** | - | Correcciones: acciones en lightbox, visibilidad de menús, botón eliminar álbum |
-| **v1.3.0** | 2024-01 | Navegación mejorada de álbumes, reordenamiento de secciones |
-| **v1.5.0** | 2024-01 | Experiencia completa: diseño LV + navegación mejorada + Gitflow |
-| **v1.6.0** | 2024-01 | **[ACTUAL]** Subida múltiple + Auto-agregado + Reordenamiento drag & drop |
+| Versión | Fecha | Estado | Funcionalidades Principales |
+|---------|-------|--------|------------------------------|
+| **v1.0.0** | Dic 2024 | Inicial | Portfolio básico con galería y hero dinámico |
+| **v1.1.0** | Dic 2024 | Stable | Lightbox mejorado con ajuste a pantalla y tamaño real |
+| **v1.2.0** | Dic 2024 | Stable | Sistema completo de gestión de álbumes |
+| **v1.2.1** | Dic 2024 | Stable | Correcciones: acciones lightbox, menús, eliminar álbum |
+| **v1.3.0** | Ene 2025 | Stable | Navegación mejorada, reordenamiento de secciones |
+| **v1.4.0** | 01 Ene 2025 | Stable | Diseño Louis Vuitton + álbumes en homepage |
+| **v1.5.0** | 09 Ene 2025 | Stable | Gitflow completo + navegación navbar mejorada |
+| **v1.6.0** | 09 Ene 2025 | **🟢 ACTUAL** | **Subida múltiple + Auto-agregado + Drag & drop** |
+
+#### 🔄 **Versión Actual: v1.6.0**
+- **Fecha de lanzamiento**: 9 de enero de 2025
+- **Características principales**: Subida múltiple, auto-agregado inteligente, reordenamiento drag & drop
+- **Estado**: Estable y en producción
+- **Próxima versión**: v1.7.0 (en desarrollo)
+
+#### 📋 **Cómo Verificar Tu Versión**
+```zsh
+# Ver todas las versiones disponibles
+git tag -l
+
+# Ver la versión actual del repositorio
+git describe --tags
+
+# Ver información detallada de una versión
+git show v1.6.0
+
+# Verificar qué rama estás usando
+git branch --show-current
+```
 
 ### 🛡️ **Rollback de Emergencia**
 
