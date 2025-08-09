@@ -2,6 +2,21 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
+## 🎯 **Novedades Principales v1.8.0**
+
+### 🎨 **Drag & Drop en Galería con Efectos Visuales**
+- **Reordenamiento visual** de fotos en la galería
+- **Efecto fantasma** durante el arrastre (fotos se "corren" lateralmente)
+- **Persistencia automática** del orden personalizado
+- **Solo para usuarios autenticados** en el panel admin
+- **Notificaciones mejoradas** que no se solapan
+
+### 📧 **Contacto Actualizado**
+- **Email de contacto** actualizado a `msmvdg@gmail.com`
+- **Consistencia** en todas las páginas del sitio
+
+---
+
 ## 🎯 **Novedades Principales v1.6.0**
 
 ### 📤 **Subida Múltiple de Fotos**
@@ -452,13 +467,15 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.3.0** | Ago 2025 | Stable | Navegación mejorada, reordenamiento de secciones |
 | **v1.4.0** | 01 Ago 2025 | Stable | Diseño Louis Vuitton + álbumes en homepage |
 | **v1.5.0** | 09 Ago 2025 | Stable | Gitflow completo + navegación navbar mejorada |
-| **v1.6.0** | 09 Ago 2025 | **🟢 ACTUAL** | **Subida múltiple + Auto-agregado + Drag & drop** |
+| **v1.6.0** | 09 Ago 2025 | Stable | **Subida múltiple + Auto-agregado + Drag & drop** |
+| **v1.7.0** | 09 Ago 2025 | Stable | **Mejoras en sistema de álbumes y navegación** |
+| **v1.8.0** | 09 Ago 2025 | **🟢 ACTUAL** | **Drag & drop en galería + Efectos visuales + Contacto actualizado** |
 
-#### 🔄 **Versión Actual: v1.6.0**
+#### 🔄 **Versión Actual: v1.8.0**
 - **Fecha de lanzamiento**: 9 de agosto de 2025
-- **Características principales**: Subida múltiple, auto-agregado inteligente, reordenamiento drag & drop
+- **Características principales**: Drag & drop en galería con efectos visuales, contacto actualizado, notificaciones mejoradas
 - **Estado**: Estable y en producción
-- **Próxima versión**: v1.7.0 (en desarrollo)
+- **Próxima versión**: v1.9.0 (en desarrollo)
 
 #### 📋 **Cómo Verificar Tu Versión**
 ```zsh
@@ -567,6 +584,38 @@ git diff v1.1.0..v1.2.0
 git tag -a v1.2.2 -m "🔧 Bug fix description"
 git push origin v1.2.2
 ```
+
+## 🚨 **IMPORTANTE: Sistema de Versionado y Gitflow**
+
+### 📋 **ANTES de Implementar Cualquier Cambio:**
+
+1. **✅ SIEMPRE verificar la versión actual:**
+   ```zsh
+   git tag -l | tail -5  # Ver las últimas 5 versiones
+   git describe --tags   # Ver la versión actual del repositorio
+   ```
+
+2. **✅ SIEMPRE crear feature branch desde develop:**
+   ```zsh
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/nombre-descriptivo
+   ```
+
+3. **✅ SIEMPRE respetar el versionado semántico:**
+   - **v1.8.0** → **v1.9.0** (nueva funcionalidad)
+   - **v1.8.0** → **v1.8.1** (bug fix)
+   - **v1.8.0** → **v2.0.0** (cambio incompatible)
+
+4. **✅ SIEMPRE actualizar el footer con la versión correcta:**
+   - Buscar en `views/index.html`, `views/gallery-public.html`, `views/admin.html`
+   - Actualizar `<span class="version-badge">vX.X.X</span>`
+   - Actualizar `<span class="build-info">build: YYYY-MM-DD</span>`
+
+5. **✅ SIEMPRE actualizar el README:**
+   - Agregar nueva sección "Novedades Principales vX.X.X"
+   - Actualizar tabla de historial de versiones
+   - Marcar la nueva versión como "🟢 ACTUAL"
 
 ### 🚨 **Procedimiento de Rollback Seguro**
 

@@ -34,13 +34,28 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(limiter);
+// Aplicar rate limiter general, pero excluir rutas de galería
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/gallery')) {
+    return next(); // Saltar rate limiter para rutas de galería
+  }
+  limiter(req, res, next);
+});
 
 // 🚦 Rate limiting específico para login
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 login requests per windowMs
   message: 'Too many login attempts from this IP, please try again after 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// 🚦 Rate limiting específico para galería (más permisivo)
+const galleryLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minuto
+  max: 50, // 50 requests por minuto para operaciones de galería
+  message: 'Too many gallery operations from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -807,7 +822,7 @@ app.put('/api/albums/reorder', (req, res) => {
 });
 
 // PUT /api/gallery/order - Reordenar imágenes de la galería
-app.put('/api/gallery/order', express.json(), (req, res) => {
+app.put('/api/gallery/order', galleryLimiter, express.json(), (req, res) => {
   try {
     const { imageOrder } = req.body;
     
@@ -868,7 +883,7 @@ app.put('/api/gallery/order', express.json(), (req, res) => {
 });
 
 // GET /api/gallery/order - Obtener orden actual de la galería
-app.get('/api/gallery/order', (req, res) => {
+app.get('/api/gallery/order', galleryLimiter, (req, res) => {
   try {
     const orderConfigPath = path.join(__dirname, 'data', 'gallery-order.json');
     

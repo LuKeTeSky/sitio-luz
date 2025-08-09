@@ -91,7 +91,8 @@ function handleDragEnd(e) {
   // Remover clase de drag activo
   document.body.classList.remove('dragging');
   
-  // Remover clases de drop zones
+  // Limpiar efectos fantasma y clases de drop zones
+  clearGhostEffects();
   document.querySelectorAll('.gallery-item').forEach(item => {
     item.classList.remove('drag-over', 'drop-zone');
   });
@@ -101,6 +102,16 @@ function handleDragEnd(e) {
 function handleDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
+  
+  // Obtener el elemento sobre el que estamos arrastrando
+  const targetItem = e.target.closest('.gallery-item');
+  if (!targetItem || targetItem === draggedElement) return;
+  
+  const targetIndex = parseInt(targetItem.dataset.index);
+  if (isNaN(targetIndex)) return;
+  
+  // Crear efecto de desplazamiento fantasma
+  createGhostEffect(targetIndex);
 }
 
 // Función para manejar drag enter
@@ -129,6 +140,9 @@ function handleDrop(e) {
   
   const targetIndex = parseInt(targetItem.getAttribute('data-index'));
   if (targetIndex === draggedIndex) return;
+  
+  // Limpiar efectos fantasma antes de reordenar
+  clearGhostEffects();
   
   // Reordenar imágenes
   reorderImages(draggedIndex, targetIndex);
@@ -1165,6 +1179,24 @@ function setupUploadForm() {
 
 // Función para mostrar notificaciones
 function showNotification(message, type = 'info') {
+  // Crear contenedor de notificaciones si no existe
+  let notificationContainer = document.querySelector('#notification-container');
+  if (!notificationContainer) {
+    notificationContainer = document.createElement('div');
+    notificationContainer.id = 'notification-container';
+    notificationContainer.style.cssText = `
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 400px;
+    `;
+    document.body.appendChild(notificationContainer);
+  }
+  
   const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
   notification.innerHTML = `
@@ -1178,9 +1210,6 @@ function showNotification(message, type = 'info') {
     styles.id = 'notification-styles';
     styles.textContent = `
       .notification {
-        position: fixed;
-        top: 100px;
-        right: 20px;
         background: white;
         padding: 15px 20px;
         border-radius: 10px;
@@ -1188,8 +1217,8 @@ function showNotification(message, type = 'info') {
         display: flex;
         align-items: center;
         gap: 10px;
-        z-index: 10000;
         animation: slideIn 0.3s ease;
+        min-width: 300px;
       }
       .notification-success { border-left: 4px solid #28a745; }
       .notification-error { border-left: 4px solid #dc3545; }
@@ -1198,16 +1227,66 @@ function showNotification(message, type = 'info') {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
       }
+      .notification.removing {
+        animation: slideOut 0.3s ease forwards;
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
     `;
     document.head.appendChild(styles);
   }
   
-  document.body.appendChild(notification);
+  // Agregar la notificación al contenedor
+  notificationContainer.appendChild(notification);
   
-  // Remover después de 3 segundos
+  // Remover después de 3 segundos con animación
   setTimeout(() => {
-    notification.remove();
+    notification.classList.add('removing');
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+      // Si no hay más notificaciones, remover el contenedor
+      if (notificationContainer.children.length === 0) {
+        notificationContainer.remove();
+      }
+    }, 300);
   }, 3000);
+}
+
+// Función para crear efecto fantasma de desplazamiento
+function createGhostEffect(targetIndex) {
+  // Limpiar efectos fantasma anteriores
+  clearGhostEffects();
+  
+  // Obtener todos los elementos de la galería
+  const galleryItems = document.querySelectorAll('.gallery-item');
+  
+  // Crear efecto de desplazamiento para elementos que se moverán
+  if (draggedIndex < targetIndex) {
+    // Arrastrando hacia abajo: desplazar elementos hacia arriba
+    for (let i = draggedIndex + 1; i <= targetIndex; i++) {
+      if (galleryItems[i]) {
+        galleryItems[i].classList.add('ghost-shift-left');
+      }
+    }
+  } else if (draggedIndex > targetIndex) {
+    // Arrastrando hacia arriba: desplazar elementos hacia abajo
+    for (let i = targetIndex; i < draggedIndex; i++) {
+      if (galleryItems[i]) {
+        galleryItems[i].classList.add('ghost-shift-right');
+      }
+    }
+  }
+}
+
+// Función para limpiar efectos fantasma
+function clearGhostEffects() {
+  document.querySelectorAll('.ghost-shift-left, .ghost-shift-right').forEach(item => {
+    item.classList.remove('ghost-shift-left', 'ghost-shift-right');
+  });
 }
 
 // Función para configurar navegación suave
