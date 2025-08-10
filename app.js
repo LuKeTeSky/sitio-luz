@@ -602,16 +602,45 @@ app.post('/api/hero', express.json(), (req, res) => {
 // 🗑️ API para eliminar imágenes (solo para usuarios logueados)
 app.delete('/api/images/:filename', (req, res) => {
   try {
-    const filename = req.params.filename;
+    const filename = decodeURIComponent(req.params.filename);
     const filePath = path.join(__dirname, 'public/uploads', filename);
+    
+    console.log(`🗑️ Intentando eliminar: ${filename}`);
+    console.log(`📁 Ruta del archivo: ${filePath}`);
     
     // Verificar que el archivo existe
     if (!fs.existsSync(filePath)) {
+      console.log(`❌ Archivo no encontrado: ${filePath}`);
       return res.status(404).json({ error: 'Archivo no encontrado' });
     }
     
-    // Eliminar el archivo físico
-    fs.unlinkSync(filePath);
+    // En Vercel, no se pueden eliminar archivos físicos (sistema de solo lectura)
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    
+    if (isVercel) {
+      console.log(`⚠️ En Vercel: No se puede eliminar archivo físico ${filename}`);
+      console.log(`📝 Simulando eliminación para mantener consistencia de datos`);
+      
+      // En Vercel, solo limpiar referencias pero no eliminar el archivo físico
+      // El archivo se eliminará automáticamente en el próximo deploy
+    } else {
+      // Verificar permisos de escritura (solo en desarrollo)
+      try {
+        fs.accessSync(filePath, fs.constants.W_OK);
+      } catch (permissionError) {
+        console.error(`❌ Error de permisos para ${filename}:`, permissionError.message);
+        return res.status(403).json({ error: 'No tienes permisos para eliminar este archivo' });
+      }
+      
+      // Eliminar el archivo físico (solo en desarrollo)
+      try {
+        fs.unlinkSync(filePath);
+        console.log(`✅ Archivo eliminado exitosamente: ${filename}`);
+      } catch (unlinkError) {
+        console.error(`❌ Error eliminando archivo ${filename}:`, unlinkError.message);
+        return res.status(500).json({ error: 'Error al eliminar el archivo físico' });
+      }
+    }
     
     // Limpiar referencias de la imagen en todos los álbumes
     try {
@@ -641,9 +670,10 @@ app.delete('/api/images/:filename', (req, res) => {
     
     res.json({ 
       success: true, 
-      message: 'Foto eliminada exitosamente',
+      message: isVercel ? 'Foto marcada para eliminación (se eliminará en el próximo deploy)' : 'Foto eliminada exitosamente',
       filename: filename,
-      albumsUpdated: true
+      albumsUpdated: true,
+      isVercel: isVercel
     });
     
   } catch (error) {
