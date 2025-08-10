@@ -671,6 +671,56 @@ El drag & drop en la galería **visualmente funciona** pero **no persiste los ca
 
 ---
 
+## ✅ **PROBLEMA RESUELTO: Subida de Archivos en Vercel (v1.8.1)**
+
+### 🔧 **Solución Implementada (9 de agosto de 2025)**
+
+**Rama de trabajo**: `feature/fix-gallery-drag-drop-loop` → `main`  
+**Estado**: ✅ **RESUELTO Y DESPLEGADO**
+
+#### 🎯 **Problema Identificado**
+- ❌ **Subida de fotos fallaba en Vercel** pero funcionaba en local
+- ❌ **Error de permisos de archivos** en sistema de solo lectura de Vercel
+- ❌ **Directorio `public/uploads/` no accesible** para escritura en producción
+
+#### ✅ **Solución Implementada**
+
+1. **Configuración de Multer adaptativa**:
+   - **Local**: Usa `public/uploads/` (como antes)
+   - **Vercel**: Usa `/tmp/` (directorio temporal accesible)
+
+2. **Detección automática de entorno**:
+   ```javascript
+   const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+   ```
+
+3. **Ruta de imágenes adaptativa**:
+   - **Local**: `/uploads/` (archivos estáticos)
+   - **Vercel**: `/temp-images/` (desde directorio temporal)
+
+4. **Configuración de Vercel optimizada**:
+   ```json
+   {
+     "env": { "VERCEL": "1" },
+     "functions": { "maxDuration": 30 },
+     "regions": ["iad1"]
+   }
+   ```
+
+#### 🚀 **Estado del Deploy**
+- ✅ **Merge a `main` completado**
+- ✅ **Push a GitHub ejecutado**
+- ✅ **Deploy automático de Vercel activado**
+- 🔄 **Esperando confirmación de funcionamiento**
+
+#### 📁 **Archivos Modificados**
+- `app.js`: Configuración de multer y rutas adaptativas
+- `public/js/gallery.js`: Detección de entorno para rutas de imágenes
+- `vercel.json`: Configuración optimizada para producción
+- `README.md`: Documentación del problema y solución
+
+---
+
 ## 🚨 **IMPORTANTE: Sistema de Versionado y Gitflow**
 
 ### 📋 **ANTES de Implementar Cualquier Cambio:**
