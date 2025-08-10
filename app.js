@@ -104,10 +104,10 @@ function ensureUploadsDirectory() {
 // 🚨 Acá va la línea para servir CSS, imágenes y otros archivos públicos
 app.use(express.static('public'));
 
-// 🔧 Ruta especial para servir imágenes en Vercel (desde directorio temporal)
-if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
-  app.use('/temp-images', express.static('/tmp'));
-}
+// 🔧 Ruta especial para servir imágenes en Vercel (desde directorio temporal) - YA NO NECESARIA
+// if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
+//   app.use('/temp-images', express.static('/tmp'));
+// }
 
 // 🛡️ Configuración de sesión segura
 app.use(session({

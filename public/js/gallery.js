@@ -539,10 +539,8 @@ function createGalleryItem(imageData, index) {
   
   const img = document.createElement('img');
   
-  // Detectar si estamos en Vercel y usar la ruta correcta
-  const isVercel = window.location.hostname.includes('vercel.app') || 
-                   window.location.hostname.includes('vercel.com');
-  img.src = isVercel ? `/temp-images/${imageData.filename}` : `/uploads/${imageData.filename}`;
+  // Usar siempre /uploads/ ya que Vercel sirve static files desde public/
+  img.src = `/uploads/${imageData.filename}`;
   
   img.alt = imageData.title || 'Foto de modelo';
   img.loading = 'lazy';
@@ -1092,10 +1090,8 @@ function createCoverItem(imageData, isHeroImage = false) {
   
   const img = document.createElement('img');
   
-  // Detectar si estamos en Vercel y usar la ruta correcta
-  const isVercel = window.location.hostname.includes('vercel.app') || 
-                   window.location.hostname.includes('hostname.com');
-  img.src = isVercel ? `/temp-images/${imageData.filename}` : `/uploads/${imageData.filename}`;
+  // Usar siempre /uploads/ ya que Vercel sirve static files desde public/
+  img.src = `/uploads/${imageData.filename}`;
   
   img.alt = imageData.title || 'Foto de portada';
   
