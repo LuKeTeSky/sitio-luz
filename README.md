@@ -2,7 +2,14 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
-## 🎯 **Novedades Principales v1.8.0**
+## 🎯 **Novedades Principales v1.9.0**
+
+### 🔧 **Persistencia de Eliminaciones con Vercel KV**
+- **Eliminaciones persistentes** en Vercel usando base de datos Redis
+- **Imágenes NO vuelven** a aparecer después de eliminar
+- **Sistema robusto** que funciona entre deploys y reinicios
+- **Fallback automático** a memoria si KV no está disponible
+- **Integración nativa** con Vercel para máxima confiabilidad
 
 ### 🎨 **Drag & Drop en Galería con Efectos Visuales**
 - **Reordenamiento visual** de fotos en la galería
@@ -94,6 +101,31 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 ### Prerrequisitos
 - Node.js (versión 14 o superior)
 - npm o yarn
+
+### 🔧 **Configuración de Vercel KV (Producción)**
+
+Para que las eliminaciones de imágenes sean persistentes en Vercel:
+
+1. **Crear Base de Datos KV en Vercel:**
+   - Ve a tu dashboard de Vercel
+   - Selecciona tu proyecto `sitio-luz`
+   - Ve a la pestaña "Storage"
+   - Haz clic en "Create Database"
+   - Selecciona "KV (Redis)"
+   - Elige el plan gratuito (100MB)
+   - Selecciona la región más cercana
+
+2. **Variables de Entorno:**
+   - Se configuran automáticamente
+   - No es necesario configurarlas manualmente
+   - Vercel las inyecta en tu aplicación
+
+3. **Deploy Automático:**
+   - Una vez creada la base de datos
+   - Vercel detecta los cambios automáticamente
+   - El deploy incluye la configuración de KV
+
+**Nota:** En desarrollo local, el sistema usa memoria como fallback.
 
 ### Pasos de Instalación
 

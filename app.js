@@ -8,6 +8,16 @@ const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 
+// 🔧 Vercel KV para persistencia de eliminaciones
+let kv = null;
+if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
+  try {
+    kv = require('@vercel/kv');
+  } catch (error) {
+    console.log('⚠️ Vercel KV no disponible, usando memoria como fallback');
+  }
+}
+
 const app = express();
 
 // 🛡️ Configuración de seguridad
@@ -84,6 +94,59 @@ const upload = multer({
     }
   }
 });
+
+// 🔧 Funciones helper para Vercel KV
+async function addDeletedImage(filename) {
+  try {
+    if (kv) {
+      // Usar Vercel KV para persistencia
+      const deletedImages = await kv.get('deletedImages') || [];
+      if (!deletedImages.includes(filename)) {
+        deletedImages.push(filename);
+        await kv.set('deletedImages', deletedImages);
+        console.log(`✅ Imagen ${filename} marcada para eliminación en Vercel KV`);
+      }
+      return deletedImages;
+    } else {
+      // Fallback a memoria global
+      if (!global.deletedImages) {
+        global.deletedImages = [];
+      }
+      if (!global.deletedImages.includes(filename)) {
+        global.deletedImages.push(filename);
+        console.log(`✅ Imagen ${filename} marcada para eliminación en memoria`);
+      }
+      return global.deletedImages;
+    }
+  } catch (error) {
+    console.error('❌ Error marcando imagen para eliminación:', error);
+    // Fallback a memoria global en caso de error
+    if (!global.deletedImages) {
+      global.deletedImages = [];
+    }
+    if (!global.deletedImages.includes(filename)) {
+      global.deletedImages.push(filename);
+    }
+    return global.deletedImages;
+  }
+}
+
+async function getDeletedImages() {
+  try {
+    if (kv) {
+      // Obtener desde Vercel KV
+      const deletedImages = await kv.get('deletedImages') || [];
+      return deletedImages;
+    } else {
+      // Fallback a memoria global
+      return global.deletedImages || [];
+    }
+  } catch (error) {
+    console.error('❌ Error obteniendo imágenes eliminadas:', error);
+    // Fallback a memoria global en caso de error
+    return global.deletedImages || [];
+  }
+}
 
 // 🔧 Función para crear directorio de uploads si no existe
 function ensureUploadsDirectory() {
@@ -460,7 +523,7 @@ function formatFileSize(bytes) {
 }
 
 // 🖼️ API para obtener lista de imágenes (pública)
-app.get('/api/images', (req, res) => {
+app.get('/api/images', async (req, res) => {
   try {
     // Usar directorio de uploads (tanto en Vercel como en local)
     const uploadsDir = path.join(__dirname, 'public/uploads');
@@ -470,14 +533,12 @@ app.get('/api/images', (req, res) => {
       return res.json({ images: [] });
     }
     
-    // Cargar lista de imágenes marcadas para eliminación (solo en Vercel)
-    let deletedImages = [];
+    // Cargar lista de imágenes marcadas para eliminación
+    const deletedImages = await getDeletedImages();
     const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
     
     if (isVercel) {
-      // En Vercel, usar memoria global
-      deletedImages = global.deletedImages || [];
-      console.log(`📋 Imágenes marcadas para eliminación en memoria: ${deletedImages.length}`);
+      console.log(`📋 Imágenes marcadas para eliminación en Vercel KV: ${deletedImages.length}`);
     }
     
     const files = fs.readdirSync(uploadsDir);
@@ -616,7 +677,7 @@ app.post('/api/hero', express.json(), (req, res) => {
 });
 
 // 🗑️ API para eliminar imágenes (solo para usuarios logueados)
-app.delete('/api/images/:filename', (req, res) => {
+app.delete('/api/images/:filename', async (req, res) => {
   try {
     const filename = decodeURIComponent(req.params.filename);
     const filePath = path.join(__dirname, 'public/uploads', filename);
@@ -635,19 +696,11 @@ app.delete('/api/images/:filename', (req, res) => {
     
     if (isVercel) {
       console.log(`⚠️ En Vercel: No se puede eliminar archivo físico ${filename}`);
-      console.log(`📝 Marcando imagen para eliminación en memoria`);
+      console.log(`📝 Marcando imagen para eliminación en Vercel KV`);
       
-      // En Vercel, usar memoria para marcar imágenes eliminadas
-      if (!global.deletedImages) {
-        global.deletedImages = [];
-      }
-      
-      // Agregar imagen a la lista de eliminadas en memoria
-      if (!global.deletedImages.includes(filename)) {
-        global.deletedImages.push(filename);
-        console.log(`✅ Imagen ${filename} marcada para eliminación en memoria`);
-        console.log(`📋 Total de imágenes marcadas: ${global.deletedImages.length}`);
-      }
+      // En Vercel, usar Vercel KV para persistencia
+      const deletedImages = await addDeletedImage(filename);
+      console.log(`📋 Total de imágenes marcadas: ${deletedImages.length}`);
     } else {
       // Verificar permisos de escritura (solo en desarrollo)
       try {
@@ -695,11 +748,11 @@ app.delete('/api/images/:filename', (req, res) => {
     
     res.json({ 
       success: true, 
-      message: isVercel ? 'Foto marcada para eliminación (se eliminará en el próximo deploy)' : 'Foto eliminada exitosamente',
+      message: isVercel ? 'Foto marcada para eliminación (persistente en Vercel KV)' : 'Foto eliminada exitosamente',
       filename: filename,
       albumsUpdated: true,
       isVercel: isVercel,
-      deletedImagesCount: isVercel ? (global.deletedImages ? global.deletedImages.length : 0) : 0
+      deletedImagesCount: isVercel ? deletedImages.length : 0
     });
     
   } catch (error) {
@@ -709,7 +762,7 @@ app.delete('/api/images/:filename', (req, res) => {
 });
 
 // 📋 API para obtener lista de imágenes marcadas para eliminación (solo admin)
-app.get('/api/deleted-images', (req, res) => {
+app.get('/api/deleted-images', async (req, res) => {
   try {
     const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
     
@@ -717,13 +770,13 @@ app.get('/api/deleted-images', (req, res) => {
       return res.json({ deletedImages: [], message: 'Solo disponible en Vercel' });
     }
     
-    // En Vercel, usar memoria global
-    const deletedImages = global.deletedImages || [];
+    // En Vercel, usar Vercel KV para persistencia
+    const deletedImages = await getDeletedImages();
     
     res.json({ 
       deletedImages,
       count: deletedImages.length,
-      message: 'Lista de imágenes marcadas para eliminación en memoria (se perderá al reiniciar)'
+      message: 'Lista de imágenes marcadas para eliminación en Vercel KV (persistente)'
     });
     
   } catch (error) {
