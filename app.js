@@ -62,7 +62,7 @@ const galleryLimiter = rateLimit({
 
 // 📁 Configuración de multer con límites y validación
 const upload = multer({
-  dest: 'public/uploads/',
+  dest: '/tmp/', // Usar directorio temporal para Vercel
   limits: {
     fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // 5MB por archivo
     files: parseInt(process.env.MAX_FILES) || 10 // Máximo 10 archivos simultáneos
@@ -85,8 +85,29 @@ const upload = multer({
   }
 });
 
+// 🔧 Función para crear directorio de uploads si no existe
+function ensureUploadsDirectory() {
+  const uploadsDir = path.join(__dirname, 'public/uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    try {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log('📁 Directorio de uploads creado:', uploadsDir);
+    } catch (error) {
+      console.error('❌ Error creando directorio de uploads:', error);
+      // En Vercel, usar directorio temporal
+      return '/tmp/';
+    }
+  }
+  return uploadsDir;
+}
+
 // 🚨 Acá va la línea para servir CSS, imágenes y otros archivos públicos
 app.use(express.static('public'));
+
+// 🔧 Ruta especial para servir imágenes en Vercel (desde directorio temporal)
+if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
+  app.use('/temp-images', express.static('/tmp'));
+}
 
 // 🛡️ Configuración de sesión segura
 app.use(session({
@@ -376,14 +397,29 @@ app.post('/upload', (req, res) => {
     const uploadedFiles = [];
     
     try {
+      // Asegurar que existe el directorio de uploads
+      const uploadsDir = ensureUploadsDirectory();
+      
       // Procesar cada archivo subido
       req.files.forEach((file, index) => {
         const originalName = file.originalname;
         const extension = path.extname(originalName).toLowerCase();
         const newFileName = Date.now() + '_' + index + extension;
-        const newPath = path.join('public/uploads', newFileName);
         
-        fs.renameSync(file.path, newPath);
+        // En Vercel, usar directorio temporal; en local, usar uploads
+        const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+        const newPath = isVercel 
+          ? path.join('/tmp', newFileName)
+          : path.join(uploadsDir, newFileName);
+        
+        // Mover archivo desde temp a destino final
+        if (isVercel) {
+          // En Vercel, solo copiar el archivo (no podemos escribir en public/uploads)
+          fs.copyFileSync(file.path, newPath);
+        } else {
+          // En local, mover el archivo
+          fs.renameSync(file.path, newPath);
+        }
         
         uploadedFiles.push({
           originalName: originalName,
@@ -426,7 +462,15 @@ function formatFileSize(bytes) {
 // 🖼️ API para obtener lista de imágenes (pública)
 app.get('/api/images', (req, res) => {
   try {
-    const uploadsDir = path.join(__dirname, 'public/uploads');
+    // En Vercel, usar directorio temporal; en local, usar uploads
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    const uploadsDir = isVercel ? '/tmp' : path.join(__dirname, 'public/uploads');
+    
+    // Verificar que el directorio existe
+    if (!fs.existsSync(uploadsDir)) {
+      return res.json({ images: [] });
+    }
+    
     const files = fs.readdirSync(uploadsDir);
     
     const images = files

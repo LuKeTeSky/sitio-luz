@@ -853,6 +853,18 @@ body.dragging .gallery-item:not(.dragging):hover {
   transition: all 0.3s ease;
 }
 
+.gallery-item.ghost-shift-up {
+  transform: translateY(-20px);
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.gallery-item.ghost-shift-down {
+  transform: translateY(20px);
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
 /* Indicador de drag & drop */
 .drag-drop-info {
   display: flex;

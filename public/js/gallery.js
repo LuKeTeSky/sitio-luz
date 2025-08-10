@@ -538,7 +538,12 @@ function createGalleryItem(imageData, index) {
   item.dataset.index = index;
   
   const img = document.createElement('img');
-  img.src = `/uploads/${imageData.filename}`;
+  
+  // Detectar si estamos en Vercel y usar la ruta correcta
+  const isVercel = window.location.hostname.includes('vercel.app') || 
+                   window.location.hostname.includes('vercel.com');
+  img.src = isVercel ? `/temp-images/${imageData.filename}` : `/uploads/${imageData.filename}`;
+  
   img.alt = imageData.title || 'Foto de modelo';
   img.loading = 'lazy';
   
@@ -1086,7 +1091,12 @@ function createCoverItem(imageData, isHeroImage = false) {
   item.className = `cover-item ${isHeroImage ? 'hero-image' : ''}`;
   
   const img = document.createElement('img');
-  img.src = `/uploads/${imageData.filename}`;
+  
+  // Detectar si estamos en Vercel y usar la ruta correcta
+  const isVercel = window.location.hostname.includes('vercel.app') || 
+                   window.location.hostname.includes('hostname.com');
+  img.src = isVercel ? `/temp-images/${imageData.filename}` : `/uploads/${imageData.filename}`;
+  
   img.alt = imageData.title || 'Foto de portada';
   
   const overlay = document.createElement('div');
