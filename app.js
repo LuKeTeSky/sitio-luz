@@ -470,10 +470,32 @@ app.get('/api/images', (req, res) => {
       return res.json({ images: [] });
     }
     
+    // Cargar lista de imágenes marcadas para eliminación (solo en Vercel)
+    let deletedImages = [];
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    
+    if (isVercel) {
+      try {
+        const deletedImagesPath = path.join(__dirname, 'data', 'deleted-images.json');
+        if (fs.existsSync(deletedImagesPath)) {
+          deletedImages = JSON.parse(fs.readFileSync(deletedImagesPath, 'utf8'));
+          console.log(`📋 Imágenes marcadas para eliminación: ${deletedImages.length}`);
+        }
+      } catch (error) {
+        console.error('Error cargando lista de imágenes eliminadas:', error);
+      }
+    }
+    
     const files = fs.readdirSync(uploadsDir);
     
     const images = files
       .filter(file => {
+        // Excluir imágenes marcadas para eliminación
+        if (deletedImages.includes(file)) {
+          console.log(`🚫 Excluyendo imagen marcada para eliminación: ${file}`);
+          return false;
+        }
+        
         // Verificar si es un archivo de imagen válido
         const ext = path.extname(file).toLowerCase();
         const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -619,10 +641,26 @@ app.delete('/api/images/:filename', (req, res) => {
     
     if (isVercel) {
       console.log(`⚠️ En Vercel: No se puede eliminar archivo físico ${filename}`);
-      console.log(`📝 Simulando eliminación para mantener consistencia de datos`);
+      console.log(`📝 Marcando imagen para eliminación en próximo deploy`);
       
-      // En Vercel, solo limpiar referencias pero no eliminar el archivo físico
-      // El archivo se eliminará automáticamente en el próximo deploy
+      // En Vercel, marcar la imagen para eliminación
+      const deletedImagesPath = path.join(__dirname, 'data', 'deleted-images.json');
+      let deletedImages = [];
+      
+      try {
+        if (fs.existsSync(deletedImagesPath)) {
+          deletedImages = JSON.parse(fs.readFileSync(deletedImagesPath, 'utf8'));
+        }
+        
+        // Agregar imagen a la lista de eliminadas
+        if (!deletedImages.includes(filename)) {
+          deletedImages.push(filename);
+          fs.writeFileSync(deletedImagesPath, JSON.stringify(deletedImages, null, 2));
+          console.log(`✅ Imagen ${filename} marcada para eliminación`);
+        }
+      } catch (error) {
+        console.error('Error guardando lista de imágenes eliminadas:', error);
+      }
     } else {
       // Verificar permisos de escritura (solo en desarrollo)
       try {
@@ -673,11 +711,40 @@ app.delete('/api/images/:filename', (req, res) => {
       message: isVercel ? 'Foto marcada para eliminación (se eliminará en el próximo deploy)' : 'Foto eliminada exitosamente',
       filename: filename,
       albumsUpdated: true,
-      isVercel: isVercel
+      isVercel: isVercel,
+      deletedImagesCount: isVercel ? deletedImages.length : 0
     });
     
   } catch (error) {
     console.error('Error eliminando archivo:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// 📋 API para obtener lista de imágenes marcadas para eliminación (solo admin)
+app.get('/api/deleted-images', (req, res) => {
+  try {
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    
+    if (!isVercel) {
+      return res.json({ deletedImages: [], message: 'Solo disponible en Vercel' });
+    }
+    
+    const deletedImagesPath = path.join(__dirname, 'data', 'deleted-images.json');
+    let deletedImages = [];
+    
+    if (fs.existsSync(deletedImagesPath)) {
+      deletedImages = JSON.parse(fs.readFileSync(deletedImagesPath, 'utf8'));
+    }
+    
+    res.json({ 
+      deletedImages,
+      count: deletedImages.length,
+      message: 'Lista de imágenes marcadas para eliminación en próximo deploy'
+    });
+    
+  } catch (error) {
+    console.error('Error obteniendo imágenes eliminadas:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
