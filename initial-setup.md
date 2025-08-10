@@ -4,7 +4,7 @@
 
 ### 1. **Acceder al Admin**
 - Ve a: `https://sitio-luz.vercel.app/login`
-- Password: `Pepelepu1073!`
+- Password: `[CONFIGURAR EN VARIABLES DE ENTORNO]`
 
 ### 2. **Crear álbumes**
 Ejemplos de álbumes a crear:

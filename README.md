@@ -379,14 +379,35 @@ sitio-luz/
 
 ## 🔧 Configuración Avanzada
 
+### 📋 Variables de Entorno Requeridas
+Crea un archivo `.env` en la raíz del proyecto con:
+
+```bash
+# 🔐 Autenticación
+ADMIN_PASSWORD=tu_password_super_seguro_aqui
+SESSION_SECRET=clave_aleatoria_de_32_caracteres_minimo
+
+# 🌍 Entorno
+NODE_ENV=development
+PORT=3000
+
+# 🚀 Vercel (solo para producción)
+VERCEL=true
+
+# 🔑 Vercel KV (Redis) - Solo si usas Vercel
+REDIS_URL=redis://localhost:6379
+KV_URL=redis://localhost:6379
+KV_REST_API_URL=https://your-project.vercel.app
+KV_REST_API_TOKEN=tu_token_aqui
+KV_REST_API_READ_ONLY_TOKEN=tu_token_readonly_aqui
+```
+
 ### Personalizar Credenciales
-Edita el archivo `app.js` y cambia las credenciales de login:
+**IMPORTANTE**: NO edites directamente `app.js`. Usa variables de entorno:
 ```javascript
-// Líneas 120-125 aproximadamente
-if (username === 'admin' && password === 'admin123') {
-  req.session.authenticated = true;
-  res.redirect('/admin');
-}
+// El código ya está configurado para usar:
+const adminPassword = process.env.ADMIN_PASSWORD;
+const sessionSecret = process.env.SESSION_SECRET;
 ```
 
 ### Cambiar Puerto del Servidor
@@ -467,10 +488,30 @@ En los archivos HTML, modifica los enlaces de Google Fonts:
 
 ## 🔒 Seguridad
 
+### 🛡️ **Medidas Implementadas**
 - **Autenticación de sesiones** para el panel de administración
-- **Validación de archivos** en la subida de imágenes
+- **Validación de archivos** en la subida de imágenes (magic bytes)
 - **Sanitización de datos** en formularios
 - **Rutas protegidas** para funciones administrativas
+- **Rate limiting** para prevenir ataques de fuerza bruta
+- **Helmet.js** para headers de seguridad HTTP
+
+### 🚨 **IMPORTANTE - Configuración de Seguridad**
+1. **NUNCA** subas archivos `.env` al repositorio
+2. **SIEMPRE** usa contraseñas fuertes (mín. 12 caracteres)
+3. **ROTA** el `SESSION_SECRET` cada 3 meses
+4. **VERIFICA** que las variables de entorno estén configuradas en Vercel
+
+### 🔐 **Variables de Entorno Críticas**
+```bash
+# OBLIGATORIAS para producción:
+ADMIN_PASSWORD=contraseña_super_fuerte_aqui
+SESSION_SECRET=clave_aleatoria_32_caracteres_minimo
+
+# OPCIONALES (solo si usas Vercel KV):
+REDIS_URL=redis://localhost:6379
+KV_REST_API_TOKEN=tu_token_aqui
+```
 
 ## 📄 Licencia
 
@@ -908,6 +949,38 @@ setTimeout(() => {
 - ✅ **Commit**: `fd8c7f0` - "🔧 fix: Eliminar recarga automática de galería en deleteImage"
 - ✅ **Push a GitHub**: Completado
 - ✅ **Deploy automático de Vercel**: En progreso
+
+---
+
+## 📊 **ESTADO ACTUAL DEL PROYECTO (v1.10.0)**
+
+### 🎯 **Funcionalidades Implementadas y Estables**
+- ✅ **Portfolio público** con galería responsive
+- ✅ **Panel de administración** con autenticación segura
+- ✅ **Sistema de álbumes** completo con drag & drop
+- ✅ **Subida múltiple** de fotos (hasta 10 simultáneas)
+- ✅ **Auto-agregado inteligente** a álbumes
+- ✅ **Drag & drop en galería** con efectos visuales
+- ✅ **Persistencia de eliminaciones** con Vercel KV (Redis)
+- ✅ **Bug crítico de eliminación** CORREGIDO (v1.10.0)
+
+### 🔧 **Funcionalidades en Desarrollo/Mejora**
+- 🟡 **Drag & drop en galería**: Funciona pero necesita refinamiento
+- 🟡 **Sistema de notificaciones**: Funcional pero podría mejorarse
+- 🟡 **Responsive design**: Funciona en móviles pero podría optimizarse
+
+### 🚧 **Funcionalidades Pendientes/Futuras**
+- 🔴 **Multi-selección para eliminación**: No implementado
+- 🔴 **Búsqueda y filtros**: No implementado
+- 🔴 **Sistema de tags**: No implementado
+- 🔴 **Exportar galería**: No implementado
+- 🔴 **Backup automático**: No implementado
+
+### 🐛 **Bugs Conocidos y Soluciones**
+- ✅ **Imágenes vuelven a aparecer**: RESUELTO en v1.10.0
+- ✅ **Límite de intentos alcanzado**: RESUELTO en v1.10.0
+- ✅ **Thumbnails no visibles**: RESUELTO en v1.9.0
+- ✅ **Eliminación en Vercel**: RESUELTO en v1.9.0
 
 ---
 
