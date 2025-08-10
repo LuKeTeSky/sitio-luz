@@ -758,6 +758,147 @@ body.admin-page {
   background: #dc3545;
 }
 
+/* Estilos para drag & drop */
+.gallery-item.draggable {
+  cursor: grab;
+  user-select: none;
+}
+
+.gallery-item.draggable:active {
+  cursor: grabbing;
+}
+
+.gallery-item.drag-over {
+  border: 2px dashed var(--lv-primary);
+  background-color: rgba(139, 69, 19, 0.1);
+  transform: scale(1.02);
+}
+
+.gallery-item.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+  z-index: 1000;
+}
+
+.drag-tooltip {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 8px;
+  border-radius: 15px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.gallery-item:hover .drag-tooltip {
+  opacity: 1;
+}
+
+.drag-tooltip i {
+  color: #ccc;
+}
+
+/* Indicador visual durante el drag */
+body.dragging .gallery-item:not(.dragging) {
+  transition: all 0.2s ease;
+}
+
+body.dragging .gallery-item:not(.dragging):hover {
+  transform: translateY(-4px);
+}
+
+/* Animación de reordenamiento */
+.gallery-item {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gallery-item.reordering {
+  animation: reorderPulse 0.6s ease-in-out;
+}
+
+@keyframes reorderPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Drop zone visual */
+.gallery-grid.drop-zone {
+  background: linear-gradient(45deg, transparent 30%, rgba(139, 69, 19, 0.05) 50%, transparent 70%);
+  background-size: 200% 200%;
+  animation: dropZonePulse 2s ease-in-out infinite;
+}
+
+@keyframes dropZonePulse {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Efectos fantasma para desplazamiento */
+.gallery-item.ghost-shift-left {
+  transform: translateX(-20px);
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.gallery-item.ghost-shift-right {
+  transform: translateX(20px);
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.gallery-item.ghost-shift-up {
+  transform: translateY(-20px);
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.gallery-item.ghost-shift-down {
+  transform: translateY(20px);
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+/* Indicador de drag & drop */
+.drag-drop-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(139, 69, 19, 0.1) 0%, rgba(212, 175, 55, 0.1) 100%);
+  border: 1px solid rgba(139, 69, 19, 0.2);
+  border-radius: 25px;
+  color: var(--lv-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  max-width: fit-content;
+  transition: all 0.3s ease;
+}
+
+.drag-drop-info:hover {
+  background: linear-gradient(135deg, rgba(139, 69, 19, 0.15) 0%, rgba(212, 175, 55, 0.15) 100%);
+  border-color: rgba(139, 69, 19, 0.3);
+  transform: translateY(-2px);
+}
+
+.drag-drop-info i {
+  font-size: 1.1rem;
+  color: var(--lv-primary);
+  animation: gripPulse 2s ease-in-out infinite;
+}
+
+@keyframes gripPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
 /* About Section */
 .about-section {
   padding: 80px 0;
@@ -905,10 +1046,42 @@ body.admin-page {
 
 /* Footer */
 .footer {
-  background: #111;
-  color: #666;
+  background: linear-gradient(135deg, var(--lv-primary) 0%, var(--lv-secondary) 100%);
+  color: white;
   text-align: center;
-  padding: 30px 0;
+  padding: 40px 0;
+  margin-top: 80px;
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.footer-version {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.version-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.build-info {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  font-family: 'Courier New', monospace;
 }
 
 /* Lightbox estilo Louis Vuitton */

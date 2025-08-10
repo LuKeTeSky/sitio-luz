@@ -34,7 +34,13 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(limiter);
+// Aplicar rate limiter general, pero excluir rutas de galería
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/gallery')) {
+    return next(); // Saltar rate limiter para rutas de galería
+  }
+  limiter(req, res, next);
+});
 
 // 🚦 Rate limiting específico para login
 const loginLimiter = rateLimit({
@@ -45,9 +51,18 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// 🚦 Rate limiting específico para galería (más permisivo)
+const galleryLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minuto
+  max: 50, // 50 requests por minuto para operaciones de galería
+  message: 'Too many gallery operations from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // 📁 Configuración de multer con límites y validación
 const upload = multer({
-  dest: 'public/uploads/',
+  dest: '/tmp/', // Usar directorio temporal para Vercel
   limits: {
     fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // 5MB por archivo
     files: parseInt(process.env.MAX_FILES) || 10 // Máximo 10 archivos simultáneos
@@ -70,8 +85,29 @@ const upload = multer({
   }
 });
 
+// 🔧 Función para crear directorio de uploads si no existe
+function ensureUploadsDirectory() {
+  const uploadsDir = path.join(__dirname, 'public/uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    try {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log('📁 Directorio de uploads creado:', uploadsDir);
+    } catch (error) {
+      console.error('❌ Error creando directorio de uploads:', error);
+      // En Vercel, usar directorio temporal
+      return '/tmp/';
+    }
+  }
+  return uploadsDir;
+}
+
 // 🚨 Acá va la línea para servir CSS, imágenes y otros archivos públicos
 app.use(express.static('public'));
+
+// 🔧 Ruta especial para servir imágenes en Vercel (desde directorio temporal)
+if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
+  app.use('/temp-images', express.static('/tmp'));
+}
 
 // 🛡️ Configuración de sesión segura
 app.use(session({
@@ -361,14 +397,29 @@ app.post('/upload', (req, res) => {
     const uploadedFiles = [];
     
     try {
+      // Asegurar que existe el directorio de uploads
+      const uploadsDir = ensureUploadsDirectory();
+      
       // Procesar cada archivo subido
       req.files.forEach((file, index) => {
         const originalName = file.originalname;
         const extension = path.extname(originalName).toLowerCase();
         const newFileName = Date.now() + '_' + index + extension;
-        const newPath = path.join('public/uploads', newFileName);
         
-        fs.renameSync(file.path, newPath);
+        // En Vercel, usar directorio temporal; en local, usar uploads
+        const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+        const newPath = isVercel 
+          ? path.join('/tmp', newFileName)
+          : path.join(uploadsDir, newFileName);
+        
+        // Mover archivo desde temp a destino final
+        if (isVercel) {
+          // En Vercel, solo copiar el archivo (no podemos escribir en public/uploads)
+          fs.copyFileSync(file.path, newPath);
+        } else {
+          // En local, mover el archivo
+          fs.renameSync(file.path, newPath);
+        }
         
         uploadedFiles.push({
           originalName: originalName,
@@ -411,7 +462,15 @@ function formatFileSize(bytes) {
 // 🖼️ API para obtener lista de imágenes (pública)
 app.get('/api/images', (req, res) => {
   try {
-    const uploadsDir = path.join(__dirname, 'public/uploads');
+    // En Vercel, usar directorio temporal; en local, usar uploads
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    const uploadsDir = isVercel ? '/tmp' : path.join(__dirname, 'public/uploads');
+    
+    // Verificar que el directorio existe
+    if (!fs.existsSync(uploadsDir)) {
+      return res.json({ images: [] });
+    }
+    
     const files = fs.readdirSync(uploadsDir);
     
     const images = files
@@ -855,6 +914,92 @@ app.put('/api/albums/reorder', (req, res) => {
     
   } catch (error) {
     console.error('Error reordenando álbumes:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// PUT /api/gallery/order - Reordenar imágenes de la galería
+app.put('/api/gallery/order', galleryLimiter, express.json(), (req, res) => {
+  try {
+    const { imageOrder } = req.body;
+    
+    if (!Array.isArray(imageOrder)) {
+      return res.status(400).json({ error: 'Se requiere un array de orden de imágenes' });
+    }
+    
+    // Cargar imágenes existentes
+    const uploadsDir = path.join(__dirname, 'public', 'uploads');
+    const imageFiles = fs.readdirSync(uploadsDir)
+      .filter(file => /\.(jpg|jpeg|png|gif|webp)$/i.test(file))
+      .map(filename => ({ filename }));
+    
+    // Crear mapa de archivos para validación
+    const fileMap = new Map(imageFiles.map(img => [img.filename, img]));
+    
+    // Validar que todas las imágenes en el orden existen
+    const validOrder = imageOrder.filter(item => {
+      if (!fileMap.has(item.filename)) {
+        console.warn(`Imagen no encontrada: ${item.filename}`);
+        return false;
+      }
+      return true;
+    });
+    
+    if (validOrder.length === 0) {
+      return res.status(400).json({ error: 'No se encontraron imágenes válidas para reordenar' });
+    }
+    
+    // Guardar el nuevo orden en un archivo de configuración
+    const orderConfigPath = path.join(__dirname, 'data', 'gallery-order.json');
+    const orderData = {
+      order: validOrder,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Crear directorio data si no existe
+    const dataDir = path.dirname(orderConfigPath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    fs.writeFileSync(orderConfigPath, JSON.stringify(orderData, null, 2));
+    
+    console.log(`Orden de galería actualizado: ${validOrder.length} imágenes`);
+    
+    res.json({
+      success: true,
+      message: 'Orden de galería actualizado exitosamente',
+      order: validOrder,
+      updatedAt: orderData.updatedAt
+    });
+    
+  } catch (error) {
+    console.error('Error reordenando galería:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// GET /api/gallery/order - Obtener orden actual de la galería
+app.get('/api/gallery/order', galleryLimiter, (req, res) => {
+  try {
+    const orderConfigPath = path.join(__dirname, 'data', 'gallery-order.json');
+    
+    if (!fs.existsSync(orderConfigPath)) {
+      return res.json({
+        order: [],
+        updatedAt: null
+      });
+    }
+    
+    const orderData = JSON.parse(fs.readFileSync(orderConfigPath, 'utf8'));
+    
+    res.json({
+      order: orderData.order || [],
+      updatedAt: orderData.updatedAt || null
+    });
+    
+  } catch (error) {
+    console.error('Error obteniendo orden de galería:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
