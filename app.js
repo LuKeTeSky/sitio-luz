@@ -13,12 +13,30 @@ let kv = null;
 if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
   try {
     kv = require('@vercel/kv');
+    // Verificar que kv se inicializó correctamente
+    if (kv && typeof kv.get === 'function') {
+      console.log('✅ Vercel KV inicializado correctamente');
+    } else {
+      console.log('⚠️ Vercel KV no se inicializó correctamente, usando memoria como fallback');
+      kv = null;
+    }
   } catch (error) {
-    console.log('⚠️ Vercel KV no disponible, usando memoria como fallback');
+    console.log('⚠️ Vercel KV no disponible, usando memoria como fallback:', error.message);
+    kv = null;
   }
 }
 
 const app = express();
+
+// 🔍 Debug: Verificar variables de entorno
+console.log('🔍 Variables de entorno Vercel KV:');
+console.log('- VERCEL:', process.env.VERCEL);
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- REDIS_URL:', process.env.REDIS_URL ? '✅ Configurada' : '❌ No configurada');
+console.log('- KV inicializado:', kv ? '✅ Sí' : '❌ No');
+if (kv) {
+  console.log('- KV methods:', Object.getOwnPropertyNames(kv).filter(name => typeof kv[name] === 'function'));
+}
 
 // 🛡️ Configuración de seguridad
 app.use(helmet({
@@ -98,7 +116,7 @@ const upload = multer({
 // 🔧 Funciones helper para Vercel KV
 async function addDeletedImage(filename) {
   try {
-    if (kv) {
+    if (kv && typeof kv.get === 'function' && typeof kv.set === 'function') {
       // Usar Vercel KV para persistencia
       const deletedImages = await kv.get('deletedImages') || [];
       if (!deletedImages.includes(filename)) {
@@ -133,7 +151,7 @@ async function addDeletedImage(filename) {
 
 async function getDeletedImages() {
   try {
-    if (kv) {
+    if (kv && typeof kv.get === 'function') {
       // Obtener desde Vercel KV
       const deletedImages = await kv.get('deletedImages') || [];
       return deletedImages;
