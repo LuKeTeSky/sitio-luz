@@ -433,19 +433,27 @@ async function loadGalleryImages() {
   console.log(`📸 Cargando galería (intento ${galleryLoadAttempts}/${MAX_LOAD_ATTEMPTS})`);
   
   try {
-    const [imagesResponse, albumsResponse, heroResponse, orderResponse] = await Promise.all([
+    const [imagesResponse, albumsResponse, heroResponse, orderResponse, deletedImagesResponse] = await Promise.all([
       fetch('/api/images'),
       fetch('/api/albums'),
       fetch('/api/hero'),
-      fetch('/api/gallery/order').catch(() => null) // Intentar cargar orden, pero no fallar si no existe
+      fetch('/api/gallery/order').catch(() => null), // Intentar cargar orden, pero no fallar si no existe
+      fetch('/api/deleted-images').catch(() => ({ deletedImages: [] })) // Obtener imágenes eliminadas
     ]);
     
     const images = await imagesResponse.json();
     const albums = await albumsResponse.json();
     const heroConfig = await heroResponse.json();
+    const deletedImagesData = await deletedImagesResponse.json();
+    
+    // Filtrar imágenes marcadas para eliminación
+    const deletedFilenames = deletedImagesData.deletedImages || [];
+    const filteredImages = images.filter(image => !deletedFilenames.includes(image.filename));
+    
+    console.log(`🔍 Filtrado: ${images.length} imágenes totales, ${deletedFilenames.length} eliminadas, ${filteredImages.length} visibles`);
     
     // Ordenar imágenes según prioridad: portada primero, luego por álbumes según su orden
-    let orderedImages = sortImagesByPriority(images, albums, heroConfig);
+    let orderedImages = sortImagesByPriority(filteredImages, albums, heroConfig);
     
     // Si hay un orden guardado, aplicarlo
     if (orderResponse && orderResponse.ok) {
