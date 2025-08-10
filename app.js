@@ -474,8 +474,39 @@ app.get('/api/images', (req, res) => {
     
     const images = files
       .filter(file => {
+        // Verificar si es un archivo de imagen válido
         const ext = path.extname(file).toLowerCase();
-        return ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext);
+        const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+        
+        // Si tiene extensión válida, incluirlo
+        if (validExtensions.includes(ext)) {
+          return true;
+        }
+        
+        // Si no tiene extensión, verificar si es una imagen por contenido
+        try {
+          const filePath = path.join(uploadsDir, file);
+          const stats = fs.statSync(filePath);
+          
+          // Solo verificar archivos que no sean directorios y tengan tamaño > 0
+          if (stats.isFile() && stats.size > 0) {
+            // Verificar si el archivo comienza con bytes de imagen
+            const buffer = fs.readFileSync(filePath, { start: 0, end: 8 });
+            const isImage = buffer.length >= 8 && (
+              // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+              (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) ||
+              // JPEG signature: FF D8 FF
+              (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) ||
+              // GIF signature: 47 49 46 38 (GIF8)
+              (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38)
+            );
+            return isImage;
+          }
+        } catch (error) {
+          console.log(`⚠️ Error verificando archivo ${file}:`, error.message);
+        }
+        
+        return false;
       })
       .map(file => ({
         filename: file,
