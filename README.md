@@ -585,6 +585,92 @@ git tag -a v1.2.2 -m "🔧 Bug fix description"
 git push origin v1.2.2
 ```
 
+## 🚨 **PROBLEMA PENDIENTE: Drag & Drop en Galería**
+
+### 🔍 **Estado Actual del Problema (v1.8.0)**
+
+**Fecha de identificación**: 9 de agosto de 2025  
+**Última sesión de debugging**: Chat con asistente AI  
+**Rama de trabajo**: `feature/fix-gallery-drag-drop-loop`
+
+#### ❌ **Problema Identificado**
+El drag & drop en la galería **visualmente funciona** pero **no persiste los cambios**:
+- ✅ **Efecto fantasma**: Las fotos se vuelven transparentes durante el arrastre
+- ✅ **Indicadores visuales**: Las fotos se "corren" lateralmente mostrando dónde se van a colocar
+- ❌ **No se mueven físicamente**: Al soltar, las fotos vuelven a su posición original
+- ❌ **No se guarda en servidor**: El orden no se persiste
+
+#### 🔧 **Cambios Implementados (Incompletos)**
+1. **Función `updateGalleryOrderDOM()` corregida**:
+   - Ahora mueve físicamente los elementos en el DOM
+   - Implementa reordenamiento real de elementos
+   - Actualiza índices correctamente
+
+2. **Logs de debugging agregados**:
+   - `🔄 Reordenando: elemento X → posición Y`
+   - `📸 Nuevo orden: [lista de archivos]`
+   - `🎨 Actualizando DOM...`
+   - `💾 Guardando en servidor...`
+
+3. **Protecciones contra loops**:
+   - Variables `isLoadingGallery` y `galleryLoadAttempts`
+   - Debounce en `saveGalleryOrder()` (500ms)
+   - Verificación de orden idéntico antes de guardar
+
+#### 🎯 **Lo que Falta Investigar**
+
+1. **Función `handleDrop()`**:
+   - Verificar que esté llamando correctamente a `reorderImages()`
+   - Confirmar que los índices `fromIndex` y `toIndex` sean correctos
+
+2. **Timing de animaciones**:
+   - El `setTimeout` de 300ms en `reorderImages()` podría estar interfiriendo
+   - Posible conflicto entre `applyReorderAnimation()` y `updateGalleryOrderDOM()`
+
+3. **Eventos de drag & drop**:
+   - Verificar que `makeGalleryItemDraggable()` esté configurando correctamente los eventos
+   - Confirmar que `data-index` y `dataset.index` se mantengan sincronizados
+
+4. **Sincronización DOM vs Array**:
+   - El array `allImages` se actualiza correctamente
+   - Pero el DOM no refleja el cambio visual
+
+#### 🧪 **Pasos para Debuggear (Futura Sesión)**
+
+1. **Verificar consola del navegador**:
+   ```javascript
+   // Deberían aparecer estos logs al hacer drag & drop:
+   🔄 Reordenando: elemento X → posición Y
+   📸 Nuevo orden: [lista de archivos]
+   🎨 Actualizando DOM...
+   🔄 DOM actualizado: elemento X movido a posición Y
+   💾 Guardando en servidor...
+   ```
+
+2. **Revisar función `handleDrop()`**:
+   - Buscar en `public/js/gallery.js` alrededor de la línea 154
+   - Verificar que llame a `reorderImages(fromIndex, toIndex)`
+
+3. **Probar sin animaciones**:
+   - Comentar temporalmente `applyReorderAnimation()`
+   - Verificar si el problema es de timing
+
+4. **Verificar índices**:
+   - Confirmar que `data-index` en elementos HTML coincida con índices del array
+   - Verificar que `makeGalleryItemDraggable()` reciba índices correctos
+
+#### 📁 **Archivos Clave para Revisar**
+- `public/js/gallery.js` (líneas 154-200, 262-285)
+- `views/admin.html` (verificar que solo se cargue `gallery.js` una vez)
+- `app.js` (endpoint `/api/gallery/order` para verificar que reciba datos)
+
+#### 💡 **Posibles Soluciones Futuras**
+1. **Usar librería externa**: Sortable.js o Dragula para manejo automático
+2. **Simplificar el flujo**: Eliminar animaciones temporales y actualizar DOM inmediatamente
+3. **Revisar eventos**: Asegurar que no haya conflictos entre múltiples event listeners
+
+---
+
 ## 🚨 **IMPORTANTE: Sistema de Versionado y Gitflow**
 
 ### 📋 **ANTES de Implementar Cualquier Cambio:**
