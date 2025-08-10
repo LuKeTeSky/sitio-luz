@@ -172,6 +172,8 @@ function handleDrop(e) {
 
 // Función para reordenar imágenes
 function reorderImages(fromIndex, toIndex) {
+  console.log(`🔄 Reordenando: elemento ${fromIndex} → posición ${toIndex}`);
+  
   // Crear nueva lista ordenada
   const newOrder = [...allImages];
   const [movedImage] = newOrder.splice(fromIndex, 1);
@@ -180,13 +182,19 @@ function reorderImages(fromIndex, toIndex) {
   // Actualizar array global
   allImages = newOrder;
   
+  console.log(`📸 Nuevo orden:`, newOrder.map((img, i) => `${i}: ${img.filename}`));
+  
   // Aplicar animación de reordenamiento
   applyReorderAnimation(fromIndex, toIndex);
   
   // Actualizar visualización después de un pequeño delay
   setTimeout(() => {
+    console.log(`🎨 Actualizando DOM...`);
+    
     // Solo actualizar el DOM sin recrear toda la grilla
     updateGalleryOrderDOM(fromIndex, toIndex);
+    
+    console.log(`💾 Guardando en servidor...`);
     
     // Guardar nuevo orden en el servidor
     saveGalleryOrder(newOrder);
@@ -266,16 +274,25 @@ function updateGalleryOrderDOM(fromIndex, toIndex) {
   // Obtener todos los elementos de la galería
   const galleryItems = Array.from(galleryGrid.children);
   
-  // Solo actualizar los índices de los elementos afectados
-  galleryItems.forEach((item, currentIndex) => {
-    if (currentIndex >= fromIndex && currentIndex <= toIndex) {
-      // Actualizar el atributo data-index
-      item.setAttribute('data-index', currentIndex);
-      
-      // Actualizar el dataset.index también
-      item.dataset.index = currentIndex;
-    }
+  // Crear nueva lista ordenada de elementos
+  const newOrder = [...galleryItems];
+  const [movedItem] = newOrder.splice(fromIndex, 1);
+  newOrder.splice(toIndex, 0, movedItem);
+  
+  // Limpiar la grilla
+  galleryGrid.innerHTML = '';
+  
+  // Agregar elementos en el nuevo orden
+  newOrder.forEach((item, index) => {
+    // Actualizar índices
+    item.setAttribute('data-index', index);
+    item.dataset.index = index;
+    
+    // Agregar a la grilla
+    galleryGrid.appendChild(item);
   });
+  
+  console.log(`🔄 DOM actualizado: elemento ${fromIndex} movido a posición ${toIndex}`);
 }
 
 // Protección contra llamadas repetitivas a saveGalleryOrder
