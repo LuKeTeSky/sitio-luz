@@ -486,7 +486,7 @@ En los archivos HTML, modifica los enlaces de Google Fonts:
 - ✅ **Tablets**: iPad, Android tablets
 - ✅ **Escritorio**: Windows, macOS, Linux
 
-## 🔒 Seguridad
+## 🔒 Seguridaddd
 
 ### 🛡️ **Medidas Implementadas**
 - **Autenticación de sesiones** para el panel de administración
