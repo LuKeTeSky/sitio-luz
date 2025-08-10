@@ -24,6 +24,7 @@ let coverImages = [];
 let draggedElement = null;
 let draggedIndex = -1;
 let originalOrder = [];
+let lastTargetIndex = -1;
 
 // Función para configurar drag & drop en la galería
 function setupGalleryDragAndDrop() {
@@ -87,6 +88,7 @@ function handleDragEnd(e) {
   e.target.style.opacity = '1';
   draggedElement = null;
   draggedIndex = -1;
+  lastTargetIndex = -1;
   
   // Remover clase de drag activo
   document.body.classList.remove('dragging');
@@ -110,8 +112,14 @@ function handleDragOver(e) {
   const targetIndex = parseInt(targetItem.dataset.index);
   if (isNaN(targetIndex)) return;
   
-  // Crear efecto de desplazamiento fantasma
-  createGhostEffect(targetIndex);
+  // Solo crear efecto fantasma si el índice cambió
+  if (targetIndex !== lastTargetIndex) {
+    lastTargetIndex = targetIndex;
+    createGhostEffect(targetIndex);
+  }
+  
+  // Agregar indicador visual de drop zone
+  targetItem.classList.add('drop-zone');
 }
 
 // Función para manejar drag enter
@@ -161,17 +169,64 @@ function reorderImages(fromIndex, toIndex) {
   // Actualizar array global
   allImages = newOrder;
   
-  // Actualizar visualización
-  updateGalleryOrder();
+  // Aplicar animación de reordenamiento
+  applyReorderAnimation(fromIndex, toIndex);
   
-  // Guardar nuevo orden en el servidor
-  saveGalleryOrder(newOrder);
-  
-  // Mostrar notificación
-  showNotification('Orden de la galería actualizado', 'success');
+  // Actualizar visualización después de un pequeño delay
+  setTimeout(() => {
+    // Solo actualizar el DOM sin recrear toda la grilla
+    updateGalleryOrderDOM(fromIndex, toIndex);
+    
+    // Guardar nuevo orden en el servidor
+    saveGalleryOrder(newOrder);
+    
+    // Mostrar notificación
+    showNotification('Orden de la galería actualizado', 'success');
+  }, 300); // Delay para que se vea la animación
 }
 
-// Función para actualizar el orden visual de la galería
+// Función para aplicar animación de reordenamiento
+function applyReorderAnimation(fromIndex, toIndex) {
+  const galleryItems = document.querySelectorAll('.gallery-item');
+  const movedItem = galleryItems[fromIndex];
+  
+  if (!movedItem) return;
+  
+  // Obtener información de la grilla
+  const gridContainer = document.getElementById('gallery-grid');
+  const gridRect = gridContainer.getBoundingClientRect();
+  const itemRect = movedItem.getBoundingClientRect();
+  
+  if (!itemRect) return;
+  
+  // Calcular columnas por fila
+  const itemWidth = itemRect.width;
+  const itemMargin = 20;
+  const effectiveItemWidth = itemWidth + itemMargin;
+  const columnsPerRow = Math.floor(gridRect.width / effectiveItemWidth);
+  
+  // Calcular posiciones
+  const fromPos = { row: Math.floor(fromIndex / columnsPerRow), col: fromIndex % columnsPerRow };
+  const toPos = { row: Math.floor(toIndex / columnsPerRow), col: toIndex % columnsPerRow };
+  
+  // Calcular desplazamiento
+  const deltaX = (toPos.col - fromPos.col) * effectiveItemWidth;
+  const deltaY = (toPos.row - fromPos.row) * (itemRect.height + itemMargin);
+  
+  // Aplicar animación
+  movedItem.style.transition = 'all 0.3s ease';
+  movedItem.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+  movedItem.style.zIndex = '1000';
+  
+  // Restaurar después de la animación
+  setTimeout(() => {
+    movedItem.style.transition = '';
+    movedItem.style.transform = '';
+    movedItem.style.zIndex = '';
+  }, 300);
+}
+
+// Función para actualizar el orden visual de la galería (recrea toda la grilla)
 function updateGalleryOrder() {
   const galleryGrid = document.getElementById('gallery-grid');
   if (!galleryGrid) return;
@@ -190,6 +245,26 @@ function updateGalleryOrder() {
   
   // Reconfigurar lightbox
   setupLightbox();
+}
+
+// Función para actualizar solo el DOM sin recrear toda la grilla
+function updateGalleryOrderDOM(fromIndex, toIndex) {
+  const galleryGrid = document.getElementById('gallery-grid');
+  if (!galleryGrid) return;
+  
+  // Obtener todos los elementos de la galería
+  const galleryItems = Array.from(galleryGrid.children);
+  
+  // Solo actualizar los índices de los elementos afectados
+  galleryItems.forEach((item, currentIndex) => {
+    if (currentIndex >= fromIndex && currentIndex <= toIndex) {
+      // Actualizar el atributo data-index
+      item.setAttribute('data-index', currentIndex);
+      
+      // Actualizar el dataset.index también
+      item.dataset.index = currentIndex;
+    }
+  });
 }
 
 // Función para guardar el nuevo orden en el servidor
@@ -1264,28 +1339,89 @@ function createGhostEffect(targetIndex) {
   // Obtener todos los elementos de la galería
   const galleryItems = document.querySelectorAll('.gallery-item');
   
-  // Crear efecto de desplazamiento para elementos que se moverán
-  if (draggedIndex < targetIndex) {
-    // Arrastrando hacia abajo: desplazar elementos hacia arriba
+  // Obtener información de la grilla
+  const gridContainer = document.getElementById('gallery-grid');
+  const gridRect = gridContainer.getBoundingClientRect();
+  const itemRect = galleryItems[0]?.getBoundingClientRect();
+  
+  if (!itemRect) return;
+  
+  // Calcular columnas por fila basado en el CSS grid
+  const itemWidth = itemRect.width;
+  const itemMargin = 20; // Margen entre elementos
+  const effectiveItemWidth = itemWidth + itemMargin;
+  const columnsPerRow = Math.floor(gridRect.width / effectiveItemWidth);
+  
+  // Calcular posición en la grilla (fila y columna)
+  const getGridPosition = (index) => {
+    const row = Math.floor(index / columnsPerRow);
+    const col = index % columnsPerRow;
+    return { row, col };
+  };
+  
+  const draggedPos = getGridPosition(draggedIndex);
+  const targetPos = getGridPosition(targetIndex);
+  
+  // Determinar dirección del movimiento
+  const isMovingDown = draggedIndex < targetIndex;
+  const isMovingUp = draggedIndex > targetIndex;
+  
+  // Aplicar efectos fantasma inteligentes
+  if (isMovingDown) {
+    // Arrastrando hacia abajo: elementos se mueven hacia arriba
     for (let i = draggedIndex + 1; i <= targetIndex; i++) {
       if (galleryItems[i]) {
-        galleryItems[i].classList.add('ghost-shift-left');
+        const currentPos = getGridPosition(i);
+        const shiftDirection = getShiftDirection(currentPos, draggedPos, targetPos, columnsPerRow);
+        galleryItems[i].classList.add(shiftDirection);
       }
     }
-  } else if (draggedIndex > targetIndex) {
-    // Arrastrando hacia arriba: desplazar elementos hacia abajo
+  } else if (isMovingUp) {
+    // Arrastrando hacia arriba: elementos se mueven hacia abajo
     for (let i = targetIndex; i < draggedIndex; i++) {
       if (galleryItems[i]) {
-        galleryItems[i].classList.add('ghost-shift-right');
+        const currentPos = getGridPosition(i);
+        const shiftDirection = getShiftDirection(currentPos, draggedPos, targetPos, columnsPerRow);
+        galleryItems[i].classList.add(shiftDirection);
       }
     }
   }
 }
 
+// Función auxiliar para determinar la dirección del desplazamiento
+function getShiftDirection(currentPos, draggedPos, targetPos, columnsPerRow) {
+  const { row: currentRow, col: currentCol } = currentPos;
+  const { row: draggedRow, col: draggedCol } = draggedPos;
+  const { row: targetRow, col: targetCol } = targetPos;
+  
+  // Si estamos en la misma fila
+  if (currentRow === draggedRow) {
+    if (draggedCol < targetCol) {
+      // Moviendo hacia la derecha: elementos se mueven a la izquierda
+      return 'ghost-shift-left';
+    } else {
+      // Moviendo hacia la izquierda: elementos se mueven a la derecha
+      return 'ghost-shift-right';
+    }
+  }
+  
+  // Si estamos en filas diferentes
+  if (currentRow < draggedRow) {
+    // Elementos arriba se mueven hacia abajo
+    return 'ghost-shift-down';
+  } else if (currentRow > draggedRow) {
+    // Elementos abajo se mueven hacia arriba
+    return 'ghost-shift-up';
+  }
+  
+  // Por defecto, desplazamiento horizontal
+  return draggedCol < targetCol ? 'ghost-shift-left' : 'ghost-shift-right';
+}
+
 // Función para limpiar efectos fantasma
 function clearGhostEffects() {
-  document.querySelectorAll('.ghost-shift-left, .ghost-shift-right').forEach(item => {
-    item.classList.remove('ghost-shift-left', 'ghost-shift-right');
+  document.querySelectorAll('.ghost-shift-left, .ghost-shift-right, .ghost-shift-up, .ghost-shift-down').forEach(item => {
+    item.classList.remove('ghost-shift-left', 'ghost-shift-right', 'ghost-shift-up', 'ghost-shift-down');
   });
 }
 
