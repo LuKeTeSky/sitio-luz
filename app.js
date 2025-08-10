@@ -462,9 +462,8 @@ function formatFileSize(bytes) {
 // 🖼️ API para obtener lista de imágenes (pública)
 app.get('/api/images', (req, res) => {
   try {
-    // En Vercel, usar directorio temporal; en local, usar uploads
-    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-    const uploadsDir = isVercel ? '/tmp' : path.join(__dirname, 'public/uploads');
+    // Usar directorio de uploads (tanto en Vercel como en local)
+    const uploadsDir = path.join(__dirname, 'public/uploads');
     
     // Verificar que el directorio existe
     if (!fs.existsSync(uploadsDir)) {
