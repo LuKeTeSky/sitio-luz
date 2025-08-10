@@ -544,6 +544,7 @@ function createGalleryItem(imageData, index) {
   const item = document.createElement('div');
   item.className = 'gallery-item';
   item.dataset.index = index;
+  item.dataset.filename = imageData.filename; // Agregar filename para eliminación
   
   const img = document.createElement('img');
   
@@ -966,9 +967,13 @@ async function deleteImage(filename, index) {
         }
       }
       
-      // Recargar galería
+      // Remover la imagen del DOM sin recargar toda la galería
       setTimeout(() => {
-        loadGalleryImages();
+        const imageElement = document.querySelector(`[data-filename="${filename}"]`);
+        if (imageElement) {
+          imageElement.remove();
+          console.log('✅ Imagen removida del DOM sin recargar galería');
+        }
       }, 500);
       
     } else {
