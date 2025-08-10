@@ -114,36 +114,60 @@ const upload = multer({
 });
 
 // 🔧 Funciones helper para Vercel KV
+// 🔧 Función para agregar imagen a la lista de eliminadas
 async function addDeletedImage(filename) {
   try {
+    console.log(`🔍 Intentando marcar imagen para eliminación: ${filename}`);
+    console.log(`🔧 Estado de KV:`, {
+      kvExists: !!kv,
+      kvGetFunction: kv && typeof kv.get === 'function',
+      kvSetFunction: kv && typeof kv.set === 'function',
+      environment: process.env.NODE_ENV,
+      isVercel: process.env.VERCEL === '1'
+    });
+    
     if (kv && typeof kv.get === 'function' && typeof kv.set === 'function') {
       // Usar Vercel KV para persistencia
+      console.log(`✅ Usando Vercel KV para persistencia`);
       const deletedImages = await kv.get('deletedImages') || [];
+      console.log(`📋 Imágenes eliminadas actuales en KV:`, deletedImages);
+      
       if (!deletedImages.includes(filename)) {
         deletedImages.push(filename);
         await kv.set('deletedImages', deletedImages);
         console.log(`✅ Imagen ${filename} marcada para eliminación en Vercel KV`);
+        console.log(`📊 Total en KV después de agregar: ${deletedImages.length}`);
+      } else {
+        console.log(`ℹ️ Imagen ${filename} ya estaba marcada para eliminación`);
       }
       return deletedImages;
     } else {
       // Fallback a memoria global
+      console.log(`⚠️ Fallback a memoria global (KV no disponible)`);
       if (!global.deletedImages) {
         global.deletedImages = [];
+        console.log(`🔄 Inicializando array global de imágenes eliminadas`);
       }
       if (!global.deletedImages.includes(filename)) {
         global.deletedImages.push(filename);
-        console.log(`✅ Imagen ${filename} marcada para eliminación en memoria`);
+        console.log(`✅ Imagen ${filename} marcada para eliminación en memoria global`);
+        console.log(`📊 Total en memoria global: ${global.deletedImages.length}`);
+      } else {
+        console.log(`ℹ️ Imagen ${filename} ya estaba marcada en memoria global`);
       }
       return global.deletedImages;
     }
   } catch (error) {
     console.error('❌ Error marcando imagen para eliminación:', error);
+    console.error('🔍 Stack trace:', error.stack);
     // Fallback a memoria global en caso de error
     if (!global.deletedImages) {
       global.deletedImages = [];
+      console.log(`🔄 Inicializando array global después de error`);
     }
     if (!global.deletedImages.includes(filename)) {
       global.deletedImages.push(filename);
+      console.log(`✅ Imagen ${filename} marcada para eliminación en fallback`);
     }
     return global.deletedImages;
   }
@@ -151,18 +175,34 @@ async function addDeletedImage(filename) {
 
 async function getDeletedImages() {
   try {
+    console.log(`🔍 Obteniendo lista de imágenes eliminadas`);
+    console.log(`🔧 Estado de KV:`, {
+      kvExists: !!kv,
+      kvGetFunction: kv && typeof kv.get === 'function',
+      environment: process.env.NODE_ENV,
+      isVercel: process.env.VERCEL === '1'
+    });
+    
     if (kv && typeof kv.get === 'function') {
       // Obtener desde Vercel KV
+      console.log(`✅ Obteniendo desde Vercel KV`);
       const deletedImages = await kv.get('deletedImages') || [];
+      console.log(`📋 Imágenes eliminadas obtenidas de KV:`, deletedImages);
       return deletedImages;
     } else {
       // Fallback a memoria global
-      return global.deletedImages || [];
+      console.log(`⚠️ Fallback a memoria global (KV no disponible)`);
+      const result = global.deletedImages || [];
+      console.log(`📋 Imágenes eliminadas obtenidas de memoria global:`, result);
+      return result;
     }
   } catch (error) {
     console.error('❌ Error obteniendo imágenes eliminadas:', error);
+    console.error('🔍 Stack trace:', error.stack);
     // Fallback a memoria global en caso de error
-    return global.deletedImages || [];
+    const result = global.deletedImages || [];
+    console.log(`📋 Fallback a memoria global después de error:`, result);
+    return result;
   }
 }
 
@@ -543,23 +583,29 @@ function formatFileSize(bytes) {
 // 🖼️ API para obtener lista de imágenes (pública)
 app.get('/api/images', async (req, res) => {
   try {
+    console.log(`🖼️ ===== INICIO LISTADO DE IMÁGENES =====`);
+    
     // Usar directorio de uploads (tanto en Vercel como en local)
     const uploadsDir = path.join(__dirname, 'public/uploads');
     
     // Verificar que el directorio existe
     if (!fs.existsSync(uploadsDir)) {
+      console.log(`❌ Directorio de uploads no existe: ${uploadsDir}`);
       return res.json({ images: [] });
     }
     
     // Cargar lista de imágenes marcadas para eliminación
+    console.log(`🔍 Obteniendo imágenes marcadas para eliminación...`);
     const deletedImages = await getDeletedImages();
     const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
     
-    if (isVercel) {
-      console.log(`📋 Imágenes marcadas para eliminación en Vercel KV: ${deletedImages.length}`);
-    }
+    console.log(`📋 Imágenes marcadas para eliminación:`, deletedImages);
+    console.log(`📊 Total de imágenes marcadas: ${deletedImages.length}`);
+    console.log(`🌐 Entorno: ${isVercel ? 'Vercel (Producción)' : 'Local (Desarrollo)'}`);
     
     const files = fs.readdirSync(uploadsDir);
+    console.log(`📁 Archivos encontrados en uploads:`, files);
+    console.log(`📊 Total de archivos: ${files.length}`);
     
     const images = files
       .filter(file => {
@@ -575,6 +621,7 @@ app.get('/api/images', async (req, res) => {
         
         // Si tiene extensión válida, incluirlo
         if (validExtensions.includes(ext)) {
+          console.log(`✅ Incluyendo imagen con extensión válida: ${file}`);
           return true;
         }
         
@@ -595,12 +642,19 @@ app.get('/api/images', async (req, res) => {
               // GIF signature: 47 49 46 38 (GIF8)
               (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38)
             );
+            
+            if (isImage) {
+              console.log(`✅ Incluyendo imagen detectada por contenido: ${file}`);
+            } else {
+              console.log(`❌ Excluyendo archivo que no es imagen: ${file}`);
+            }
             return isImage;
           }
         } catch (error) {
           console.log(`⚠️ Error verificando archivo ${file}:`, error.message);
         }
         
+        console.log(`❌ Excluyendo archivo no válido: ${file}`);
         return false;
       })
       .map(file => ({
@@ -611,9 +665,14 @@ app.get('/api/images', async (req, res) => {
       }))
       .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
     
+    console.log(`📊 Total de imágenes válidas después del filtrado: ${images.length}`);
+    console.log(`✅ ===== LISTADO COMPLETADO =====`);
+    
     res.json(images);
   } catch (error) {
+    console.error('❌ ===== ERROR EN LISTADO =====');
     console.error('Error leyendo directorio de uploads:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
@@ -700,8 +759,15 @@ app.delete('/api/images/:filename', async (req, res) => {
     const filename = decodeURIComponent(req.params.filename);
     const filePath = path.join(__dirname, 'public/uploads', filename);
     
+    console.log(`🗑️ ===== INICIO ELIMINACIÓN =====`);
     console.log(`🗑️ Intentando eliminar: ${filename}`);
     console.log(`📁 Ruta del archivo: ${filePath}`);
+    console.log(`🔧 Variables de entorno:`, {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL: process.env.VERCEL,
+      REDIS_URL: process.env.REDIS_URL ? '✅ Configurado' : '❌ No configurado',
+      KV_URL: process.env.KV_URL ? '✅ Configurado' : '❌ No configurado'
+    });
     
     // Verificar que el archivo existe
     if (!fs.existsSync(filePath)) {
@@ -711,6 +777,7 @@ app.delete('/api/images/:filename', async (req, res) => {
     
     // En Vercel, no se pueden eliminar archivos físicos (sistema de solo lectura)
     const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    console.log(`🌐 Entorno detectado: ${isVercel ? 'Vercel (Producción)' : 'Local (Desarrollo)'}`);
     
     if (isVercel) {
       console.log(`⚠️ En Vercel: No se puede eliminar archivo físico ${filename}`);
@@ -718,7 +785,8 @@ app.delete('/api/images/:filename', async (req, res) => {
       
       // En Vercel, usar Vercel KV para persistencia
       const deletedImages = await addDeletedImage(filename);
-      console.log(`📋 Total de imágenes marcadas: ${deletedImages.length}`);
+      console.log(`📋 Total de imágenes marcadas después de agregar: ${deletedImages.length}`);
+      console.log(`📋 Lista completa de imágenes marcadas:`, deletedImages);
     } else {
       // Verificar permisos de escritura (solo en desarrollo)
       try {
@@ -764,6 +832,7 @@ app.delete('/api/images/:filename', async (req, res) => {
       // No fallar la eliminación de la imagen por esto
     }
     
+    console.log(`✅ ===== ELIMINACIÓN COMPLETADA =====`);
     res.json({ 
       success: true, 
       message: isVercel ? 'Foto marcada para eliminación (persistente en Vercel KV)' : 'Foto eliminada exitosamente',
@@ -774,7 +843,9 @@ app.delete('/api/images/:filename', async (req, res) => {
     });
     
   } catch (error) {
+    console.error('❌ ===== ERROR EN ELIMINACIÓN =====');
     console.error('Error eliminando archivo:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
