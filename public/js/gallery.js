@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Agregar funciones de debug a la consola
+  console.log('🔧 Funciones de debug disponibles:');
+  console.log('  - window.clearGalleryProtection() - Limpiar protección');
+  console.log('  - window.resetGalleryLoadProtection() - Resetear protección');
+  console.log('  - window.loadAdminGallery() - Recargar galería manualmente');
+  
   // Cargar imágenes existentes
   loadGalleryImages();
   
@@ -25,6 +31,11 @@ let draggedElement = null;
 let draggedIndex = -1;
 let originalOrder = [];
 let lastTargetIndex = -1;
+
+// Protección contra ejecuciones múltiples
+let isLoadingGallery = false;
+let galleryLoadAttempts = 0;
+const MAX_LOAD_ATTEMPTS = 3;
 
 // Función para configurar drag & drop en la galería
 function setupGalleryDragAndDrop() {
@@ -267,36 +278,58 @@ function updateGalleryOrderDOM(fromIndex, toIndex) {
   });
 }
 
+// Protección contra llamadas repetitivas a saveGalleryOrder
+let saveOrderTimeout = null;
+let lastSavedOrder = null;
+
 // Función para guardar el nuevo orden en el servidor
 async function saveGalleryOrder(newOrder) {
-  try {
-    const imageOrder = newOrder.map((image, index) => ({
-      filename: image.filename,
-      order: index
-    }));
-    
-    const response = await fetch('/api/gallery/order', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ imageOrder })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error al guardar el orden');
-    }
-    
-    console.log('Orden de galería guardado exitosamente');
-    
-  } catch (error) {
-    console.error('Error guardando orden de galería:', error);
-    showNotification('Error al guardar el orden', 'error');
-    
-    // Revertir cambios en caso de error
-    allImages = [...originalOrder];
-    updateGalleryOrder();
+  // Evitar guardar el mismo orden múltiples veces
+  if (lastSavedOrder && JSON.stringify(lastSavedOrder) === JSON.stringify(newOrder)) {
+    console.log('🔄 Orden idéntico, saltando guardado');
+    return;
   }
+  
+  // Debounce: cancelar llamada anterior si hay una nueva
+  if (saveOrderTimeout) {
+    clearTimeout(saveOrderTimeout);
+  }
+  
+  // Esperar 500ms antes de guardar para evitar llamadas repetitivas
+  saveOrderTimeout = setTimeout(async () => {
+    try {
+      console.log('💾 Guardando orden de galería...');
+      
+      const imageOrder = newOrder.map((image, index) => ({
+        filename: image.filename,
+        order: index
+      }));
+      
+      const response = await fetch('/api/gallery/order', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ imageOrder })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al guardar el orden');
+      }
+      
+      // Guardar referencia del último orden guardado
+      lastSavedOrder = JSON.parse(JSON.stringify(newOrder));
+      console.log('✅ Orden de galería guardado exitosamente');
+      
+    } catch (error) {
+      console.error('Error guardando orden de galería:', error);
+      showNotification('Error al guardar el orden', 'error');
+      
+      // Revertir cambios en caso de error
+      allImages = [...originalOrder];
+      updateGalleryOrder();
+    }
+  }, 500); // Debounce de 500ms
 }
 
 // Función para ordenar imágenes por prioridad
@@ -366,6 +399,22 @@ function sortImagesByPriority(images, albums, heroConfig) {
 
 // Función para cargar imágenes de la galería (admin)
 async function loadGalleryImages() {
+  // Protección contra ejecuciones múltiples
+  if (isLoadingGallery) {
+    console.log('🔄 loadGalleryImages ya está en ejecución, saltando...');
+    return;
+  }
+  
+  if (galleryLoadAttempts >= MAX_LOAD_ATTEMPTS) {
+    console.warn('⚠️ Máximo de intentos de carga alcanzado, saltando loadGalleryImages');
+    return;
+  }
+  
+  isLoadingGallery = true;
+  galleryLoadAttempts++;
+  
+  console.log(`📸 Cargando galería (intento ${galleryLoadAttempts}/${MAX_LOAD_ATTEMPTS})`);
+  
   try {
     const [imagesResponse, albumsResponse, heroResponse, orderResponse] = await Promise.all([
       fetch('/api/images'),
@@ -423,15 +472,47 @@ async function loadGalleryImages() {
     // Configurar lightbox para las nuevas imágenes
     setupLightbox();
     
+    // Reset de protección después de carga exitosa
+    isLoadingGallery = false;
+    console.log('✅ Galería cargada exitosamente');
+    
   } catch (error) {
     console.error('Error cargando imágenes:', error);
     // Mostrar imágenes de ejemplo si no hay API
     loadSampleImages();
+    
+    // Reset de protección en caso de error
+    isLoadingGallery = false;
   }
 }
 
 // Hacer función disponible globalmente para admin
 window.loadAdminGallery = loadGalleryImages;
+
+// Función para resetear la protección de carga
+function resetGalleryLoadProtection() {
+  isLoadingGallery = false;
+  galleryLoadAttempts = 0;
+  console.log('🔄 Protección de carga de galería reseteada');
+}
+
+// Hacer función disponible globalmente
+window.resetGalleryLoadProtection = resetGalleryLoadProtection;
+
+// Función para limpiar toda la protección
+function clearGalleryProtection() {
+  isLoadingGallery = false;
+  galleryLoadAttempts = 0;
+  if (saveOrderTimeout) {
+    clearTimeout(saveOrderTimeout);
+    saveOrderTimeout = null;
+  }
+  lastSavedOrder = null;
+  console.log('🧹 Protección de galería limpiada');
+}
+
+// Hacer función disponible globalmente
+window.clearGalleryProtection = clearGalleryProtection;
 
 // Función para crear un elemento de galería
 function createGalleryItem(imageData, index) {
