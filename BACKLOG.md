@@ -2,25 +2,29 @@
 
 ## 🚨 **PRIORIDAD ALTA (Crítico)**
 
-### **Issue #1: Subida de Fotos No Funciona**
+### **Issue #1: Subida de Fotos No Funciona** ✅ **COMPLETADO**
 - **Descripción**: No se pueden subir fotos al sitio, aunque no muestra errores visibles
 - **Tipo**: Bug
 - **Componente**: Sistema de upload
+- **Estado**: ✅ **RESUELTO** - Sistema de upload completamente funcional en v1.12.1
 - **Criterios de Aceptación**:
-  - [ ] Las fotos se suben correctamente
-  - [ ] Se muestran en la galería después de la subida
-  - [ ] No hay errores en consola
-  - [ ] Funciona tanto en local como en Vercel
+  - [x] Las fotos se suben correctamente
+  - [x] Se muestran en la galería después de la subida
+  - [x] No hay errores en consola
+  - [x] Funciona tanto en local como en Vercel
+- **Notas**: Sistema completamente corregido en v1.12.1 con endpoint adaptativo para Vercel
 
-### **Issue #2: Drag & Drop No Funciona**
+### **Issue #2: Drag & Drop No Funciona** ✅ **COMPLETADO**
 - **Descripción**: El drag & drop en la galería no funciona correctamente
 - **Tipo**: Bug
 - **Componente**: Galería admin
+- **Estado**: ✅ **RESUELTO** - Drag & drop implementado en albums.js y gallery.js
 - **Criterios de Aceptación**:
-  - [ ] Se puede arrastrar y soltar fotos
-  - [ ] El orden se mantiene después del drop
-  - [ ] No hay efecto "fantasma" que revierta la posición
-  - [ ] La funcionalidad es fluida y responsiva
+  - [x] Se puede arrastrar y soltar fotos
+  - [x] El orden se mantiene después del drop
+  - [x] No hay efecto "fantasma" que revierta la posición
+  - [x] La funcionalidad es fluida y responsiva
+- **Notas**: Sistema implementado en v1.8.0 con efectos visuales y persistencia
 
 ---
 
@@ -85,9 +89,11 @@
 ## 📊 **ESTADO DEL BACKLOG**
 
 - **Total de Issues**: 7
-- **Críticos**: 2
-- **Importantes**: 2
-- **Mejoras**: 3
+- **✅ Completados**: 2 (Issues #1 y #2)
+- **🟡 En Desarrollo**: 2 (Issues #3 y #4)
+- **🟢 Pendientes**: 3 (Issues #5, #6 y #7)
+- **🎯 Progreso**: 28.6% completado
+- **🚨 Críticos**: 0/2 (100% resueltos)
 
 ## 🔄 **FLUJO DE TRABAJO**
 

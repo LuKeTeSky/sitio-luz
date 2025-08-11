@@ -2,6 +2,17 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
+## 🎯 **Novedades Principales v1.12.1**
+
+### 🔧 **Bug Crítico de Upload CORREGIDO**
+- **Sistema de upload completamente funcional** tanto en local como en Vercel
+- **Endpoint `/uploads/:filename` implementado** para servir archivos desde `/tmp` en Vercel
+- **Lógica adaptativa de directorios** que funciona en ambos entornos
+- **Validación de archivos mejorada** con mensajes de error claros
+- **Compatibilidad total** entre desarrollo local y producción
+
+---
+
 ## 🎯 **Novedades Principales v1.12.0**
 
 ### 📋 **Sistema de Backlog Completo Implementado**
@@ -609,14 +620,15 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.6.0** | 09 Ago 2025 | Stable | **Subida múltiple + Auto-agregado + Drag & drop** |
 | **v1.7.0** | 09 Ago 2025 | Stable | **Mejoras en sistema de álbumes y navegación** |
 | **v1.8.0** | 09 Ago 2025 | Stable | **Drag & drop en galería + Efectos visuales + Contacto actualizado** |
-| **v1.12.0** | 10 Ago 2025 | **🟢 ACTUAL** | **Sistema de backlog completo + Issues organizados + Flujo de trabajo estandarizado** |
+| **v1.12.1** | 10 Ago 2025 | **🟢 ACTUAL** | **Bug crítico de upload CORREGIDO + Sistema funcional en local y Vercel** |
+| **v1.12.0** | 10 Ago 2025 | ✅ Stable | **Sistema de backlog completo + Issues organizados + Flujo de trabajo estandarizado** |
 | **v1.11.0** | 10 Ago 2025 | ✅ Stable | **Repositorio completamente limpio + Gitflow reorganizado + Sistema de backup** |
 | **v1.10.0** | 09 Ago 2025 | ✅ Stable | **Bug crítico de eliminación CORREGIDO + Eliminación directa del DOM** |
 | **v1.9.0** | 09 Ago 2025 | ✅ Stable | **Persistencia de eliminaciones con Vercel KV + Sistema robusto** |
 
-#### 🔄 **Versión Actual: v1.12.0**
+#### 🔄 **Versión Actual: v1.12.1**
 - **Fecha de lanzamiento**: 10 de agosto de 2025
-- **Características principales**: Sistema de backlog completo, issues organizados, flujo de trabajo estandarizado
+- **Características principales**: Bug crítico de upload corregido, sistema funcional en local y Vercel
 - **Estado**: Estable y en producción
 - **Próxima versión**: v1.13.0 (en desarrollo)
 
