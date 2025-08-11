@@ -2,6 +2,25 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
+## 🎯 **Novedades Principales v1.13.0**
+
+### 🚨 **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS**
+- **16 puntos críticos de loops infinitos** identificados y corregidos
+- **Protección completa** contra ejecuciones múltiples en todas las funciones
+- **Variables de protección** implementadas para evitar inicializaciones duplicadas
+- **Event listeners protegidos** contra múltiples ejecuciones
+- **Sistema de debug** con funciones para resetear protecciones
+- **Performance mejorada** y estabilidad total del sitio
+
+### 🔧 **Protecciones Implementadas**
+- **DOMContentLoaded**: Protegido contra ejecuciones múltiples
+- **Timeouts**: Protegidos contra loops infinitos
+- **Funciones de galería**: Protegidas contra inicializaciones duplicadas
+- **Event listeners**: Protegidos contra múltiples registros
+- **Drag & drop**: Protegido contra configuraciones múltiples
+
+---
+
 ## 🎯 **Novedades Principales v1.12.2**
 
 ### 🚨 **Configuración de Vercel CORREGIDA**
@@ -630,18 +649,19 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.6.0** | 09 Ago 2025 | Stable | **Subida múltiple + Auto-agregado + Drag & drop** |
 | **v1.7.0** | 09 Ago 2025 | Stable | **Mejoras en sistema de álbumes y navegación** |
 | **v1.8.0** | 09 Ago 2025 | Stable | **Drag & drop en galería + Efectos visuales + Contacto actualizado** |
-| **v1.12.2** | 10 Ago 2025 | **🟢 ACTUAL** | **Configuración de Vercel CORREGIDA + Endpoint de uploads funcional en producción** |
+| **v1.13.0** | 10 Ago 2025 | **🟢 ACTUAL** | **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS + Protección total contra ejecuciones múltiples** |
+| **v1.12.2** | 10 Ago 2025 | ✅ Stable | **Configuración de Vercel CORREGIDA + Endpoint de uploads funcional en producción** |
 | **v1.12.1** | 10 Ago 2025 | ✅ Stable | **Bug crítico de upload CORREGIDO + Sistema funcional en local y Vercel** |
 | **v1.12.0** | 10 Ago 2025 | ✅ Stable | **Sistema de backlog completo + Issues organizados + Flujo de trabajo estandarizado** |
 | **v1.11.0** | 10 Ago 2025 | ✅ Stable | **Repositorio completamente limpio + Gitflow reorganizado + Sistema de backup** |
 | **v1.10.0** | 09 Ago 2025 | ✅ Stable | **Bug crítico de eliminación CORREGIDO + Eliminación directa del DOM** |
 | **v1.9.0** | 09 Ago 2025 | ✅ Stable | **Persistencia de eliminaciones con Vercel KV + Sistema robusto** |
 
-#### 🔄 **Versión Actual: v1.12.2**
+#### 🔄 **Versión Actual: v1.13.0**
 - **Fecha de lanzamiento**: 10 de agosto de 2025
-- **Características principales**: Configuración de Vercel corregida, endpoint de uploads funcional en producción
+- **Características principales**: Loops infinitos completamente corregidos, protección total contra ejecuciones múltiples
 - **Estado**: Estable y en producción
-- **Próxima versión**: v1.13.0 (en desarrollo)
+- **Próxima versión**: v1.14.0 (en desarrollo)
 
 #### 📋 **Cómo Verificar Tu Versión**
 ```zsh
