@@ -1003,6 +1003,8 @@ setTimeout(() => {
 - 🔴 **Exportar galería**: No implementado
 - 🔴 **Backup automático**: No implementado
 
+> **💡 Nota**: Todas las funcionalidades pendientes están documentadas en el [BACKLOG.md](./BACKLOG.md) con criterios de aceptación detallados.
+
 ### 🐛 **Bugs Conocidos y Soluciones**
 - ✅ **Imágenes vuelven a aparecer**: RESUELTO en v1.10.0
 - ✅ **Límite de intentos alcanzado**: RESUELTO en v1.10.0
@@ -1014,6 +1016,47 @@ setTimeout(() => {
 - ✅ **Rollback instantáneo** a cualquier versión estable
 - ✅ **Tags de versión** implementados para releases
 - ✅ **Proceso Gitflow estandarizado** al 100%
+
+---
+
+## 📋 **SISTEMA DE BACKLOG Y ISSUES (v1.11.0)**
+
+### 🎯 **Backlog Organizado por Prioridades**
+
+El proyecto ahora cuenta con un sistema completo de backlog organizado en **7 issues** categorizados por prioridad:
+
+#### 🚨 **PRIORIDAD ALTA (Crítico)**
+- **Issue #1**: 🐛 Subida de Fotos No Funciona
+- **Issue #2**: 🐛 Drag & Drop No Funciona en Galería
+
+#### 🟡 **PRIORIDAD MEDIA (Importante)**
+- **Issue #3**: 🎨 Botones de Acción Inconsistentes
+- **Issue #4**: 🎯 Submenú de Hover Problemático
+
+#### 🟢 **PRIORIDAD BAJA (Mejoras)**
+- **Issue #5**: 🌐 DNS Personalizado
+- **Issue #6**: 📞 Datos de Contacto Reales
+- **Issue #7**: 🏷️ Versionado y Firma Webmaster
+
+### 📚 **Documentación del Backlog**
+
+- **`BACKLOG.md`** - Backlog completo con criterios de aceptación
+- **`MANUAL-ISSUES.md`** - Instrucciones para crear issues manualmente
+- **`create-github-issues.sh`** - Script automático (requiere GitHub CLI)
+
+### 🔄 **Flujo de Trabajo con Issues**
+
+1. **Crear feature branch** desde `develop` para cada issue
+2. **Desarrollar** la funcionalidad siguiendo los criterios de aceptación
+3. **Crear Pull Request** hacia `develop`
+4. **Merge y deploy** después de revisión
+5. **Cerrar issue** cuando esté completado
+
+### 📍 **Acceso al Backlog**
+
+- **GitHub Issues**: https://github.com/LuKeTeSky/sitio-luz/issues
+- **Documentación local**: `BACKLOG.md` en el repositorio
+- **Instrucciones manuales**: `MANUAL-ISSUES.md`
 
 ---
 
