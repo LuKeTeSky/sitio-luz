@@ -21,7 +21,7 @@
     },
     {
       "src": "/uploads/(.*)",
-      "dest": "/public/uploads/$1"
+      "dest": "/app.js"
     },
     {
       "src": "/(.*)",
