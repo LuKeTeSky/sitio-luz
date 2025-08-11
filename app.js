@@ -467,8 +467,30 @@ app.get('/uploads/:filename', (req, res) => {
       res.status(404).json({ error: 'Archivo no encontrado' });
     }
   } else {
-    // En local: redirigir a la ruta estática
-    res.redirect(`/uploads/${filename}`);
+    // En local: servir desde public/uploads
+    const filePath = path.join(__dirname, 'public/uploads', filename);
+    
+    // Verificar si el archivo existe
+    if (fs.existsSync(filePath)) {
+      // Determinar el tipo MIME basado en la extensión
+      const ext = path.extname(filename).toLowerCase();
+      const mimeTypes = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp'
+      };
+      
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      res.setHeader('Content-Type', contentType);
+      
+      // Servir el archivo
+      const stream = fs.createReadStream(filePath);
+      stream.pipe(res);
+    } else {
+      res.status(404).json({ error: 'Archivo no encontrado' });
+    }
   }
 });
 
