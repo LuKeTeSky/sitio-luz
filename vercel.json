@@ -20,6 +20,10 @@
       "dest": "/public/js/$1"
     },
     {
+      "src": "/uploads/(.*)",
+      "dest": "/app.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/app.js"
     }
