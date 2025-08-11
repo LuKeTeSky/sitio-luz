@@ -526,14 +526,15 @@ app.post('/upload', (req, res) => {
         const isVercel = process.env.VERCEL === '1';
         
         if (isVercel) {
-          // En Vercel: mantener en /tmp y usar como está
-          // El archivo ya está en la ubicación correcta
+          // En Vercel: renombrar el archivo temporal con el nombre final
+          const newPath = path.join('/tmp', newFileName);
+          fs.renameSync(file.path, newPath);
+          
           uploadedFiles.push({
             originalName: originalName,
             filename: newFileName,
             size: file.size,
-            sizeFormatted: formatFileSize(file.size),
-            path: file.path // Mantener la ruta del archivo temporal
+            sizeFormatted: formatFileSize(file.size)
           });
         } else {
           // En local: mover a public/uploads
