@@ -337,16 +337,15 @@ app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (
     
     // Comparar contraseña de forma segura
     let isValidPassword = false;
-    
-    // Si la contraseña admin está hasheada, usar bcrypt.compare
-    if (adminPassword.startsWith('$2b$') || adminPassword.startsWith('$2a$')) {
+    // Si ADMIN_PASSWORD viene hasheado, comparar con bcrypt
+    if (adminPassword && (adminPassword.startsWith('$2b$') || adminPassword.startsWith('$2a$'))) {
       isValidPassword = await bcrypt.compare(password, adminPassword);
     } else {
-      // Si la contraseña admin está en texto plano, comparar directamente
+      // Texto plano (entornos sin hash)
       isValidPassword = password === adminPassword;
     }
-    
-    if (isValidPassword) {
+
+    if (isValidPassword) { // Autenticado
       req.session.authenticated = true;
       req.session.regenerate((err) => {
         if (err) {
@@ -587,42 +586,13 @@ app.post('/upload', (req, res) => {
         const isVercel = process.env.VERCEL === '1';
         
         if (isVercel) {
-          // En Vercel: almacenar imagen como base64 en KV para persistencia
-          console.log(`🔍 DEBUG UPLOAD: Procesando archivo en Vercel: ${originalName}`);
-          
+          // En Vercel: renombrar al nombre final dentro de /tmp para que sea accesible por /uploads/:filename
+          const newPath = path.join('/tmp', newFileName);
           try {
-            // Leer archivo como base64
-            const fileBuffer = fs.readFileSync(file.path);
-            const base64Data = fileBuffer.toString('base64');
-            
-            // Almacenar en Vercel KV con metadata
-            const imageData = {
-              filename: newFileName,
-              originalName: originalName,
-              base64: base64Data,
-              size: file.size,
-              mimeType: file.mimetype,
-              uploadedAt: new Date().toISOString()
-            };
-            
-            if (kv && typeof kv.set === 'function') {
-              await kv.set(`image:${newFileName}`, imageData);
-              console.log(`✅ DEBUG UPLOAD: Imagen almacenada en Vercel KV: ${newFileName}`);
-            } else {
-              console.log(`⚠️ DEBUG UPLOAD: Vercel KV no disponible, usando memoria`);
-              // Fallback a memoria global
-              if (!global.storedImages) global.storedImages = {};
-              global.storedImages[newFileName] = imageData;
-            }
-            
-            // Limpiar archivo temporal
-            fs.unlinkSync(file.path);
-            console.log(`🧹 DEBUG UPLOAD: Archivo temporal limpiado`);
-            
-          } catch (error) {
-            console.error(`❌ DEBUG UPLOAD: Error procesando imagen en Vercel:`, error);
+            fs.renameSync(file.path, newPath);
+          } catch (e) {
+            console.error('❌ Error renombrando archivo en /tmp:', e.message);
           }
-          
           uploadedFiles.push({
             originalName: originalName,
             filename: newFileName,
