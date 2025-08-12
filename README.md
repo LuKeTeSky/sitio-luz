@@ -2,6 +2,31 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
+## 🧰 Stack Tecnológico
+
+- **Frontend**
+  - Lenguajes: **HTML5**, **CSS3**, **JavaScript (ES6+)**
+  - Frameworks: sin framework (vanilla JS) con módulos organizados en `public/js/*`
+  - UI/UX: CSS responsive, variables CSS, transiciones; Google Fonts y Font Awesome
+  - Comunicación: `fetch` API (JSON), manejo de formularios y `FormData`
+  - Accesibilidad: semántica HTML, navegación por teclado en lightbox
+
+- **Backend**
+  - Plataforma: **Node.js (LTS)** sobre **Express.js**
+  - Seguridad: `helmet`, `express-rate-limit`, sesiones con `express-session`
+  - Autenticación: contraseña administrada por `ADMIN_PASSWORD` (hash bcrypt o texto plano)
+  - Subidas: `multer` con validación de tipo/tamaño; en Vercel usa `/tmp` (filesystem efímero)
+  - Archivos: `fs`, `path`; estáticos con `express.static('public')`
+  - Persistencia auxiliar: **Vercel KV** (opcional) para metadatos/listas (p. ej. imágenes eliminadas)
+
+- **Deploy/Infra**
+  - Hosting: **Vercel** (funciones serverless, `vercel.json` rutas y builds)
+  - Ramas: Gitflow (`main`, `develop`, `feature/*`, `release/*`, `hotfix/*`, `backup/*`)
+  - Producción: deploy automático al hacer push a `main`
+  - Alternativa self‑hosted: **PM2** con `ecosystem.config.js`
+
+> Nota: en entornos serverless (Vercel) el almacenamiento es efímero. Las imágenes subidas se sirven desde `/tmp` durante la sesión de administración; para persistencia entre ejecuciones se recomienda un blob storage (Vercel Blob, S3) o base de datos dedicada.
+
 ## 🎯 **Novedades Principales v1.14.0**
 
 ### 🚨 **UPLOAD DE FOTOS COMPLETAMENTE FUNCIONAL EN VERCEL**
