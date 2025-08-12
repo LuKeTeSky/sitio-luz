@@ -2,6 +2,24 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
+## 🎯 **Novedades Principales v1.14.0**
+
+### 🚨 **UPLOAD DE FOTOS COMPLETAMENTE FUNCIONAL EN VERCEL**
+- **Problema de persistencia resuelto** - Imágenes se almacenan en Vercel KV (Redis)
+- **Almacenamiento base64** para máxima compatibilidad con serverless
+- **Sin más errores 404** al acceder a imágenes subidas
+- **Upload funciona perfectamente** tanto en local como en producción
+- **Sistema de fallback robusto** entre Vercel KV y memoria
+
+### 🔧 **Solución Técnica Implementada**
+- **Vercel KV (Redis)** para almacenamiento persistente de imágenes
+- **Conversión automática** de archivos a base64
+- **Metadata completa** almacenada (nombre, tamaño, tipo MIME, fecha)
+- **Logs de debugging** para diagnóstico completo
+- **Compatibilidad total** entre desarrollo local y producción
+
+---
+
 ## 🎯 **Novedades Principales v1.13.0**
 
 ### 🚨 **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS**
@@ -649,7 +667,8 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.6.0** | 09 Ago 2025 | Stable | **Subida múltiple + Auto-agregado + Drag & drop** |
 | **v1.7.0** | 09 Ago 2025 | Stable | **Mejoras en sistema de álbumes y navegación** |
 | **v1.8.0** | 09 Ago 2025 | Stable | **Drag & drop en galería + Efectos visuales + Contacto actualizado** |
-| **v1.13.0** | 10 Ago 2025 | **🟢 ACTUAL** | **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS + Protección total contra ejecuciones múltiples** |
+| **v1.14.0** | 12 Ago 2025 | **🟢 ACTUAL** | **UPLOAD COMPLETAMENTE FUNCIONAL EN VERCEL + Almacenamiento en Vercel KV + Problema de persistencia resuelto** |
+| **v1.13.0** | 10 Ago 2025 | ✅ Stable | **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS + Protección total contra ejecuciones múltiples** |
 | **v1.12.2** | 10 Ago 2025 | ✅ Stable | **Configuración de Vercel CORREGIDA + Endpoint de uploads funcional en producción** |
 | **v1.12.1** | 10 Ago 2025 | ✅ Stable | **Bug crítico de upload CORREGIDO + Sistema funcional en local y Vercel** |
 | **v1.12.0** | 10 Ago 2025 | ✅ Stable | **Sistema de backlog completo + Issues organizados + Flujo de trabajo estandarizado** |
@@ -657,11 +676,11 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.10.0** | 09 Ago 2025 | ✅ Stable | **Bug crítico de eliminación CORREGIDO + Eliminación directa del DOM** |
 | **v1.9.0** | 09 Ago 2025 | ✅ Stable | **Persistencia de eliminaciones con Vercel KV + Sistema robusto** |
 
-#### 🔄 **Versión Actual: v1.13.0**
-- **Fecha de lanzamiento**: 10 de agosto de 2025
-- **Características principales**: Loops infinitos completamente corregidos, protección total contra ejecuciones múltiples
+#### 🔄 **Versión Actual: v1.14.0**
+- **Fecha de lanzamiento**: 12 de agosto de 2025
+- **Características principales**: Upload completamente funcional en Vercel, almacenamiento en Vercel KV, problema de persistencia resuelto
 - **Estado**: Estable y en producción
-- **Próxima versión**: v1.14.0 (en desarrollo)
+- **Próxima versión**: v1.15.0 (en desarrollo)
 
 #### 📋 **Cómo Verificar Tu Versión**
 ```zsh
