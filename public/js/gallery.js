@@ -578,8 +578,8 @@ function createGalleryItem(imageData, index) {
   
   const img = document.createElement('img');
   
-  // Usar siempre /uploads/ ya que Vercel sirve static files desde public/
-  img.src = `/uploads/${imageData.filename}`;
+  // Si viene URL pública (Blob), úsala; si no, fallback a /uploads/
+  img.src = imageData.url ? imageData.url : `/uploads/${imageData.filename}`;
   
   img.alt = imageData.title || 'Foto de modelo';
   img.loading = 'lazy';
@@ -714,7 +714,7 @@ function openLightbox(index, customImages = null) {
   container.className = 'lightbox-container';
 
   const fullImg = document.createElement('img');
-  fullImg.src = `/uploads/${imageData.filename}`;
+  fullImg.src = imageData.url ? imageData.url : `/uploads/${imageData.filename}`;
   fullImg.alt = imageData.title || 'Foto de modelo';
   fullImg.classList.add('lightbox-image');
   fullImg.classList.add('lightbox-fit-screen'); // Por defecto ajustado a pantalla
@@ -875,7 +875,7 @@ function openLightbox(index, customImages = null) {
     const newImageData = imagesToUse[newIndex];
     
     // Actualizar imagen
-    fullImg.src = `/uploads/${newImageData.filename}`;
+    fullImg.src = newImageData.url ? newImageData.url : `/uploads/${newImageData.filename}`;
     fullImg.alt = newImageData.title || 'Foto de modelo';
     
     // Resetear zoom y tamaño al cambiar de imagen
@@ -1148,8 +1148,7 @@ function createCoverItem(imageData, isHeroImage = false) {
   
   const img = document.createElement('img');
   
-  // Usar siempre /uploads/ ya que Vercel sirve static files desde public/
-  img.src = `/uploads/${imageData.filename}`;
+  img.src = imageData.url ? imageData.url : `/uploads/${imageData.filename}`;
   
   img.alt = imageData.title || 'Foto de portada';
   

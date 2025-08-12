@@ -1,6 +1,14 @@
 require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
+// Vercel Blob (persistencia de imágenes)
+let blobPut = null;
+let blobDel = null;
+try {
+  const blobLib = require('@vercel/blob');
+  blobPut = blobLib.put;
+  blobDel = blobLib.del;
+} catch (_) {}
 const path = require('path');
 const fs = require('fs');
 const session = require('express-session');
@@ -552,7 +560,8 @@ app.post('/upload', (req, res) => {
       
       // Procesar cada archivo subido
       console.log(`[POST /upload ${rid}] FILES=${req.files.length} -> ${req.files.map(f=>f.originalname).join(', ')}`);
-      req.files.forEach((file, index) => {
+      const newImagesForKv = [];
+      for (const [index, file] of req.files.entries()) {
         const originalName = file.originalname;
         const extension = path.extname(originalName).toLowerCase();
         const newFileName = Date.now() + '_' + index + extension;
@@ -561,20 +570,30 @@ app.post('/upload', (req, res) => {
         const isVercel = process.env.VERCEL === '1';
         
         if (isVercel) {
-          // En Vercel: renombrar al nombre final dentro de /tmp para que sea accesible por /uploads/:filename
-          const newPath = path.join('/tmp', newFileName);
+          // En Vercel: subir a Blob para persistencia y obtener URL pública
           try {
-            fs.renameSync(file.path, newPath);
-            console.log(`[POST /upload ${rid}] RENAMED ${file.path} -> ${newPath}`);
+            if (!blobPut) throw new Error('Blob library not available');
+            const buffer = fs.readFileSync(file.path);
+            const { url } = await blobPut(`uploads/${newFileName}`, buffer, {
+              access: 'public',
+              contentType: file.mimetype || 'application/octet-stream',
+              addRandomSuffix: false
+            });
+            // Limpiar temp
+            try { fs.unlinkSync(file.path); } catch (_) {}
+            const meta = {
+              originalName: originalName,
+              filename: newFileName,
+              size: file.size,
+              sizeFormatted: formatFileSize(file.size),
+              url,
+              uploadedAt: new Date().toISOString()
+            };
+            uploadedFiles.push(meta);
+            newImagesForKv.push({ filename: newFileName, url, uploadedAt: meta.uploadedAt });
           } catch (e) {
-            console.error('❌ Error renombrando archivo en /tmp:', e.message);
+            console.error(`[POST /upload ${rid}] BLOB_ERROR:`, e.message);
           }
-          uploadedFiles.push({
-            originalName: originalName,
-            filename: newFileName,
-            size: file.size,
-            sizeFormatted: formatFileSize(file.size)
-          });
         } else {
           // En local: mover a public/uploads
           const newPath = path.join(uploadsDir, newFileName);
@@ -587,7 +606,19 @@ app.post('/upload', (req, res) => {
             sizeFormatted: formatFileSize(file.size)
           });
         }
-      });
+      }
+      // Persistir listado en KV (solo Vercel)
+      try {
+        const isVercel = process.env.VERCEL === '1';
+        if (isVercel && newImagesForKv.length && kv && typeof kv.get === 'function' && typeof kv.set === 'function') {
+          const existing = (await kv.get('images')) || [];
+          const merged = existing.concat(newImagesForKv);
+          await kv.set('images', merged);
+          console.log(`[POST /upload ${rid}] KV images += ${newImagesForKv.length} (total ${merged.length})`);
+        }
+      } catch (kvErr) {
+        console.error(`[POST /upload ${rid}] KV_SET_ERROR:`, kvErr.message);
+      }
       
       const message = req.files.length === 1 
         ? 'Foto subida exitosamente' 
@@ -627,12 +658,17 @@ app.get('/api/images', async (req, res) => {
     let uploadsDir, files;
     
     if (isVercel) {
-      // En Vercel: leer desde /tmp
-      uploadsDir = '/tmp';
-      if (!fs.existsSync(uploadsDir)) {
-        return res.json({ images: [] });
-      }
-      files = fs.readdirSync(uploadsDir);
+      // En Vercel: devolver desde KV (persistencia Blob)
+      const list = (kv && typeof kv.get === 'function') ? (await kv.get('images')) || [] : [];
+      // Mapear a estructura esperada por frontend
+      const images = list.map((it) => ({
+        filename: it.filename,
+        url: it.url,
+        title: `Foto ${it.filename.split('.')[0]}`,
+        description: 'Capturado con estilo',
+        uploadedAt: it.uploadedAt || new Date().toISOString()
+      })).sort((a,b)=> new Date(b.uploadedAt) - new Date(a.uploadedAt));
+      return res.json(images);
     } else {
       // En local: leer desde public/uploads
       uploadsDir = path.join(__dirname, 'public/uploads');
