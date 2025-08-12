@@ -336,9 +336,17 @@ app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (
     }
     
     // Comparar contraseña de forma segura
-    const isValidPassword = await bcrypt.compare(password, await bcrypt.hash(adminPassword, 10));
+    let isValidPassword = false;
     
-    if (isValidPassword || password === adminPassword) { // Fallback para compatibilidad
+    // Si la contraseña admin está hasheada, usar bcrypt.compare
+    if (adminPassword.startsWith('$2b$') || adminPassword.startsWith('$2a$')) {
+      isValidPassword = await bcrypt.compare(password, adminPassword);
+    } else {
+      // Si la contraseña admin está en texto plano, comparar directamente
+      isValidPassword = password === adminPassword;
+    }
+    
+    if (isValidPassword) {
       req.session.authenticated = true;
       req.session.regenerate((err) => {
         if (err) {
