@@ -527,6 +527,17 @@ app.get('/uploads/:filename', async (req, res) => {
       const stream = fs.createReadStream(filePath);
       stream.pipe(res);
     } else {
+      // Fallback: si piden la imagen por defecto del hero y no existe en /tmp,
+      // devolver un PNG transparente de 1x1 para evitar romper la UI pública.
+      if (filename === 'luz-hero.jpg' || filename === 'luz-hero.png') {
+        const transparent1x1Png = Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMB9pA1trEAAAAASUVORK5CYII=',
+          'base64'
+        );
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Length', transparent1x1Png.length);
+        return res.send(transparent1x1Png);
+      }
       res.status(404).json({ error: 'Archivo no encontrado' });
     }
   }
