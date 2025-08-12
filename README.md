@@ -27,8 +27,24 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 
 > Nota: en entornos serverless (Vercel) el almacenamiento es efímero. Las imágenes subidas se sirven desde `/tmp` durante la sesión de administración; para persistencia entre ejecuciones se recomienda un blob storage (Vercel Blob, S3) o base de datos dedicada.
 
-## 🎯 **Novedades Principales v1.14.0**
+## 🎯 **Novedades Principales v1.15.0**
 
+### 🚀 **Migración de Imágenes a Vercel Blob (Persistencia Real)**
+- **Uploads persistentes** con URLs públicas (CDN) vía **Vercel Blob**
+- **Adiós /tmp efímero** y errores 404/429 por instancias serverless
+- **Listado de imágenes desde Vercel KV** (solo metadatos)
+- **Frontend actualizado** para usar `file.url` con fallback seguro
+- **Thumbnails y galería** se muestran inmediatamente tras subir
+
+### 🔧 **Cambios Técnicos**
+- Backend: `POST /upload` → `@vercel/blob.put()` y guarda `{filename, url}` en KV
+- API: `GET /api/images` (Vercel) responde desde KV con URLs públicas
+- Frontend: `public/js/gallery.js` usa `image.url || /uploads/<filename>`
+- Documentación de stack actualizada (Blob + KV)
+
+---
+
+## 🎯 **Novedades Principales v1.14.0**
 ### 🚨 **UPLOAD DE FOTOS COMPLETAMENTE FUNCIONAL EN VERCEL**
 - **Problema de persistencia resuelto** - Imágenes se almacenan en Vercel KV (Redis)
 - **Almacenamiento base64** para máxima compatibilidad con serverless
@@ -692,7 +708,8 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.6.0** | 09 Ago 2025 | Stable | **Subida múltiple + Auto-agregado + Drag & drop** |
 | **v1.7.0** | 09 Ago 2025 | Stable | **Mejoras en sistema de álbumes y navegación** |
 | **v1.8.0** | 09 Ago 2025 | Stable | **Drag & drop en galería + Efectos visuales + Contacto actualizado** |
-| **v1.14.0** | 12 Ago 2025 | **🟢 ACTUAL** | **UPLOAD COMPLETAMENTE FUNCIONAL EN VERCEL + Almacenamiento en Vercel KV + Problema de persistencia resuelto** |
+| **v1.15.0** | 12 Ago 2025 | **🟢 ACTUAL** | **Migración a Vercel Blob: uploads persistentes con URLs públicas + KV para metadatos** |
+| **v1.14.0** | 12 Ago 2025 | ✅ Stable | **UPLOAD COMPLETAMENTE FUNCIONAL EN VERCEL + Almacenamiento en Vercel KV + Problema de persistencia resuelto** |
 | **v1.13.0** | 10 Ago 2025 | ✅ Stable | **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS + Protección total contra ejecuciones múltiples** |
 | **v1.12.2** | 10 Ago 2025 | ✅ Stable | **Configuración de Vercel CORREGIDA + Endpoint de uploads funcional en producción** |
 | **v1.12.1** | 10 Ago 2025 | ✅ Stable | **Bug crítico de upload CORREGIDO + Sistema funcional en local y Vercel** |
@@ -701,11 +718,11 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.10.0** | 09 Ago 2025 | ✅ Stable | **Bug crítico de eliminación CORREGIDO + Eliminación directa del DOM** |
 | **v1.9.0** | 09 Ago 2025 | ✅ Stable | **Persistencia de eliminaciones con Vercel KV + Sistema robusto** |
 
-#### 🔄 **Versión Actual: v1.14.0**
+#### 🔄 **Versión Actual: v1.15.0**
 - **Fecha de lanzamiento**: 12 de agosto de 2025
-- **Características principales**: Upload completamente funcional en Vercel, almacenamiento en Vercel KV, problema de persistencia resuelto
+- **Características principales**: Upload persistente con **Vercel Blob** (URL pública), metadatos en KV
 - **Estado**: Estable y en producción
-- **Próxima versión**: v1.15.0 (en desarrollo)
+- **Próxima versión**: v1.16.0 (en desarrollo)
 
 #### 📋 **Cómo Verificar Tu Versión**
 ```zsh
