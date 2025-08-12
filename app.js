@@ -449,12 +449,26 @@ app.get('/gallery', (req, res) => {
 app.get('/uploads/:filename', (req, res) => {
   const filename = req.params.filename;
   
+  console.log(`🔍 DEBUG: Intentando servir archivo: ${filename}`);
+  console.log(`🔍 DEBUG: VERCEL env: ${process.env.VERCEL}`);
+  console.log(`🔍 DEBUG: NODE_ENV: ${process.env.NODE_ENV}`);
+  
   if (process.env.VERCEL === '1') {
     // En Vercel: servir desde /tmp
     const filePath = path.join('/tmp', filename);
+    console.log(`🔍 DEBUG: Buscando archivo en Vercel: ${filePath}`);
+    
+    // Listar archivos en /tmp para debugging
+    try {
+      const tmpFiles = fs.readdirSync('/tmp');
+      console.log(`🔍 DEBUG: Archivos en /tmp:`, tmpFiles);
+    } catch (error) {
+      console.log(`🔍 DEBUG: Error leyendo /tmp:`, error.message);
+    }
     
     // Verificar si el archivo existe
     if (fs.existsSync(filePath)) {
+      console.log(`✅ DEBUG: Archivo encontrado en Vercel: ${filePath}`);
       // Determinar el tipo MIME basado en la extensión
       const ext = path.extname(filename).toLowerCase();
       const mimeTypes = {
@@ -472,7 +486,17 @@ app.get('/uploads/:filename', (req, res) => {
       const stream = fs.createReadStream(filePath);
       stream.pipe(res);
     } else {
-      res.status(404).json({ error: 'Archivo no encontrado' });
+      console.log(`❌ DEBUG: Archivo NO encontrado en Vercel: ${filePath}`);
+      res.status(404).json({ 
+        error: 'Archivo no encontrado',
+        debug: {
+          filename: filename,
+          filePath: filePath,
+          tmpFiles: fs.readdirSync('/tmp').slice(0, 10), // Solo primeros 10 archivos
+          vercel: process.env.VERCEL,
+          nodeEnv: process.env.NODE_ENV
+        }
+      });
     }
   } else {
     // En local: servir desde public/uploads
@@ -558,7 +582,28 @@ app.post('/upload', (req, res) => {
         if (isVercel) {
           // En Vercel: renombrar el archivo temporal con el nombre final
           const newPath = path.join('/tmp', newFileName);
-          fs.renameSync(file.path, newPath);
+          console.log(`🔍 DEBUG UPLOAD: Archivo temporal: ${file.path}`);
+          console.log(`🔍 DEBUG UPLOAD: Nuevo nombre: ${newFileName}`);
+          console.log(`🔍 DEBUG UPLOAD: Nueva ruta: ${newPath}`);
+          
+          try {
+            fs.renameSync(file.path, newPath);
+            console.log(`✅ DEBUG UPLOAD: Archivo renombrado exitosamente en Vercel`);
+            
+            // Verificar que el archivo existe después del rename
+            if (fs.existsSync(newPath)) {
+              console.log(`✅ DEBUG UPLOAD: Archivo confirmado en ${newPath}`);
+            } else {
+              console.log(`❌ DEBUG UPLOAD: Archivo NO encontrado después del rename en ${newPath}`);
+            }
+            
+            // Listar archivos en /tmp después del upload
+            const tmpFiles = fs.readdirSync('/tmp');
+            console.log(`🔍 DEBUG UPLOAD: Archivos en /tmp después del upload:`, tmpFiles.slice(0, 10));
+            
+          } catch (renameError) {
+            console.error(`❌ DEBUG UPLOAD: Error renombrando archivo:`, renameError);
+          }
           
           uploadedFiles.push({
             originalName: originalName,
