@@ -446,7 +446,7 @@ app.get('/gallery', (req, res) => {
 });
 
 // 📁 Servir archivos de upload desde /tmp en Vercel
-app.get('/uploads/:filename', (req, res) => {
+app.get('/uploads/:filename', async (req, res) => {
   const filename = req.params.filename;
   
   console.log(`🔍 DEBUG: Intentando servir archivo: ${filename}`);
@@ -454,48 +454,55 @@ app.get('/uploads/:filename', (req, res) => {
   console.log(`🔍 DEBUG: NODE_ENV: ${process.env.NODE_ENV}`);
   
   if (process.env.VERCEL === '1') {
-    // En Vercel: servir desde /tmp
-    const filePath = path.join('/tmp', filename);
-    console.log(`🔍 DEBUG: Buscando archivo en Vercel: ${filePath}`);
+    // En Vercel: servir desde Vercel KV
+    console.log(`🔍 DEBUG: Buscando imagen en Vercel KV: ${filename}`);
     
-    // Listar archivos en /tmp para debugging
     try {
-      const tmpFiles = fs.readdirSync('/tmp');
-      console.log(`🔍 DEBUG: Archivos en /tmp:`, tmpFiles);
-    } catch (error) {
-      console.log(`🔍 DEBUG: Error leyendo /tmp:`, error.message);
-    }
-    
-    // Verificar si el archivo existe
-    if (fs.existsSync(filePath)) {
-      console.log(`✅ DEBUG: Archivo encontrado en Vercel: ${filePath}`);
-      // Determinar el tipo MIME basado en la extensión
-      const ext = path.extname(filename).toLowerCase();
-      const mimeTypes = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.webp': 'image/webp'
-      };
+      let imageData = null;
       
-      const contentType = mimeTypes[ext] || 'application/octet-stream';
-      res.setHeader('Content-Type', contentType);
-      
-      // Servir el archivo
-      const stream = fs.createReadStream(filePath);
-      stream.pipe(res);
-    } else {
-      console.log(`❌ DEBUG: Archivo NO encontrado en Vercel: ${filePath}`);
-      res.status(404).json({ 
-        error: 'Archivo no encontrado',
-        debug: {
-          filename: filename,
-          filePath: filePath,
-          tmpFiles: fs.readdirSync('/tmp').slice(0, 10), // Solo primeros 10 archivos
-          vercel: process.env.VERCEL,
-          nodeEnv: process.env.NODE_ENV
+      // Intentar obtener desde Vercel KV
+      if (kv && typeof kv.get === 'function') {
+        imageData = await kv.get(`image:${filename}`);
+        console.log(`🔍 DEBUG: Busqueda en KV: ${imageData ? 'Encontrada' : 'No encontrada'}`);
+      } else {
+        // Fallback a memoria global
+        if (global.storedImages && global.storedImages[filename]) {
+          imageData = global.storedImages[filename];
+          console.log(`🔍 DEBUG: Imagen encontrada en memoria global`);
         }
+      }
+      
+      if (imageData && imageData.base64) {
+        console.log(`✅ DEBUG: Imagen encontrada en Vercel KV: ${filename}`);
+        
+        // Convertir base64 a buffer
+        const imageBuffer = Buffer.from(imageData.base64, 'base64');
+        
+        // Establecer headers
+        res.setHeader('Content-Type', imageData.mimeType || 'image/jpeg');
+        res.setHeader('Content-Length', imageBuffer.length);
+        
+        // Servir la imagen
+        res.send(imageBuffer);
+      } else {
+        console.log(`❌ DEBUG: Imagen NO encontrada en Vercel KV: ${filename}`);
+        res.status(404).json({ 
+          error: 'Archivo no encontrado',
+          debug: {
+            filename: filename,
+            source: 'Vercel KV',
+            kvAvailable: kv ? 'Sí' : 'No',
+            memoryImages: global.storedImages ? Object.keys(global.storedImages) : 'No disponible',
+            vercel: process.env.VERCEL,
+            nodeEnv: process.env.NODE_ENV
+          }
+        });
+      }
+    } catch (error) {
+      console.error(`❌ DEBUG: Error sirviendo imagen desde KV:`, error);
+      res.status(500).json({ 
+        error: 'Error interno del servidor',
+        debug: { error: error.message }
       });
     }
   } else {
@@ -528,7 +535,7 @@ app.get('/uploads/:filename', (req, res) => {
 
 // 📤 Subida de fotos (solo para usuarios logueados) - Soporte múltiple
 app.post('/upload', (req, res) => {
-  upload.array('photo', 10)(req, res, (err) => {
+  upload.array('photo', 10)(req, res, async (err) => {
     // Manejar errores de multer/validación
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -580,29 +587,40 @@ app.post('/upload', (req, res) => {
         const isVercel = process.env.VERCEL === '1';
         
         if (isVercel) {
-          // En Vercel: renombrar el archivo temporal con el nombre final
-          const newPath = path.join('/tmp', newFileName);
-          console.log(`🔍 DEBUG UPLOAD: Archivo temporal: ${file.path}`);
-          console.log(`🔍 DEBUG UPLOAD: Nuevo nombre: ${newFileName}`);
-          console.log(`🔍 DEBUG UPLOAD: Nueva ruta: ${newPath}`);
+          // En Vercel: almacenar imagen como base64 en KV para persistencia
+          console.log(`🔍 DEBUG UPLOAD: Procesando archivo en Vercel: ${originalName}`);
           
           try {
-            fs.renameSync(file.path, newPath);
-            console.log(`✅ DEBUG UPLOAD: Archivo renombrado exitosamente en Vercel`);
+            // Leer archivo como base64
+            const fileBuffer = fs.readFileSync(file.path);
+            const base64Data = fileBuffer.toString('base64');
             
-            // Verificar que el archivo existe después del rename
-            if (fs.existsSync(newPath)) {
-              console.log(`✅ DEBUG UPLOAD: Archivo confirmado en ${newPath}`);
+            // Almacenar en Vercel KV con metadata
+            const imageData = {
+              filename: newFileName,
+              originalName: originalName,
+              base64: base64Data,
+              size: file.size,
+              mimeType: file.mimetype,
+              uploadedAt: new Date().toISOString()
+            };
+            
+            if (kv && typeof kv.set === 'function') {
+              await kv.set(`image:${newFileName}`, imageData);
+              console.log(`✅ DEBUG UPLOAD: Imagen almacenada en Vercel KV: ${newFileName}`);
             } else {
-              console.log(`❌ DEBUG UPLOAD: Archivo NO encontrado después del rename en ${newPath}`);
+              console.log(`⚠️ DEBUG UPLOAD: Vercel KV no disponible, usando memoria`);
+              // Fallback a memoria global
+              if (!global.storedImages) global.storedImages = {};
+              global.storedImages[newFileName] = imageData;
             }
             
-            // Listar archivos en /tmp después del upload
-            const tmpFiles = fs.readdirSync('/tmp');
-            console.log(`🔍 DEBUG UPLOAD: Archivos en /tmp después del upload:`, tmpFiles.slice(0, 10));
+            // Limpiar archivo temporal
+            fs.unlinkSync(file.path);
+            console.log(`🧹 DEBUG UPLOAD: Archivo temporal limpiado`);
             
-          } catch (renameError) {
-            console.error(`❌ DEBUG UPLOAD: Error renombrando archivo:`, renameError);
+          } catch (error) {
+            console.error(`❌ DEBUG UPLOAD: Error procesando imagen en Vercel:`, error);
           }
           
           uploadedFiles.push({
