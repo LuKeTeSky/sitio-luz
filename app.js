@@ -4,10 +4,12 @@ const multer = require('multer');
 // Vercel Blob (persistencia de imágenes)
 let blobPut = null;
 let blobDel = null;
+let blobList = null;
 try {
   const blobLib = require('@vercel/blob');
   blobPut = blobLib.put;
   blobDel = blobLib.del;
+  blobList = blobLib.list;
 } catch (_) {}
 const path = require('path');
 const fs = require('fs');
@@ -667,15 +669,32 @@ app.get('/api/images', async (req, res) => {
     if (isVercel) {
       // En Vercel: devolver desde KV (persistencia Blob)
       const list = (kv && typeof kv.get === 'function') ? (await kv.get('images')) || [] : [];
-      // Mapear a estructura esperada por frontend
-      const images = list.map((it) => ({
+
+      let images = list.map((it) => ({
         filename: it.filename,
         url: it.url,
-        title: `Foto ${it.filename.split('.')[0]}`,
+        title: `Foto ${it.filename?.split?.('.')?.[0] || ''}`,
         description: 'Capturado con estilo',
         uploadedAt: it.uploadedAt || new Date().toISOString()
       })).sort((a,b)=> new Date(b.uploadedAt) - new Date(a.uploadedAt));
-      return res.json(images);
+
+      // Fallback: si KV está vacío, listar directo desde Blob
+      if ((!images || images.length === 0) && typeof blobList === 'function') {
+        try {
+          const { blobs } = await blobList({ prefix: 'uploads/' });
+          images = (blobs || []).map((b) => ({
+            filename: (b?.pathname || '').split('/').pop(),
+            url: b?.url,
+            title: `Foto ${(b?.pathname || '').split('/').pop()?.split('.')?.[0] || ''}`,
+            description: 'Capturado con estilo',
+            uploadedAt: b?.uploadedAt || new Date().toISOString()
+          })).sort((a,b)=> new Date(b.uploadedAt) - new Date(a.uploadedAt));
+        } catch (e) {
+          console.error('Blob list fallback error:', e.message);
+        }
+      }
+
+      return res.json(images || []);
     } else {
       // En local: leer desde public/uploads
       uploadsDir = path.join(__dirname, 'public/uploads');
