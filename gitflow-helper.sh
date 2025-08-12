@@ -163,8 +163,13 @@ finish_release() {
     git pull origin main
     git merge "$current_branch" --no-ff -m "🎉 Release $version"
     
-    # Crear tag
-    git tag -a "v$version" -m "🎉 Release $version"
+    # Crear tag respetando prefijo 'v' si ya viene en la versión
+    if [[ $version == v* ]]; then
+        tag="$version"
+    else
+        tag="v$version"
+    fi
+    git tag -a "$tag" -m "🎉 Release $version"
     
     # Merge a develop
     git checkout develop
@@ -178,7 +183,7 @@ finish_release() {
     # Push cambios
     git push origin main
     git push origin develop
-    git push origin "v$version"
+    git push origin "$tag"
     
     echo -e "${GREEN}✅ Release $version finalizada${NC}"
     echo -e "${YELLOW}🎉 Tag v$version creado y subido${NC}"
@@ -203,8 +208,13 @@ finish_hotfix() {
     git pull origin main
     git merge "$current_branch" --no-ff -m "🔧 Hotfix $version"
     
-    # Crear tag
-    git tag -a "v$version" -m "🔧 Hotfix $version"
+    # Crear tag respetando prefijo 'v' si ya viene en la versión
+    if [[ $version == v* ]]; then
+        tag="$version"
+    else
+        tag="v$version"
+    fi
+    git tag -a "$tag" -m "🔧 Hotfix $version"
     
     # Merge a develop
     git checkout develop
@@ -218,7 +228,7 @@ finish_hotfix() {
     # Push cambios
     git push origin main
     git push origin develop
-    git push origin "v$version"
+    git push origin "$tag"
     
     echo -e "${GREEN}✅ Hotfix $version finalizado${NC}"
     echo -e "${YELLOW}🔧 Tag v$version creado y subido${NC}"
@@ -239,10 +249,14 @@ create_tag() {
         message="🎉 Release $version"
     fi
     
-    echo -e "${BLUE}🏷️ Creando tag: v$version${NC}"
-    
-    git tag -a "v$version" -m "$message"
-    git push origin "v$version"
+    echo -e "${BLUE}🏷️ Creando tag: $version${NC}"
+    if [[ $version == v* ]]; then
+        tag="$version"
+    else
+        tag="v$version"
+    fi
+    git tag -a "$tag" -m "$message"
+    git push origin "$tag"
     
     echo -e "${GREEN}✅ Tag v$version creado y subido${NC}"
 }
