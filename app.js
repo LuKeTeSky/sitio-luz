@@ -54,7 +54,14 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-      imgSrc: ["'self'", "data:", "blob:"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        // Permitir imágenes servidas desde Vercel Blob (URLs públicas)
+        "https://*.vercel-storage.com",
+        "https://*.blob.vercel-storage.com"
+      ],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
