@@ -24,6 +24,29 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
   - Ramas: Gitflow (`main`, `develop`, `feature/*`, `release/*`, `hotfix/*`, `backup/*`)
   - Producción: deploy automático al hacer push a `main`
   - Alternativa self‑hosted: **PM2** con `ecosystem.config.js`
+  - Almacenamiento: **Vercel Blob** (imágenes, URL pública) + **Vercel KV** (metadatos)
+
+### Gitflow operativo actualmente
+
+- `main` → producción
+- `develop` → integración
+- `feature/next-version-v1.15.0` (cerrada) y `feature/next-version-v1.16.0` (por crear)
+- Backups estables:
+  - `backup/main-v1.14.0-stable`, `backup/develop-v1.14.0-stable`, `backup/release-v1.14.0-stable`
+  - versiones anteriores 1.13.0 y 1.10.0 también disponibles
+
+#### Crear backups para v1.15.0 (tras estabilizar)
+```bash
+git checkout main && git checkout -b backup/main-v1.15.0-stable && git push -u origin backup/main-v1.15.0-stable
+git checkout develop && git checkout -b backup/develop-v1.15.0-stable && git push -u origin backup/develop-v1.15.0-stable
+```
+
+#### Preparar siguiente ciclo
+```bash
+git checkout develop
+git checkout -b feature/next-version-v1.16.0
+git push -u origin feature/next-version-v1.16.0
+```
 
 > Nota: en entornos serverless (Vercel) el almacenamiento es efímero. Las imágenes subidas se sirven desde `/tmp` durante la sesión de administración; para persistencia entre ejecuciones se recomienda un blob storage (Vercel Blob, S3) o base de datos dedicada.
 
