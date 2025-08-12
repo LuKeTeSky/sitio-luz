@@ -336,9 +336,16 @@ app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (
     }
     
     // Comparar contraseña de forma segura
-    const isValidPassword = await bcrypt.compare(password, await bcrypt.hash(adminPassword, 10));
-    
-    if (isValidPassword || password === adminPassword) { // Fallback para compatibilidad
+    let isValidPassword = false;
+    // Si ADMIN_PASSWORD viene hasheado, comparar con bcrypt
+    if (adminPassword && (adminPassword.startsWith('$2b$') || adminPassword.startsWith('$2a$'))) {
+      isValidPassword = await bcrypt.compare(password, adminPassword);
+    } else {
+      // Texto plano (entornos sin hash)
+      isValidPassword = password === adminPassword;
+    }
+
+    if (isValidPassword) { // Autenticado
       req.session.authenticated = true;
       req.session.regenerate((err) => {
         if (err) {
@@ -526,14 +533,19 @@ app.post('/upload', (req, res) => {
         const isVercel = process.env.VERCEL === '1';
         
         if (isVercel) {
-          // En Vercel: mantener en /tmp y usar como está
-          // El archivo ya está en la ubicación correcta
+          // En Vercel: renombrar al nombre final dentro de /tmp para que sea accesible por /uploads/:filename
+          const newPath = path.join('/tmp', newFileName);
+          try {
+            fs.renameSync(file.path, newPath);
+          } catch (e) {
+            console.error('❌ Error renombrando archivo en /tmp:', e.message);
+          }
+
           uploadedFiles.push({
             originalName: originalName,
             filename: newFileName,
             size: file.size,
-            sizeFormatted: formatFileSize(file.size),
-            path: file.path // Mantener la ruta del archivo temporal
+            sizeFormatted: formatFileSize(file.size)
           });
         } else {
           // En local: mover a public/uploads
