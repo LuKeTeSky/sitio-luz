@@ -2,6 +2,74 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
+## 🎯 **Novedades Principales v1.15.0**
+
+### 🗂️ Imágenes en Vercel Blob + URLs públicas
+- Almacenamiento persistente de imágenes con `@vercel/blob` (CDN y URLs públicas `*.vercel-storage.com`).
+- Endpoint de subida usa `put()` y limpia temporales.
+- `/api/images`: primero intenta KV; si no hay datos, lista directamente desde Blob.
+
+### 🔐 Seguridad y compatibilidad
+- `helmet` actualizado: `imgSrc` permite `blob:` y `*.vercel-storage.com`.
+- `crossOriginEmbedderPolicy: false` y `crossOriginResourcePolicy: 'cross-origin'` para evitar `ERR_BLOCKED_BY_RESPONSE`.
+
+### 🖼️ Frontend
+- `public/js/gallery.js`: imágenes usan `image.url` si existe, con fallback a `/uploads/${filename}`.
+
+### 🧭 Gitflow (backup/RC)
+- Ramas `release/*` funcionan como respaldo congelado (Release Candidate).
+- Creadas: `release/v1.15.0` (actual), `release/v1.14.0`, `release/v1.13.0`.
+
+---
+
+## 🎯 **Novedades Principales v1.14.0**
+
+### 🔑 Autenticación y rutas en Vercel
+- Login corregido: comparación de contraseña correcta (soporta hash `bcrypt` o texto plano via `ADMIN_PASSWORD`).
+- `vercel.json`: `/uploads/(.*)` dirigido a `app.js` para que el backend gestione imágenes.
+
+### 🖱️ Experiencia de subida
+- `setupUploadForm()` robustecido: listeners se registran aunque haya cargas en curso, evitando que el botón/label no actualice el nombre del archivo.
+
+### 📦 Preparativos de almacenamiento
+- Dependencia `@vercel/blob` agregada (migración completada en v1.15.0).
+
+---
+
+## 🎯 **Novedades Principales v1.15.0**
+
+### 🗂️ Imágenes en Vercel Blob + URLs públicas
+- Almacenamiento persistente de imágenes con `@vercel/blob` (CDN y URLs públicas `*.vercel-storage.com`).
+- Endpoint de subida usa `put()` y limpia temporales.
+- `/api/images`: primero intenta KV; si no hay datos, lista directamente desde Blob.
+
+### 🔐 Seguridad y compatibilidad
+- `helmet` actualizado: `imgSrc` permite `blob:` y `*.vercel-storage.com`.
+- `crossOriginEmbedderPolicy: false` y `crossOriginResourcePolicy: 'cross-origin'` para evitar `ERR_BLOCKED_BY_RESPONSE`.
+
+### 🖼️ Frontend
+- `public/js/gallery.js`: imágenes usan `image.url` si existe, con fallback a `/uploads/${filename}`.
+
+### 🧭 Gitflow (backup/RC)
+- Ramas `release/*` funcionan como respaldo congelado (Release Candidate).
+- Creadas: `release/v1.15.0` (actual), `release/v1.14.0`, `release/v1.13.0`.
+
+---
+
+## 🎯 **Novedades Principales v1.14.0**
+
+### 🔑 Autenticación y rutas en Vercel
+- Login corregido: comparación de contraseña correcta (soporta hash `bcrypt` o texto plano via `ADMIN_PASSWORD`).
+- `vercel.json`: `/uploads/(.*)` dirigido a `app.js` para que el backend gestione imágenes.
+
+### 🖱️ Experiencia de subida
+- `setupUploadForm()` robustecido: listeners se registran aunque haya cargas en curso, evitando que el botón/label no actualice el nombre del archivo.
+
+### 📦 Preparativos de almacenamiento
+- Dependencia `@vercel/blob` agregada (migración completada en v1.15.0).
+
+---
+
 ## 🎯 **Novedades Principales v1.13.0**
 
 ### 🚨 **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS**
@@ -620,6 +688,14 @@ Este proyecto sigue las mejores prácticas de **Gitflow** con versionado semánt
 - **`release/*`** - Preparación y pruebas de releases
 - **`hotfix/*`** - Correcciones urgentes de producción
 
+#### 🔒 Ramas de Release como Respaldo (Release Candidate)
+
+Las ramas `release/*` cumplen el rol de **backup congelado (RC)** de cada versión:
+
+- Disponibles: `release/v1.15.0` (actual), `release/v1.14.0`, `release/v1.13.0`
+- Para futuros ciclos: crear desde `develop` con `git checkout -b release/vX.Y.Z` y `git push -u origin release/vX.Y.Z`
+- Evitar crear ramas `backup/*`; usar siempre `release/*` como respaldo
+
 ### 🔄 **Flujo de Rollback Seguro**
 
 El sistema está diseñado para rollback fácil:
@@ -649,7 +725,9 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.6.0** | 09 Ago 2025 | Stable | **Subida múltiple + Auto-agregado + Drag & drop** |
 | **v1.7.0** | 09 Ago 2025 | Stable | **Mejoras en sistema de álbumes y navegación** |
 | **v1.8.0** | 09 Ago 2025 | Stable | **Drag & drop en galería + Efectos visuales + Contacto actualizado** |
-| **v1.13.0** | 10 Ago 2025 | **🟢 ACTUAL** | **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS + Protección total contra ejecuciones múltiples** |
+| **v1.15.0** | 12 Ago 2025 | **🟢 ACTUAL** | **Imágenes persistentes en Vercel Blob + CSP/COEP/CORP ajustado + Frontend usando URLs públicas** |
+| **v1.14.0** | 11 Ago 2025 | ✅ Stable | **Login corregido (bcrypt/llano), vercel.json rutas a app.js, mejoras en upload UI** |
+| **v1.13.0** | 10 Ago 2025 | ✅ Stable | **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS + Protección total contra ejecuciones múltiples** |
 | **v1.12.2** | 10 Ago 2025 | ✅ Stable | **Configuración de Vercel CORREGIDA + Endpoint de uploads funcional en producción** |
 | **v1.12.1** | 10 Ago 2025 | ✅ Stable | **Bug crítico de upload CORREGIDO + Sistema funcional en local y Vercel** |
 | **v1.12.0** | 10 Ago 2025 | ✅ Stable | **Sistema de backlog completo + Issues organizados + Flujo de trabajo estandarizado** |
@@ -657,11 +735,11 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.10.0** | 09 Ago 2025 | ✅ Stable | **Bug crítico de eliminación CORREGIDO + Eliminación directa del DOM** |
 | **v1.9.0** | 09 Ago 2025 | ✅ Stable | **Persistencia de eliminaciones con Vercel KV + Sistema robusto** |
 
-#### 🔄 **Versión Actual: v1.13.0**
-- **Fecha de lanzamiento**: 10 de agosto de 2025
-- **Características principales**: Loops infinitos completamente corregidos, protección total contra ejecuciones múltiples
+#### 🔄 **Versión Actual: v1.15.0**
+- **Fecha de lanzamiento**: 12 de agosto de 2025
+- **Características principales**: Vercel Blob para almacenamiento persistente, CSP/COEP/CORP ajustado, frontend usa URLs públicas de Blob
 - **Estado**: Estable y en producción
-- **Próxima versión**: v1.14.0 (en desarrollo)
+- **Próxima versión**: v1.16.0 (en desarrollo)
 
 #### 📋 **Cómo Verificar Tu Versión**
 ```zsh
