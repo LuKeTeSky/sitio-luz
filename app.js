@@ -447,14 +447,13 @@ app.get('/gallery', (req, res) => {
 // 📁 Servir archivos de upload desde /tmp en Vercel
 app.get('/uploads/:filename', async (req, res) => {
   const filename = req.params.filename;
-  
-  console.log(`🔍 DEBUG: Intentando servir archivo: ${filename}`);
-  console.log(`🔍 DEBUG: VERCEL env: ${process.env.VERCEL}`);
-  console.log(`🔍 DEBUG: NODE_ENV: ${process.env.NODE_ENV}`);
+  const rid = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
+  console.log(`[GET /uploads ${rid}] ip=${ip} filename=${filename}`);
   
   if (process.env.VERCEL === '1') {
     // En Vercel: servir desde Vercel KV
-    console.log(`🔍 DEBUG: Buscando imagen en Vercel KV: ${filename}`);
+    console.log(`[GET /uploads ${rid}] buscar KV ${filename}`);
     
     try {
       let imageData = null;
@@ -462,17 +461,17 @@ app.get('/uploads/:filename', async (req, res) => {
       // Intentar obtener desde Vercel KV
       if (kv && typeof kv.get === 'function') {
         imageData = await kv.get(`image:${filename}`);
-        console.log(`🔍 DEBUG: Busqueda en KV: ${imageData ? 'Encontrada' : 'No encontrada'}`);
+        console.log(`[GET /uploads ${rid}] KV ${imageData ? 'found' : 'miss'}`);
       } else {
         // Fallback a memoria global
         if (global.storedImages && global.storedImages[filename]) {
           imageData = global.storedImages[filename];
-          console.log(`🔍 DEBUG: Imagen encontrada en memoria global`);
+          console.log(`[GET /uploads ${rid}] memoria global found`);
         }
       }
       
       if (imageData && imageData.base64) {
-        console.log(`✅ DEBUG: Imagen encontrada en Vercel KV: ${filename}`);
+        console.log(`[GET /uploads ${rid}] OK KV`);
         
         // Convertir base64 a buffer
         const imageBuffer = Buffer.from(imageData.base64, 'base64');
@@ -484,7 +483,7 @@ app.get('/uploads/:filename', async (req, res) => {
         // Servir la imagen
         res.send(imageBuffer);
       } else {
-        console.log(`❌ DEBUG: Imagen NO encontrada en Vercel KV: ${filename}`);
+        console.log(`[GET /uploads ${rid}] NOT_FOUND KV`);
         res.status(404).json({ 
           error: 'Archivo no encontrado',
           debug: {
@@ -498,7 +497,7 @@ app.get('/uploads/:filename', async (req, res) => {
         });
       }
     } catch (error) {
-      console.error(`❌ DEBUG: Error sirviendo imagen desde KV:`, error);
+      console.error(`[GET /uploads ${rid}] ERROR`, error);
       res.status(500).json({ 
         error: 'Error interno del servidor',
         debug: { error: error.message }
@@ -545,6 +544,9 @@ app.get('/uploads/:filename', async (req, res) => {
 
 // 📤 Subida de fotos (solo para usuarios logueados) - Soporte múltiple
 app.post('/upload', (req, res) => {
+  const rid = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
+  console.log(`[POST /upload ${rid}] START ip=${ip}`);
   upload.array('photo', 10)(req, res, async (err) => {
     // Manejar errores de multer/validación
     if (err) {
@@ -575,6 +577,7 @@ app.post('/upload', (req, res) => {
     
     // Validar que se subieron archivos
     if (!req.files || req.files.length === 0) {
+      console.warn(`[POST /upload ${rid}] NO_FILES`);
       return res.status(400).json({ 
         error: 'No se subió ningún archivo',
         code: 'NO_FILES'
@@ -588,6 +591,7 @@ app.post('/upload', (req, res) => {
       const uploadsDir = ensureUploadsDirectory();
       
       // Procesar cada archivo subido
+      console.log(`[POST /upload ${rid}] FILES=${req.files.length} -> ${req.files.map(f=>f.originalname).join(', ')}`);
       req.files.forEach((file, index) => {
         const originalName = file.originalname;
         const extension = path.extname(originalName).toLowerCase();
@@ -601,6 +605,7 @@ app.post('/upload', (req, res) => {
           const newPath = path.join('/tmp', newFileName);
           try {
             fs.renameSync(file.path, newPath);
+            console.log(`[POST /upload ${rid}] RENAMED ${file.path} -> ${newPath}`);
           } catch (e) {
             console.error('❌ Error renombrando archivo en /tmp:', e.message);
           }
@@ -628,6 +633,7 @@ app.post('/upload', (req, res) => {
         ? 'Foto subida exitosamente' 
         : `${req.files.length} fotos subidas exitosamente`;
       
+      console.log(`[POST /upload ${rid}] OK count=${req.files.length}`);
       res.json({ 
         success: true, 
         files: uploadedFiles,
@@ -636,7 +642,7 @@ app.post('/upload', (req, res) => {
       });
       
     } catch (error) {
-      console.error('Error procesando archivos:', error);
+      console.error(`[POST /upload ${rid}] PROCESSING_ERROR`, error);
       res.status(500).json({ 
         error: 'Error procesando los archivos',
         code: 'PROCESSING_ERROR'
