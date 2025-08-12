@@ -50,6 +50,9 @@ if (kv) {
 
 // 🛡️ Configuración de seguridad
 app.use(helmet({
+  // Permitir carga de imágenes desde dominios externos (Blob) y evitar bloquear por COEP/CORP
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
