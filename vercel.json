@@ -30,6 +30,7 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "VERCEL": "1"
+    "VERCEL": "1",
+    "ADMIN_PASSWORD": "admin123"
   }
 }
