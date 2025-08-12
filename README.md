@@ -2,8 +2,72 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
-## 🎯 **Novedades Principales v1.14.0**
+## 🧰 Stack Tecnológico
 
+- **Frontend**
+  - Lenguajes: **HTML5**, **CSS3**, **JavaScript (ES6+)**
+  - Frameworks: sin framework (vanilla JS) con módulos organizados en `public/js/*`
+  - UI/UX: CSS responsive, variables CSS, transiciones; Google Fonts y Font Awesome
+  - Comunicación: `fetch` API (JSON), manejo de formularios y `FormData`
+  - Accesibilidad: semántica HTML, navegación por teclado en lightbox
+
+- **Backend**
+  - Plataforma: **Node.js (LTS)** sobre **Express.js**
+  - Seguridad: `helmet`, `express-rate-limit`, sesiones con `express-session`
+  - Autenticación: contraseña administrada por `ADMIN_PASSWORD` (hash bcrypt o texto plano)
+  - Subidas: `multer` con validación de tipo/tamaño; en Vercel usa `/tmp` (filesystem efímero)
+  - Archivos: `fs`, `path`; estáticos con `express.static('public')`
+  - Persistencia auxiliar: **Vercel KV** (opcional) para metadatos/listas (p. ej. imágenes eliminadas)
+
+- **Deploy/Infra**
+  - Hosting: **Vercel** (funciones serverless, `vercel.json` rutas y builds)
+  - Ramas: Gitflow (`main`, `develop`, `feature/*`, `release/*`, `hotfix/*`, `backup/*`)
+  - Producción: deploy automático al hacer push a `main`
+  - Alternativa self‑hosted: **PM2** con `ecosystem.config.js`
+  - Almacenamiento: **Vercel Blob** (imágenes, URL pública) + **Vercel KV** (metadatos)
+
+### Gitflow operativo actualmente
+
+- `main` → producción
+- `develop` → integración
+- `feature/next-version-v1.15.0` (cerrada) y `feature/next-version-v1.16.0` (por crear)
+- Backups estables:
+  - `backup/main-v1.14.0-stable`, `backup/develop-v1.14.0-stable`, `backup/release-v1.14.0-stable`
+  - versiones anteriores 1.13.0 y 1.10.0 también disponibles
+
+#### Crear backups para v1.15.0 (tras estabilizar)
+```bash
+git checkout main && git checkout -b backup/main-v1.15.0-stable && git push -u origin backup/main-v1.15.0-stable
+git checkout develop && git checkout -b backup/develop-v1.15.0-stable && git push -u origin backup/develop-v1.15.0-stable
+```
+
+#### Preparar siguiente ciclo
+```bash
+git checkout develop
+git checkout -b feature/next-version-v1.16.0
+git push -u origin feature/next-version-v1.16.0
+```
+
+> Nota: en entornos serverless (Vercel) el almacenamiento es efímero. Las imágenes subidas se sirven desde `/tmp` durante la sesión de administración; para persistencia entre ejecuciones se recomienda un blob storage (Vercel Blob, S3) o base de datos dedicada.
+
+## 🎯 **Novedades Principales v1.15.0**
+
+### 🚀 **Migración de Imágenes a Vercel Blob (Persistencia Real)**
+- **Uploads persistentes** con URLs públicas (CDN) vía **Vercel Blob**
+- **Adiós /tmp efímero** y errores 404/429 por instancias serverless
+- **Listado de imágenes desde Vercel KV** (solo metadatos)
+- **Frontend actualizado** para usar `file.url` con fallback seguro
+- **Thumbnails y galería** se muestran inmediatamente tras subir
+
+### 🔧 **Cambios Técnicos**
+- Backend: `POST /upload` → `@vercel/blob.put()` y guarda `{filename, url}` en KV
+- API: `GET /api/images` (Vercel) responde desde KV con URLs públicas
+- Frontend: `public/js/gallery.js` usa `image.url || /uploads/<filename>`
+- Documentación de stack actualizada (Blob + KV)
+
+---
+
+## 🎯 **Novedades Principales v1.14.0**
 ### 🚨 **UPLOAD DE FOTOS COMPLETAMENTE FUNCIONAL EN VERCEL**
 - **Problema de persistencia resuelto** - Imágenes se almacenan en Vercel KV (Redis)
 - **Almacenamiento base64** para máxima compatibilidad con serverless
@@ -667,7 +731,8 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.6.0** | 09 Ago 2025 | Stable | **Subida múltiple + Auto-agregado + Drag & drop** |
 | **v1.7.0** | 09 Ago 2025 | Stable | **Mejoras en sistema de álbumes y navegación** |
 | **v1.8.0** | 09 Ago 2025 | Stable | **Drag & drop en galería + Efectos visuales + Contacto actualizado** |
-| **v1.14.0** | 12 Ago 2025 | **🟢 ACTUAL** | **UPLOAD COMPLETAMENTE FUNCIONAL EN VERCEL + Almacenamiento en Vercel KV + Problema de persistencia resuelto** |
+| **v1.15.0** | 12 Ago 2025 | **🟢 ACTUAL** | **Migración a Vercel Blob: uploads persistentes con URLs públicas + KV para metadatos** |
+| **v1.14.0** | 12 Ago 2025 | ✅ Stable | **UPLOAD COMPLETAMENTE FUNCIONAL EN VERCEL + Almacenamiento en Vercel KV + Problema de persistencia resuelto** |
 | **v1.13.0** | 10 Ago 2025 | ✅ Stable | **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS + Protección total contra ejecuciones múltiples** |
 | **v1.12.2** | 10 Ago 2025 | ✅ Stable | **Configuración de Vercel CORREGIDA + Endpoint de uploads funcional en producción** |
 | **v1.12.1** | 10 Ago 2025 | ✅ Stable | **Bug crítico de upload CORREGIDO + Sistema funcional en local y Vercel** |
@@ -676,11 +741,11 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.10.0** | 09 Ago 2025 | ✅ Stable | **Bug crítico de eliminación CORREGIDO + Eliminación directa del DOM** |
 | **v1.9.0** | 09 Ago 2025 | ✅ Stable | **Persistencia de eliminaciones con Vercel KV + Sistema robusto** |
 
-#### 🔄 **Versión Actual: v1.14.0**
+#### 🔄 **Versión Actual: v1.15.0**
 - **Fecha de lanzamiento**: 12 de agosto de 2025
-- **Características principales**: Upload completamente funcional en Vercel, almacenamiento en Vercel KV, problema de persistencia resuelto
+- **Características principales**: Upload persistente con **Vercel Blob** (URL pública), metadatos en KV
 - **Estado**: Estable y en producción
-- **Próxima versión**: v1.15.0 (en desarrollo)
+- **Próxima versión**: v1.16.0 (en desarrollo)
 
 #### 📋 **Cómo Verificar Tu Versión**
 ```zsh

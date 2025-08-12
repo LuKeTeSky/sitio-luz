@@ -1,8 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Protección contra ejecuciones múltiples
+  if (isDOMContentLoadedExecuted) {
+    console.log('⚠️ DOMContentLoaded ya ejecutado, saltando...');
+    return;
+  }
+  
+  isDOMContentLoadedExecuted = true;
+  console.log('🚀 DOMContentLoaded ejecutándose...');
+  
   // Agregar funciones de debug a la consola
   console.log('🔧 Funciones de debug disponibles:');
   console.log('  - window.clearGalleryProtection() - Limpiar protección');
   console.log('  - window.resetGalleryLoadProtection() - Resetear protección');
+  console.log('  - window.resetDOMContentLoadedProtection() - Resetear protección DOMContentLoaded');
   console.log('  - window.loadAdminGallery() - Recargar galería manualmente');
   
   // Cargar imágenes existentes
@@ -19,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Configurar drag & drop para la galería
   setupGalleryDragAndDrop();
+  
+  console.log('✅ DOMContentLoaded completado');
 });
 
 // Variables globales para el lightbox
@@ -36,11 +48,18 @@ let lastTargetIndex = -1;
 let isLoadingGallery = false;
 let galleryLoadAttempts = 0;
 const MAX_LOAD_ATTEMPTS = 3;
+let isDOMContentLoadedExecuted = false;
 
 // Función para configurar drag & drop en la galería
 function setupGalleryDragAndDrop() {
   const galleryGrid = document.getElementById('gallery-grid');
   if (!galleryGrid) return;
+  
+  // Solo configurar si hay imágenes y no está cargando
+  if (allImages.length === 0 || isLoadingGallery) {
+    console.log('🔄 setupGalleryDragAndDrop saltado - sin imágenes o galería cargando');
+    return;
+  }
   
   // Guardar orden original
   originalOrder = [...allImages];
@@ -518,6 +537,7 @@ window.loadAdminGallery = loadGalleryImages;
 function resetGalleryLoadProtection() {
   isLoadingGallery = false;
   galleryLoadAttempts = 0;
+  isDOMContentLoadedExecuted = false;
   console.log('🔄 Protección de carga de galería reseteada');
 }
 
@@ -528,6 +548,7 @@ window.resetGalleryLoadProtection = resetGalleryLoadProtection;
 function clearGalleryProtection() {
   isLoadingGallery = false;
   galleryLoadAttempts = 0;
+  isDOMContentLoadedExecuted = false;
   if (saveOrderTimeout) {
     clearTimeout(saveOrderTimeout);
     saveOrderTimeout = null;
@@ -539,6 +560,15 @@ function clearGalleryProtection() {
 // Hacer función disponible globalmente
 window.clearGalleryProtection = clearGalleryProtection;
 
+// Función para resetear específicamente la protección del DOMContentLoaded
+function resetDOMContentLoadedProtection() {
+  isDOMContentLoadedExecuted = false;
+  console.log('🔄 Protección de DOMContentLoaded reseteada');
+}
+
+// Hacer función disponible globalmente
+window.resetDOMContentLoadedProtection = resetDOMContentLoadedProtection;
+
 // Función para crear un elemento de galería
 function createGalleryItem(imageData, index) {
   const item = document.createElement('div');
@@ -548,8 +578,8 @@ function createGalleryItem(imageData, index) {
   
   const img = document.createElement('img');
   
-  // Usar siempre /uploads/ ya que Vercel sirve static files desde public/
-  img.src = `/uploads/${imageData.filename}`;
+  // Si viene URL pública (Blob), úsala; si no, fallback a /uploads/
+  img.src = imageData.url ? imageData.url : `/uploads/${imageData.filename}`;
   
   img.alt = imageData.title || 'Foto de modelo';
   img.loading = 'lazy';
@@ -661,6 +691,12 @@ function loadSampleImages() {
 
 // Función para configurar el lightbox
 function setupLightbox() {
+  // Solo configurar si no está cargando la galería
+  if (isLoadingGallery) {
+    console.log('🔄 setupLightbox saltado - galería cargando');
+    return;
+  }
+  
   // El lightbox se configura dinámicamente al abrir
 }
 
@@ -678,7 +714,7 @@ function openLightbox(index, customImages = null) {
   container.className = 'lightbox-container';
 
   const fullImg = document.createElement('img');
-  fullImg.src = `/uploads/${imageData.filename}`;
+  fullImg.src = imageData.url ? imageData.url : `/uploads/${imageData.filename}`;
   fullImg.alt = imageData.title || 'Foto de modelo';
   fullImg.classList.add('lightbox-image');
   fullImg.classList.add('lightbox-fit-screen'); // Por defecto ajustado a pantalla
@@ -839,7 +875,7 @@ function openLightbox(index, customImages = null) {
     const newImageData = imagesToUse[newIndex];
     
     // Actualizar imagen
-    fullImg.src = `/uploads/${newImageData.filename}`;
+    fullImg.src = newImageData.url ? newImageData.url : `/uploads/${newImageData.filename}`;
     fullImg.alt = newImageData.title || 'Foto de modelo';
     
     // Resetear zoom y tamaño al cambiar de imagen
@@ -1025,14 +1061,23 @@ function updateCoverButtons() {
 
 // Función para cargar configuración de portada
 function loadCoverSettings() {
-  setTimeout(() => {
-    updateCoverButtons();
-    updateCoverSection();
-  }, 1000);
+  // Solo cargar si no está cargando ya
+  if (!isLoadingGallery) {
+    setTimeout(() => {
+      updateCoverButtons();
+      updateCoverSection();
+    }, 500);
+  }
 }
 
 // Función para actualizar la sección de fotos de portada
 async function updateCoverSection() {
+  // Protección contra ejecuciones múltiples
+  if (isLoadingGallery) {
+    console.log('🔄 updateCoverSection saltado - galería cargando');
+    return;
+  }
+  
   const coverGrid = document.getElementById('cover-grid');
   const coverEmpty = document.getElementById('cover-empty');
   const coverSection = document.querySelector('.cover-section');
@@ -1103,8 +1148,7 @@ function createCoverItem(imageData, isHeroImage = false) {
   
   const img = document.createElement('img');
   
-  // Usar siempre /uploads/ ya que Vercel sirve static files desde public/
-  img.src = `/uploads/${imageData.filename}`;
+  img.src = imageData.url ? imageData.url : `/uploads/${imageData.filename}`;
   
   img.alt = imageData.title || 'Foto de portada';
   
@@ -1232,6 +1276,19 @@ function setupUploadForm() {
   const fileLabel = document.querySelector('.file-label');
   
   if (!form || !fileInput || !fileLabel) return;
+
+  // Asegurar inicialización aunque la galería esté cargando.
+  // Si está cargando, volvemos a intentar en breve (máx 5 veces) sin duplicar listeners.
+  if (isLoadingGallery) {
+    window.__uploadInitAttempts = (window.__uploadInitAttempts || 0) + 1;
+    if (window.__uploadInitAttempts <= 5) {
+      console.log('🔄 setupUploadForm diferido - galería cargando');
+      setTimeout(setupUploadForm, 300);
+    }
+  }
+
+  if (fileInput.__uploadBound) return; // evitar duplicar listeners
+  fileInput.__uploadBound = true;
   
   // Actualizar label cuando se seleccionan archivos con validación
   fileInput.addEventListener('change', (e) => {
@@ -1315,10 +1372,13 @@ function setupUploadForm() {
         // Si hay un álbum seleccionado, agregar las fotos automáticamente
         await handleAutoAddToSelectedAlbum(result.files);
         
-        // Recargar galería
+        // Recargar galería solo una vez después del upload
+        // Usar un delay más corto y evitar loops infinitos
         setTimeout(() => {
-          loadGalleryImages();
-        }, 1000);
+          if (!isLoadingGallery) {
+            loadGalleryImages();
+          }
+        }, 500);
         
         // Resetear formulario
         form.reset();
@@ -1544,6 +1604,12 @@ function clearGhostEffects() {
 
 // Función para configurar navegación suave
 function setupSmoothScrolling() {
+  // Solo configurar si no está cargando la galería
+  if (isLoadingGallery) {
+    console.log('🔄 setupSmoothScrolling saltado - galería cargando');
+    return;
+  }
+  
   const links = document.querySelectorAll('a[href^="#"]');
   
   links.forEach(link => {
@@ -1582,7 +1648,7 @@ function handleGalleryNavigation() {
   }
   
   // 2. Recargar todas las imágenes en la galería
-  if (window.loadAdminGallery) {
+  if (window.loadAdminGallery && !isLoadingGallery) {
     window.loadAdminGallery();
   }
   
@@ -1594,21 +1660,30 @@ function handleGalleryNavigation() {
   
   // 4. Hacer scroll a la galería
   setTimeout(() => {
-    const targetElement = document.querySelector('#gallery');
-    if (targetElement) {
-      const headerHeight = document.querySelector('.header').offsetHeight;
-      const targetPosition = targetElement.offsetTop - headerHeight - 20;
-      
-      window.scrollTo({
-        top: targetPosition,
-        behavior: 'smooth'
-      });
+    // Solo hacer scroll si no está cargando la galería
+    if (!isLoadingGallery) {
+      const targetElement = document.querySelector('#gallery');
+      if (targetElement) {
+        const headerHeight = document.querySelector('.header').offsetHeight;
+        const targetPosition = targetElement.offsetTop - headerHeight - 20;
+        
+        window.scrollTo({
+          top: targetPosition,
+          behavior: 'smooth'
+        });
+      }
     }
   }, 100); // Pequeño delay para que se carguen las imágenes
 }
 
 // Función para animar elementos cuando entran en el viewport
 function setupScrollAnimations() {
+  // Solo configurar si no está cargando la galería
+  if (isLoadingGallery) {
+    console.log('🔄 setupScrollAnimations saltado - galería cargando');
+    return;
+  }
+  
   const observerOptions = {
     threshold: 0.1,
     rootMargin: '0px 0px -50px 0px'
@@ -1656,9 +1731,12 @@ async function setHeroImage(filename) {
       updateHeroButtons();
       
       // Actualizar también la sección de portada para mostrar la nueva imagen del hero
-      setTimeout(() => {
-        updateCoverSection();
-      }, 500);
+      // Solo si no está cargando ya
+      if (!isLoadingGallery) {
+        setTimeout(() => {
+          updateCoverSection();
+        }, 300);
+      }
       
     } else {
       throw new Error('Error al actualizar la imagen del hero');
@@ -1672,6 +1750,12 @@ async function setHeroImage(filename) {
 
 // Función para actualizar botones de hero
 function updateHeroButtons() {
+  // Protección contra ejecuciones múltiples
+  if (isLoadingGallery) {
+    console.log('🔄 updateHeroButtons saltado - galería cargando');
+    return;
+  }
+  
   fetch('/api/hero')
     .then(response => response.json())
     .then(config => {
@@ -1700,7 +1784,10 @@ function updateHeroButtons() {
 // Inicializar animaciones cuando se carga la página
 window.addEventListener('load', () => {
   setupScrollAnimations();
-  updateHeroButtons();
+  // Solo actualizar botones si no está cargando la galería
+  if (!isLoadingGallery) {
+    updateHeroButtons();
+  }
 });
 
 // Función para mostrar el selector de álbumes

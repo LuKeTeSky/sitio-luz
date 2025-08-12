@@ -1,6 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
+// Vercel Blob (persistencia de imágenes)
+let blobPut = null;
+let blobDel = null;
+let blobList = null;
+try {
+  const blobLib = require('@vercel/blob');
+  blobPut = blobLib.put;
+  blobDel = blobLib.del;
+  blobList = blobLib.list;
+} catch (_) {}
 const path = require('path');
 const fs = require('fs');
 const session = require('express-session');
@@ -40,13 +50,23 @@ if (kv) {
 
 // 🛡️ Configuración de seguridad
 app.use(helmet({
+  // Permitir carga de imágenes desde dominios externos (Blob) y evitar bloquear por COEP/CORP
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-      imgSrc: ["'self'", "data:", "blob:"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        // Permitir imágenes servidas desde Vercel Blob (URLs públicas)
+        "https://*.vercel-storage.com",
+        "https://*.blob.vercel-storage.com"
+      ],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
@@ -336,9 +356,16 @@ app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (
     }
     
     // Comparar contraseña de forma segura
-    const isValidPassword = await bcrypt.compare(password, await bcrypt.hash(adminPassword, 10));
-    
-    if (isValidPassword || password === adminPassword) { // Fallback para compatibilidad
+    let isValidPassword = false;
+    // Si ADMIN_PASSWORD viene hasheado, comparar con bcrypt
+    if (adminPassword && (adminPassword.startsWith('$2b$') || adminPassword.startsWith('$2a$'))) {
+      isValidPassword = await bcrypt.compare(password, adminPassword);
+    } else {
+      // Texto plano (entornos sin hash)
+      isValidPassword = password === adminPassword;
+    }
+
+    if (isValidPassword) { // Autenticado
       req.session.authenticated = true;
       req.session.regenerate((err) => {
         if (err) {
@@ -437,13 +464,28 @@ app.get('/gallery', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'gallery-public.html'));
 });
 
-// 📁 Servir archivos de upload desde /tmp en Vercel
+// 📁 Servir archivos de upload
 app.get('/uploads/:filename', (req, res) => {
   const filename = req.params.filename;
-  
+  const rid = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
+  console.log(`[GET /uploads ${rid}] ip=${ip} filename=${filename}`);
+
   if (process.env.VERCEL === '1') {
-    // En Vercel: servir desde /tmp
+    // En Vercel: servir desde /tmp (filesystem efímero)
     const filePath = path.join('/tmp', filename);
+    if (fs.existsSync(filePath)) {
+      console.log(`[GET /uploads ${rid}] FOUND ${filePath}`);
+      const ext = path.extname(filename).toLowerCase();
+      const mimeTypes = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
+      res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      return fs.createReadStream(filePath).pipe(res);
+    }
+    console.log(`[GET /uploads ${rid}] NOT_FOUND ${filePath}`);
+    return res.status(404).json({ error: 'Archivo no encontrado' });
+  } else {
+    // En local: servir desde public/uploads
+    const filePath = path.join(__dirname, 'public/uploads', filename);
     
     // Verificar si el archivo existe
     if (fs.existsSync(filePath)) {
@@ -464,17 +506,28 @@ app.get('/uploads/:filename', (req, res) => {
       const stream = fs.createReadStream(filePath);
       stream.pipe(res);
     } else {
+      // Fallback: si piden la imagen por defecto del hero y no existe en /tmp,
+      // devolver un PNG transparente de 1x1 para evitar romper la UI pública.
+      if (filename === 'luz-hero.jpg' || filename === 'luz-hero.png') {
+        const transparent1x1Png = Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMB9pA1trEAAAAASUVORK5CYII=',
+          'base64'
+        );
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Length', transparent1x1Png.length);
+        return res.send(transparent1x1Png);
+      }
       res.status(404).json({ error: 'Archivo no encontrado' });
     }
-  } else {
-    // En local: redirigir a la ruta estática
-    res.redirect(`/uploads/${filename}`);
   }
 });
 
 // 📤 Subida de fotos (solo para usuarios logueados) - Soporte múltiple
 app.post('/upload', (req, res) => {
-  upload.array('photo', 10)(req, res, (err) => {
+  const rid = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
+  console.log(`[POST /upload ${rid}] START ip=${ip}`);
+  upload.array('photo', 10)(req, res, async (err) => {
     // Manejar errores de multer/validación
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -504,6 +557,7 @@ app.post('/upload', (req, res) => {
     
     // Validar que se subieron archivos
     if (!req.files || req.files.length === 0) {
+      console.warn(`[POST /upload ${rid}] NO_FILES`);
       return res.status(400).json({ 
         error: 'No se subió ningún archivo',
         code: 'NO_FILES'
@@ -517,7 +571,9 @@ app.post('/upload', (req, res) => {
       const uploadsDir = ensureUploadsDirectory();
       
       // Procesar cada archivo subido
-      req.files.forEach((file, index) => {
+      console.log(`[POST /upload ${rid}] FILES=${req.files.length} -> ${req.files.map(f=>f.originalname).join(', ')}`);
+      const newImagesForKv = [];
+      for (const [index, file] of req.files.entries()) {
         const originalName = file.originalname;
         const extension = path.extname(originalName).toLowerCase();
         const newFileName = Date.now() + '_' + index + extension;
@@ -526,15 +582,30 @@ app.post('/upload', (req, res) => {
         const isVercel = process.env.VERCEL === '1';
         
         if (isVercel) {
-          // En Vercel: mantener en /tmp y usar como está
-          // El archivo ya está en la ubicación correcta
-          uploadedFiles.push({
-            originalName: originalName,
-            filename: newFileName,
-            size: file.size,
-            sizeFormatted: formatFileSize(file.size),
-            path: file.path // Mantener la ruta del archivo temporal
-          });
+          // En Vercel: subir a Blob para persistencia y obtener URL pública
+          try {
+            if (!blobPut) throw new Error('Blob library not available');
+            const buffer = fs.readFileSync(file.path);
+            const { url } = await blobPut(`uploads/${newFileName}`, buffer, {
+              access: 'public',
+              contentType: file.mimetype || 'application/octet-stream',
+              addRandomSuffix: false
+            });
+            // Limpiar temp
+            try { fs.unlinkSync(file.path); } catch (_) {}
+            const meta = {
+              originalName: originalName,
+              filename: newFileName,
+              size: file.size,
+              sizeFormatted: formatFileSize(file.size),
+              url,
+              uploadedAt: new Date().toISOString()
+            };
+            uploadedFiles.push(meta);
+            newImagesForKv.push({ filename: newFileName, url, uploadedAt: meta.uploadedAt });
+          } catch (e) {
+            console.error(`[POST /upload ${rid}] BLOB_ERROR:`, e.message);
+          }
         } else {
           // En local: mover a public/uploads
           const newPath = path.join(uploadsDir, newFileName);
@@ -547,12 +618,25 @@ app.post('/upload', (req, res) => {
             sizeFormatted: formatFileSize(file.size)
           });
         }
-      });
+      }
+      // Persistir listado en KV (solo Vercel)
+      try {
+        const isVercel = process.env.VERCEL === '1';
+        if (isVercel && newImagesForKv.length && kv && typeof kv.get === 'function' && typeof kv.set === 'function') {
+          const existing = (await kv.get('images')) || [];
+          const merged = existing.concat(newImagesForKv);
+          await kv.set('images', merged);
+          console.log(`[POST /upload ${rid}] KV images += ${newImagesForKv.length} (total ${merged.length})`);
+        }
+      } catch (kvErr) {
+        console.error(`[POST /upload ${rid}] KV_SET_ERROR:`, kvErr.message);
+      }
       
       const message = req.files.length === 1 
         ? 'Foto subida exitosamente' 
         : `${req.files.length} fotos subidas exitosamente`;
       
+      console.log(`[POST /upload ${rid}] OK count=${req.files.length}`);
       res.json({ 
         success: true, 
         files: uploadedFiles,
@@ -561,7 +645,7 @@ app.post('/upload', (req, res) => {
       });
       
     } catch (error) {
-      console.error('Error procesando archivos:', error);
+      console.error(`[POST /upload ${rid}] PROCESSING_ERROR`, error);
       res.status(500).json({ 
         error: 'Error procesando los archivos',
         code: 'PROCESSING_ERROR'
@@ -586,12 +670,34 @@ app.get('/api/images', async (req, res) => {
     let uploadsDir, files;
     
     if (isVercel) {
-      // En Vercel: leer desde /tmp
-      uploadsDir = '/tmp';
-      if (!fs.existsSync(uploadsDir)) {
-        return res.json({ images: [] });
+      // En Vercel: devolver desde KV (persistencia Blob)
+      const list = (kv && typeof kv.get === 'function') ? (await kv.get('images')) || [] : [];
+
+      let images = list.map((it) => ({
+        filename: it.filename,
+        url: it.url,
+        title: `Foto ${it.filename?.split?.('.')?.[0] || ''}`,
+        description: 'Capturado con estilo',
+        uploadedAt: it.uploadedAt || new Date().toISOString()
+      })).sort((a,b)=> new Date(b.uploadedAt) - new Date(a.uploadedAt));
+
+      // Fallback: si KV está vacío, listar directo desde Blob
+      if ((!images || images.length === 0) && typeof blobList === 'function') {
+        try {
+          const { blobs } = await blobList({ prefix: 'uploads/' });
+          images = (blobs || []).map((b) => ({
+            filename: (b?.pathname || '').split('/').pop(),
+            url: b?.url,
+            title: `Foto ${(b?.pathname || '').split('/').pop()?.split('.')?.[0] || ''}`,
+            description: 'Capturado con estilo',
+            uploadedAt: b?.uploadedAt || new Date().toISOString()
+          })).sort((a,b)=> new Date(b.uploadedAt) - new Date(a.uploadedAt));
+        } catch (e) {
+          console.error('Blob list fallback error:', e.message);
+        }
       }
-      files = fs.readdirSync(uploadsDir);
+
+      return res.json(images || []);
     } else {
       // En local: leer desde public/uploads
       uploadsDir = path.join(__dirname, 'public/uploads');
