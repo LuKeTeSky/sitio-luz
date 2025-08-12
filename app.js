@@ -444,65 +444,25 @@ app.get('/gallery', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'gallery-public.html'));
 });
 
-// 📁 Servir archivos de upload desde /tmp en Vercel
-app.get('/uploads/:filename', async (req, res) => {
+// 📁 Servir archivos de upload
+app.get('/uploads/:filename', (req, res) => {
   const filename = req.params.filename;
   const rid = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
   console.log(`[GET /uploads ${rid}] ip=${ip} filename=${filename}`);
-  
+
   if (process.env.VERCEL === '1') {
-    // En Vercel: servir desde Vercel KV
-    console.log(`[GET /uploads ${rid}] buscar KV ${filename}`);
-    
-    try {
-      let imageData = null;
-      
-      // Intentar obtener desde Vercel KV
-      if (kv && typeof kv.get === 'function') {
-        imageData = await kv.get(`image:${filename}`);
-        console.log(`[GET /uploads ${rid}] KV ${imageData ? 'found' : 'miss'}`);
-      } else {
-        // Fallback a memoria global
-        if (global.storedImages && global.storedImages[filename]) {
-          imageData = global.storedImages[filename];
-          console.log(`[GET /uploads ${rid}] memoria global found`);
-        }
-      }
-      
-      if (imageData && imageData.base64) {
-        console.log(`[GET /uploads ${rid}] OK KV`);
-        
-        // Convertir base64 a buffer
-        const imageBuffer = Buffer.from(imageData.base64, 'base64');
-        
-        // Establecer headers
-        res.setHeader('Content-Type', imageData.mimeType || 'image/jpeg');
-        res.setHeader('Content-Length', imageBuffer.length);
-        
-        // Servir la imagen
-        res.send(imageBuffer);
-      } else {
-        console.log(`[GET /uploads ${rid}] NOT_FOUND KV`);
-        res.status(404).json({ 
-          error: 'Archivo no encontrado',
-          debug: {
-            filename: filename,
-            source: 'Vercel KV',
-            kvAvailable: kv ? 'Sí' : 'No',
-            memoryImages: global.storedImages ? Object.keys(global.storedImages) : 'No disponible',
-            vercel: process.env.VERCEL,
-            nodeEnv: process.env.NODE_ENV
-          }
-        });
-      }
-    } catch (error) {
-      console.error(`[GET /uploads ${rid}] ERROR`, error);
-      res.status(500).json({ 
-        error: 'Error interno del servidor',
-        debug: { error: error.message }
-      });
+    // En Vercel: servir desde /tmp (filesystem efímero)
+    const filePath = path.join('/tmp', filename);
+    if (fs.existsSync(filePath)) {
+      console.log(`[GET /uploads ${rid}] FOUND ${filePath}`);
+      const ext = path.extname(filename).toLowerCase();
+      const mimeTypes = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
+      res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      return fs.createReadStream(filePath).pipe(res);
     }
+    console.log(`[GET /uploads ${rid}] NOT_FOUND ${filePath}`);
+    return res.status(404).json({ error: 'Archivo no encontrado' });
   } else {
     // En local: servir desde public/uploads
     const filePath = path.join(__dirname, 'public/uploads', filename);
