@@ -1277,12 +1277,19 @@ function setupUploadForm() {
   const fileLabel = document.querySelector('.file-label');
   
   if (!form || !fileInput || !fileLabel) return;
-  
-  // Solo configurar si no está cargando la galería
+
+  // Asegurar inicialización aunque la galería esté cargando.
+  // Si está cargando, volvemos a intentar en breve (máx 5 veces) sin duplicar listeners.
   if (isLoadingGallery) {
-    console.log('🔄 setupUploadForm saltado - galería cargando');
-    return;
+    window.__uploadInitAttempts = (window.__uploadInitAttempts || 0) + 1;
+    if (window.__uploadInitAttempts <= 5) {
+      console.log('🔄 setupUploadForm diferido - galería cargando');
+      setTimeout(setupUploadForm, 300);
+    }
   }
+
+  if (fileInput.__uploadBound) return; // evitar duplicar listeners
+  fileInput.__uploadBound = true;
   
   // Actualizar label cuando se seleccionan archivos con validación
   fileInput.addEventListener('change', (e) => {
