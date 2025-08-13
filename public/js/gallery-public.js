@@ -28,7 +28,9 @@ function loadHeroImage() {
         heroImage.onerror = function() {
             // Si no existe luz-hero.jpg, usar la primera imagen de la galería
             if (allImages.length > 0) {
-                heroImage.src = `/uploads/${allImages[0].filename}`;
+                const first = allImages[0];
+                const firstSrc = first.url || `/uploads/${first.filename}`;
+                heroImage.src = firstSrc;
             }
         };
     }
@@ -151,8 +153,9 @@ function displayGalleryImages() {
 function createGalleryItem(imageData, index) {
     const item = document.createElement('div');
     item.className = 'gallery-item';
+    const imageSrc = imageData.url || `/uploads/${imageData.filename}`;
     item.innerHTML = `
-        <img src="/uploads/${imageData.filename}" alt="${imageData.title || 'Foto de modelo'}" loading="lazy">
+        <img src="${imageSrc}" alt="${imageData.title || 'Foto de modelo'}" loading="lazy">
         <div class="gallery-overlay">
             <div class="gallery-info">
                 <h3>${imageData.title || 'Foto de Moda'}</h3>
@@ -169,6 +172,7 @@ function createGalleryItem(imageData, index) {
 function openLightbox(index) {
     currentImageIndex = index;
     const imageData = allImages[index];
+    const imageSrc = imageData.url || `/uploads/${imageData.filename}`;
 
     const lightboxHTML = `
         <div class="lightbox-overlay">
@@ -194,7 +198,7 @@ function openLightbox(index) {
                 <button class="lightbox-nav lightbox-reset-zoom" onclick="resetImageZoom()" title="Restablecer zoom">
                     <i class="fas fa-undo"></i>
                 </button>
-                <img src="/uploads/${imageData.filename}" alt="${imageData.title || 'Foto de modelo'}" class="lightbox-image lightbox-fit-screen">
+                <img src="${imageSrc}" alt="${imageData.title || 'Foto de modelo'}" class="lightbox-image lightbox-fit-screen">
                 <div class="lightbox-info">
                     <div class="lightbox-title">${imageData.title || 'Foto de Moda'}</div>
                     <div class="lightbox-description">${imageData.description || 'Capturado con estilo'}</div>
@@ -226,10 +230,11 @@ function navigateLightbox(direction) {
     const newIndex = (currentImageIndex + direction + allImages.length) % allImages.length;
     currentImageIndex = newIndex;
     const newImageData = allImages[newIndex];
+    const newImageSrc = newImageData.url || `/uploads/${newImageData.filename}`;
 
     // Actualizar imagen
     const fullImg = document.querySelector('.lightbox-image');
-    fullImg.src = `/uploads/${newImageData.filename}`;
+    fullImg.src = newImageSrc;
     fullImg.alt = newImageData.title || 'Foto de modelo';
     
     // Resetear zoom y tamaño al cambiar de imagen
