@@ -7,6 +7,15 @@ echo "🌟 CREANDO ISSUES EN GITHUB PARA LUZ PORTFOLIO"
 echo "================================================"
 echo ""
 
+echo -e "${BLUE}📋 Creando Issue #8: Persistencia de Álbumes falla en Producción (Vercel)${NC}"
+gh issue create \
+    --title "🐛 Persistencia de Álbumes falla en Producción (Vercel)" \
+    --body "## 🚨 **PRIORIDAD ALTA (Crítico)**\n\n**Descripción**: Al crear un álbum nuevo desde el admin en producción, los datos no persisten. Tras unos segundos, reinicios de funciones o nuevos deploys, los álbumes desaparecen porque actualmente en prod se guarda en memoria.\n\n**Tipo**: Bug\n**Componente**: Álbumes (Frontend \`albums.js\` / Backend \`app.js\` + Vercel KV)\n\n**Criterios de Aceptación**:\n- [ ] Crear un álbum en admin lo persiste en **Vercel KV** (producción) y en archivo local (desarrollo)\n- [ ] El listado de álbumes se obtiene desde KV en producción (fallback seguro si KV no disponible)\n- [ ] Los álbumes creados sobreviven reinicios, escalado y nuevos deploys\n- [ ] Admin y página pública ven el mismo conjunto de álbumes\n- [ ] Logs sin exponer secretos; manejo de errores claro\n\n**Tareas**:\n- [ ] Implementar persistencia en \`app.js\` para \`loadAlbums()\`/\`saveAlbums()\` usando KV en Vercel\n- [ ] Exponer endpoints REST: \`GET /api/albums\`, \`POST /api/albums\`, \`PUT /api/albums/:id\`, \`DELETE /api/albums/:id\`\n- [ ] Actualizar \`albums.js\` y \`albums-homepage.js\` para consumir la API\n- [ ] Agregar validaciones básicas (nombre requerido, longitudes)\n- [ ] Tests manuales en producción y local\n\n**Pasos de Prueba**:\n1. Crear un álbum en admin (producción) y verificar respuesta 200 con ID\n2. Refrescar admin y página pública: el álbum debe aparecer\n3. Forzar nuevo deployment y/o esperar reinicio: el álbum debe seguir presente\n4. Editar/eliminar el álbum y verificar persistencia" \
+    --label "bug,high-priority,albums" \
+    --assignee "@me"
+
+echo ""
+
 # Colores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
