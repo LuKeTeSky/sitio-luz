@@ -993,28 +993,37 @@ let albumsInitialized = false;
 async function loadAlbums() {
   try {
     const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-    if (isVercel && kv && typeof kv.get === 'function') {
-      let albums = await kv.get('albums');
-      if (!Array.isArray(albums)) {
-        // Inicializar estructura por defecto
-        albums = [
-          {
-            id: Date.now().toString(),
-            name: 'Portfolio Principal',
-            description: 'Mejores trabajos de moda y fotografía',
-            campaign: 'Colección 2025',
-            images: [],
-            order: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+    if (isVercel) {
+      if (kv && typeof kv.get === 'function') {
+        let albums = await kv.get('albums');
+        if (!Array.isArray(albums)) {
+          // Inicializar estructura por defecto
+          albums = [
+            {
+              id: Date.now().toString(),
+              name: 'Portfolio Principal',
+              description: 'Mejores trabajos de moda y fotografía',
+              campaign: 'Colección 2025',
+              images: [],
+              order: 0,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+          ];
+          if (typeof kv.set === 'function') {
+            await kv.set('albums', albums);
           }
-        ];
-        if (typeof kv.set === 'function') {
-          await kv.set('albums', albums);
+          console.log('✨ Álbumes inicializados en KV (producción)');
         }
-        console.log('✨ Álbumes inicializados en KV (producción)');
+        return albums;
       }
-      return albums;
+      // Fallback en Vercel sin KV: usar memoria del proceso (no persistente)
+      if (!albumsInitialized) {
+        albumsData = [];
+        albumsInitialized = true;
+        console.log('⚠️ KV no disponible: usando memoria como fallback para álbumes');
+      }
+      return [...albumsData];
     }
 
     // Desarrollo: archivo local
@@ -1042,9 +1051,16 @@ async function loadAlbums() {
 async function saveAlbums(albums) {
   try {
     const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-    if (isVercel && kv && typeof kv.set === 'function') {
-      await kv.set('albums', albums);
-      console.log(`💾 Álbumes guardados en KV: ${albums.length} álbumes`);
+    if (isVercel) {
+      if (kv && typeof kv.set === 'function') {
+        await kv.set('albums', albums);
+        console.log(`💾 Álbumes guardados en KV: ${albums.length} álbumes`);
+        return;
+      }
+      // Fallback en Vercel sin KV: memoria del proceso (no persistente)
+      albumsData = [...albums];
+      albumsInitialized = true;
+      console.log(`💾 Álbumes guardados en memoria (fallback, prod): ${albums.length}`);
       return;
     }
     // Desarrollo: archivo local
