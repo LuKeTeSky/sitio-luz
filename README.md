@@ -1209,9 +1209,8 @@ El proyecto ahora cuenta con un sistema completo de backlog organizado en **7 is
 
 ### 📚 **Documentación del Backlog**
 
-- **`BACKLOG.md`** - Backlog completo con criterios de aceptación
-- **`MANUAL-ISSUES.md`** - Instrucciones para crear issues manualmente
-- **`create-github-issues.sh`** - Script automático (requiere GitHub CLI)
+- Gestión centralizada en GitHub Issues: `https://github.com/LuKeTeSky/sitio-luz/issues`
+- `create-github-issues.sh` - Script para crear issues automáticamente (requiere GitHub CLI)
 
 ### 🔄 **Flujo de Trabajo con Issues**
 
