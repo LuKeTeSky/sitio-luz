@@ -42,6 +42,19 @@ class AlbumsManager {
             albumForm.addEventListener('submit', (e) => this.handleAlbumSubmit(e));
         }
 
+        // Guardar edición con Enter desde inputs
+        ['album-name', 'album-description', 'album-campaign'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+                        const form = document.getElementById('album-form');
+                        if (form) form.requestSubmit();
+                    }
+                });
+            }
+        });
+
         // Cerrar modal con ESC
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -421,7 +434,7 @@ class AlbumsManager {
         const albumCampaign = document.getElementById('album-campaign');
 
         if (modalTitle) modalTitle.textContent = 'Editar Álbum';
-        if (albumName) albumName.value = album.name;
+        if (albumName) albumName.value = album.name || '';
         if (albumDescription) albumDescription.value = album.description || '';
         if (albumCampaign) albumCampaign.value = album.campaign || '';
 
