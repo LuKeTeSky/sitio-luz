@@ -18,16 +18,17 @@ const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 
-// 🔧 Vercel KV para persistencia de eliminaciones
+// 🔧 Vercel KV para persistencia
 let kv = null;
 if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
   try {
-    kv = require('@vercel/kv');
-    // Verificar que kv se inicializó correctamente
-    if (kv && typeof kv.get === 'function') {
+    const kvPkg = require('@vercel/kv');
+    // SDK exporta { kv }
+    kv = kvPkg && kvPkg.kv ? kvPkg.kv : kvPkg;
+    if (kv && typeof kv.get === 'function' && typeof kv.set === 'function') {
       console.log('✅ Vercel KV inicializado correctamente');
     } else {
-      console.log('⚠️ Vercel KV no se inicializó correctamente, usando memoria como fallback');
+      console.log('⚠️ Vercel KV no se inicializó correctamente (sin métodos get/set). Usando memoria como fallback');
       kv = null;
     }
   } catch (error) {
