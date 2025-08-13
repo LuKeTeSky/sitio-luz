@@ -11,8 +11,8 @@ class AlbumsManager {
         this.init();
     }
 
-    init() {
-        this.loadAlbums();
+    async init() {
+        await this.loadAlbums();
         this.setupEventListeners();
         this.setupSidebarToggle();
     }
@@ -330,7 +330,7 @@ class AlbumsManager {
         item.className = 'gallery-item';
         
         const img = document.createElement('img');
-        img.src = `/uploads/${imageData.filename}`;
+        img.src = imageData.url || `/uploads/${imageData.filename}`;
         img.alt = imageData.title || 'Foto';
         img.loading = 'lazy';
         

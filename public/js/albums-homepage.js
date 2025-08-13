@@ -5,11 +5,16 @@ class AlbumsHomepageManager {
     constructor() {
         this.albumsGrid = document.getElementById('albums-grid');
         this.albums = [];
+        this.imagesIndex = new Map(); // filename -> { filename, url, ... }
         this.init();
     }
 
     async init() {
-        await this.loadAlbums();
+        // Cargar álbumes y el índice de imágenes (para obtener URLs públicas de Blob)
+        await Promise.all([
+            this.loadAlbums(),
+            this.loadImagesIndex()
+        ]);
         this.renderAlbums();
     }
 
@@ -25,6 +30,23 @@ class AlbumsHomepageManager {
             }
         } catch (error) {
             console.error('Error cargando álbumes:', error);
+        }
+    }
+
+    async loadImagesIndex() {
+        try {
+            const response = await fetch('/api/images');
+            if (response.ok) {
+                const images = await response.json();
+                this.imagesIndex.clear();
+                images.forEach(img => {
+                    if (img && img.filename) {
+                        this.imagesIndex.set(img.filename, img);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando índice de imágenes:', error);
         }
     }
 
@@ -94,11 +116,13 @@ class AlbumsHomepageManager {
         let html = '';
         for (let i = 0; i < 4; i++) {
             if (i < images.length) {
-                html += `<img src="/uploads/${images[i]}" alt="Preview ${i + 1}" loading="lazy">`;
+                const src = this.getImageUrl(images[i]);
+                html += `<img src="${src}" alt="Preview ${i + 1}" loading="lazy">`;
             } else {
                 // Si no hay suficientes imágenes, duplicar la última
                 const lastImage = images[images.length - 1];
-                html += `<img src="/uploads/${lastImage}" alt="Preview ${i + 1}" loading="lazy">`;
+                const src = this.getImageUrl(lastImage);
+                html += `<img src="${src}" alt="Preview ${i + 1}" loading="lazy">`;
             }
         }
         return html;
@@ -218,7 +242,7 @@ class AlbumsHomepageManager {
         item.className = 'gallery-item';
         
         const img = document.createElement('img');
-        img.src = `/uploads/${imageData.filename}`;
+        img.src = imageData.url || `/uploads/${imageData.filename}`;
         img.alt = imageData.title || 'Foto';
         img.loading = 'lazy';
         
@@ -250,7 +274,7 @@ class AlbumsHomepageManager {
         `;
 
         const img = document.createElement('img');
-        img.src = `/uploads/${images[index].filename}`;
+        img.src = images[index].url || `/uploads/${images[index].filename}`;
         img.style.cssText = `
             max-width: 90%;
             max-height: 90%;
@@ -314,6 +338,12 @@ class AlbumsHomepageManager {
                 console.error('Error cargando todas las imágenes:', error);
             }
         }
+    }
+
+    getImageUrl(filename) {
+        const img = this.imagesIndex.get(filename);
+        if (img && img.url) return img.url;
+        return `/uploads/${filename}`;
     }
 
     escapeHtml(text) {
