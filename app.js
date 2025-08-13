@@ -985,36 +985,39 @@ function getAlbumsFilePath() {
   return path.join(__dirname, 'albums.json');
 }
 
-// 💾 Almacenamiento en memoria para producción
+// 💾 Almacenamiento en memoria para producción (fallback)
 let albumsData = [];
 let albumsInitialized = false;
 
-// Función para cargar álbumes desde el archivo o memoria
-function loadAlbums() {
+// Cargar álbumes (KV en Vercel; archivo en dev; memoria como fallback)
+async function loadAlbums() {
   try {
-    // En producción, usar memoria
-    if (process.env.NODE_ENV === 'production') {
-      if (!albumsInitialized) {
-        // Inicializar con álbumes de ejemplo en primera carga
-        albumsData = [
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    if (isVercel && kv && typeof kv.get === 'function') {
+      let albums = await kv.get('albums');
+      if (!Array.isArray(albums)) {
+        // Inicializar estructura por defecto
+        albums = [
           {
             id: Date.now().toString(),
-            name: "Portfolio Principal",
-            description: "Mejores trabajos de moda y fotografía",
-            campaign: "Colección 2025",
+            name: 'Portfolio Principal',
+            description: 'Mejores trabajos de moda y fotografía',
+            campaign: 'Colección 2025',
             images: [],
             order: 0,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }
         ];
-        albumsInitialized = true;
-        console.log('✨ Álbumes inicializados en memoria para producción');
+        if (typeof kv.set === 'function') {
+          await kv.set('albums', albums);
+        }
+        console.log('✨ Álbumes inicializados en KV (producción)');
       }
-      return [...albumsData]; // Retornar copia
+      return albums;
     }
-    
-    // En desarrollo, usar archivo
+
+    // Desarrollo: archivo local
     const albumsPath = getAlbumsFilePath();
     if (fs.existsSync(albumsPath)) {
       const data = fs.readFileSync(albumsPath, 'utf8');
@@ -1023,34 +1026,47 @@ function loadAlbums() {
     return [];
   } catch (error) {
     console.error('Error cargando álbumes:', error);
+    // Fallback memoria
+    if (process.env.NODE_ENV === 'production') {
+      if (!albumsInitialized) {
+        albumsData = [];
+        albumsInitialized = true;
+      }
+      return [...albumsData];
+    }
     return [];
   }
 }
 
-// Función para guardar álbumes en el archivo o memoria
-function saveAlbums(albums) {
+// Guardar álbumes (KV en Vercel; archivo en dev; memoria como fallback)
+async function saveAlbums(albums) {
   try {
-    // En producción, guardar en memoria
-    if (process.env.NODE_ENV === 'production') {
-      albumsData = [...albums]; // Guardar copia en memoria
-      console.log(`💾 Álbumes guardados en memoria: ${albums.length} álbumes`);
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    if (isVercel && kv && typeof kv.set === 'function') {
+      await kv.set('albums', albums);
+      console.log(`💾 Álbumes guardados en KV: ${albums.length} álbumes`);
       return;
     }
-    
-    // En desarrollo, guardar en archivo
+    // Desarrollo: archivo local
     const albumsPath = getAlbumsFilePath();
     fs.writeFileSync(albumsPath, JSON.stringify(albums, null, 2));
     console.log(`📁 Álbumes guardados en archivo: ${albumsPath}`);
   } catch (error) {
     console.error('Error guardando álbumes:', error);
+    // Fallback memoria en producción
+    if (process.env.NODE_ENV === 'production') {
+      albumsData = [...albums];
+      console.log(`💾 Álbumes guardados en memoria (fallback): ${albums.length}`);
+      return;
+    }
     throw error;
   }
 }
 
 // GET /api/albums - Obtener todos los álbumes
-app.get('/api/albums', (req, res) => {
+app.get('/api/albums', async (req, res) => {
   try {
-    const albums = loadAlbums();
+    const albums = await loadAlbums();
     // Ordenar álbumes por el campo order
     albums.sort((a, b) => (a.order || 0) - (b.order || 0));
     res.json(albums);
@@ -1061,7 +1077,7 @@ app.get('/api/albums', (req, res) => {
 });
 
 // POST /api/albums - Crear nuevo álbum
-app.post('/api/albums', express.json(), (req, res) => {
+app.post('/api/albums', express.json(), async (req, res) => {
   try {
     const { name, description, campaign } = req.body;
     
@@ -1069,7 +1085,7 @@ app.post('/api/albums', express.json(), (req, res) => {
       return res.status(400).json({ error: 'El nombre del álbum es requerido' });
     }
     
-    const albums = loadAlbums();
+    const albums = await loadAlbums();
     
     // Generar ID único
     const newId = Date.now().toString();
@@ -1086,7 +1102,7 @@ app.post('/api/albums', express.json(), (req, res) => {
     };
     
     albums.push(newAlbum);
-    saveAlbums(albums);
+    await saveAlbums(albums);
     
     res.status(201).json(newAlbum);
     
@@ -1097,7 +1113,7 @@ app.post('/api/albums', express.json(), (req, res) => {
 });
 
 // PUT /api/albums/:id - Actualizar álbum
-app.put('/api/albums/:id', express.json(), (req, res) => {
+app.put('/api/albums/:id', express.json(), async (req, res) => {
   try {
     const albumId = req.params.id;
     const { name, description, campaign } = req.body;
@@ -1106,7 +1122,7 @@ app.put('/api/albums/:id', express.json(), (req, res) => {
       return res.status(400).json({ error: 'El nombre del álbum es requerido' });
     }
     
-    const albums = loadAlbums();
+    const albums = await loadAlbums();
     const albumIndex = albums.findIndex(album => album.id === albumId);
     
     if (albumIndex === -1) {
@@ -1121,7 +1137,7 @@ app.put('/api/albums/:id', express.json(), (req, res) => {
       updatedAt: new Date().toISOString()
     };
     
-    saveAlbums(albums);
+    await saveAlbums(albums);
     
     res.json(albums[albumIndex]);
     
@@ -1132,10 +1148,10 @@ app.put('/api/albums/:id', express.json(), (req, res) => {
 });
 
 // DELETE /api/albums/:id - Eliminar álbum
-app.delete('/api/albums/:id', (req, res) => {
+app.delete('/api/albums/:id', async (req, res) => {
   try {
     const albumId = req.params.id;
-    const albums = loadAlbums();
+    const albums = await loadAlbums();
     const albumIndex = albums.findIndex(album => album.id === albumId);
     
     if (albumIndex === -1) {
@@ -1143,7 +1159,7 @@ app.delete('/api/albums/:id', (req, res) => {
     }
     
     albums.splice(albumIndex, 1);
-    saveAlbums(albums);
+    await saveAlbums(albums);
     
     res.json({ 
       success: true, 
@@ -1158,7 +1174,7 @@ app.delete('/api/albums/:id', (req, res) => {
 });
 
 // POST /api/albums/:id/images - Agregar imagen a álbum
-app.post('/api/albums/:id/images', express.json(), (req, res) => {
+app.post('/api/albums/:id/images', express.json(), async (req, res) => {
   try {
     const albumId = req.params.id;
     const { imageId } = req.body;
@@ -1167,13 +1183,16 @@ app.post('/api/albums/:id/images', express.json(), (req, res) => {
       return res.status(400).json({ error: 'Se requiere el ID de la imagen' });
     }
     
-    // Verificar que la imagen existe
-    const imagePath = path.join(__dirname, 'public/uploads', imageId);
-    if (!fs.existsSync(imagePath)) {
-      return res.status(404).json({ error: 'Imagen no encontrada' });
+    // En Vercel no verificamos FS local; en dev sí
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    if (!isVercel) {
+      const imagePath = path.join(__dirname, 'public/uploads', imageId);
+      if (!fs.existsSync(imagePath)) {
+        return res.status(404).json({ error: 'Imagen no encontrada' });
+      }
     }
     
-    const albums = loadAlbums();
+    const albums = await loadAlbums();
     const albumIndex = albums.findIndex(album => album.id === albumId);
     
     if (albumIndex === -1) {
@@ -1188,7 +1207,7 @@ app.post('/api/albums/:id/images', express.json(), (req, res) => {
     albums[albumIndex].images.push(imageId);
     albums[albumIndex].updatedAt = new Date().toISOString();
     
-    saveAlbums(albums);
+    await saveAlbums(albums);
     
     res.json({
       success: true,
@@ -1203,12 +1222,12 @@ app.post('/api/albums/:id/images', express.json(), (req, res) => {
 });
 
 // DELETE /api/albums/:id/images/:imageId - Remover imagen de álbum
-app.delete('/api/albums/:id/images/:imageId', (req, res) => {
+app.delete('/api/albums/:id/images/:imageId', async (req, res) => {
   try {
     const albumId = req.params.id;
     const imageId = req.params.imageId;
     
-    const albums = loadAlbums();
+    const albums = await loadAlbums();
     const albumIndex = albums.findIndex(album => album.id === albumId);
     
     if (albumIndex === -1) {
@@ -1223,7 +1242,7 @@ app.delete('/api/albums/:id/images/:imageId', (req, res) => {
     albums[albumIndex].images.splice(imageIndex, 1);
     albums[albumIndex].updatedAt = new Date().toISOString();
     
-    saveAlbums(albums);
+    await saveAlbums(albums);
     
     res.json({
       success: true,
@@ -1238,7 +1257,7 @@ app.delete('/api/albums/:id/images/:imageId', (req, res) => {
 });
 
 // PUT /api/albums/reorder - Reordenar álbumes
-app.put('/api/albums/reorder', (req, res) => {
+app.put('/api/albums/reorder', express.json(), async (req, res) => {
   try {
     const { albumsOrder } = req.body;
     
@@ -1246,7 +1265,7 @@ app.put('/api/albums/reorder', (req, res) => {
       return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes' });
     }
     
-    const albums = loadAlbums();
+    const albums = await loadAlbums();
     
     // Actualizar el order de cada álbum según la nueva posición
     albumsOrder.forEach((albumId, index) => {
@@ -1260,7 +1279,7 @@ app.put('/api/albums/reorder', (req, res) => {
     // Ordenar álbumes por el campo order
     albums.sort((a, b) => (a.order || 0) - (b.order || 0));
     
-    saveAlbums(albums);
+    await saveAlbums(albums);
     
     res.json({
       success: true,
