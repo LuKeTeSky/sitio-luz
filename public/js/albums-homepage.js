@@ -318,6 +318,11 @@ class AlbumsHomepageManager {
         // Usar la función global de gallery-public.js si está disponible
         if (window.loadPublicGallery) {
             await window.loadPublicGallery();
+            // Scroll al inicio de la galería tras recargar
+            const gallerySection = document.getElementById('gallery');
+            if (gallerySection) {
+                gallerySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         } else {
             // Fallback: mostrar todas las imágenes manualmente
             try {
@@ -335,6 +340,11 @@ class AlbumsHomepageManager {
                     const galleryItem = this.createGalleryItem(image, index, allImages);
                     galleryGrid.appendChild(galleryItem);
                 });
+                // Scroll al inicio de la galería
+                const gallerySection = document.getElementById('gallery');
+                if (gallerySection) {
+                    gallerySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
                 
             } catch (error) {
                 console.error('Error cargando todas las imágenes:', error);
