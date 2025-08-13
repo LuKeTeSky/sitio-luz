@@ -9,10 +9,11 @@ async function loadHeroConfiguration() {
     const response = await fetch('/api/hero');
     const config = await response.json();
     
-    // Actualizar la imagen del hero
+    // Actualizar la imagen del hero (usar URL pública si está disponible)
     const heroImage = document.getElementById('hero-image');
     if (heroImage) {
-      heroImage.src = `/uploads/${config.heroImage}`;
+      const src = config.heroImageUrl || (config.heroImage ? `/uploads/${config.heroImage}` : '/uploads/luz-hero.jpg');
+      heroImage.src = src;
       heroImage.alt = `${config.title} - Modelo de Moda`;
     }
     

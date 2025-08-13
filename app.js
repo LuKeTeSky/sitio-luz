@@ -833,24 +833,42 @@ let heroConfig = {
   subtitle: 'Portfolio de Moda & Fotografía'
 };
 
-// 🎯 API para obtener la configuración del hero (pública)
-app.get('/api/hero', (req, res) => {
+// 🎯 Helper: obtener URL pública de imagen por filename (Vercel Blob/KV)
+async function getPublicUrlForFilename(filename) {
   try {
-    // En producción, usar memoria
-    if (process.env.NODE_ENV === 'production') {
-      res.json(heroConfig);
-      return;
+    if (!filename) return null;
+    // 1) Intentar KV
+    if (kv && typeof kv.get === 'function') {
+      const list = (await kv.get('images')) || [];
+      const match = Array.isArray(list) ? list.find(i => i.filename === filename && i.url) : null;
+      if (match && match.url) return match.url;
     }
-    
-    // En desarrollo, usar archivo
-    const configPath = path.join(__dirname, 'hero-config.json');
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      res.json(config);
-    } else {
-      // Configuración por defecto
-      res.json(heroConfig);
+    // 2) Fallback a Blob listing
+    if (typeof blobList === 'function') {
+      const { blobs } = await blobList({ prefix: 'uploads/' });
+      const found = (blobs || []).find(b => String(b.pathname || '').split('/').pop() === filename);
+      return found ? found.url : null;
     }
+  } catch (e) {
+    console.warn('getPublicUrlForFilename error:', e.message);
+  }
+  return null;
+}
+
+// 🎯 API para obtener la configuración del hero (pública)
+app.get('/api/hero', async (req, res) => {
+  try {
+    let config = heroConfig;
+    // En desarrollo, intentar archivo local
+    if (process.env.NODE_ENV !== 'production') {
+      const configPath = path.join(__dirname, 'hero-config.json');
+      if (fs.existsSync(configPath)) {
+        config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      }
+    }
+    // Adjuntar URL pública si existe
+    const heroImageUrl = await getPublicUrlForFilename(config.heroImage);
+    res.json({ ...config, heroImageUrl });
   } catch (error) {
     console.error('Error leyendo configuración del hero:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -858,7 +876,7 @@ app.get('/api/hero', (req, res) => {
 });
 
 // 🎯 API para establecer la imagen del hero (solo para usuarios logueados)
-app.post('/api/hero', express.json(), (req, res) => {
+app.post('/api/hero', express.json(), async (req, res) => {
   try {
     const { heroImage, title, subtitle } = req.body;
     
@@ -866,10 +884,19 @@ app.post('/api/hero', express.json(), (req, res) => {
       return res.status(400).json({ error: 'Se requiere una imagen para el hero' });
     }
     
-    // Verificar que la imagen existe
-    const imagePath = path.join(__dirname, 'public/uploads', heroImage);
-    if (!fs.existsSync(imagePath)) {
-      return res.status(404).json({ error: 'Imagen no encontrada' });
+    const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    if (!isProd) {
+      // Desarrollo: validar en filesystem local
+      const imagePath = path.join(__dirname, 'public/uploads', heroImage);
+      if (!fs.existsSync(imagePath)) {
+        return res.status(404).json({ error: 'Imagen no encontrada' });
+      }
+    } else {
+      // Producción (Vercel): intentar validar contra KV/Blob; si no se encuentra, seguimos best-effort
+      const publicUrl = await getPublicUrlForFilename(heroImage);
+      if (!publicUrl) {
+        console.warn(`Hero image '${heroImage}' no encontrada en KV/Blob. Se guarda igualmente (best-effort).`);
+      }
     }
     
     const config = {
@@ -880,20 +907,22 @@ app.post('/api/hero', express.json(), (req, res) => {
     };
     
     // Guardar configuración en memoria o archivo
-    if (process.env.NODE_ENV === 'production') {
-      heroConfig = config; // Guardar en memoria
+    if (isProd) {
+      heroConfig = config; // Guardado en memoria para prod
       console.log('💾 Hero config guardado en memoria:', config);
     } else {
-      // En desarrollo, guardar en archivo
       const configPath = path.join(__dirname, 'hero-config.json');
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
       console.log('📁 Hero config guardado en archivo:', configPath);
     }
     
+    // Adjuntar URL pública si está disponible
+    const heroImageUrl = await getPublicUrlForFilename(heroImage);
+    
     res.json({ 
       success: true, 
       message: 'Imagen del hero actualizada exitosamente',
-      config: config
+      config: { ...config, heroImageUrl }
     });
     
   } catch (error) {
