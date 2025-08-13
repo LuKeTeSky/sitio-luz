@@ -528,7 +528,7 @@ pm2 stop sitio-luz
 pm2 status
 ```
 
-## �� Estructura del Proyecto
+## 📄 Estructura del Proyecto
 
 ```
 sitio-luz/
@@ -1306,3 +1306,25 @@ git push origin develop
 # Deploy hook configured Sat Aug  9 18:39:56 -03 2025
 # Repository now public - ready for Vercel deploy Sat Aug  9 18:46:32 -03 2025
 # Public repo deploy test Sat Aug  9 18:48:18 -03 2025
+
+### 🗂️ **Issues y Milestones (GitHub)**
+
+- Issues del proyecto: `https://github.com/LuKeTeSky/sitio-luz/issues`
+- Labels usadas: `bug`, `enhancement`, `infrastructure`, `high-priority`, `medium-priority`, `low-priority`
+- Milestones: `v1.16.0` (próxima versión)
+
+#### Crear milestone y asignar issues (con GitHub CLI)
+```zsh
+# Crear/obtener milestone vía API (gh no tiene comando nativo de milestones)
+OWNER=LuKeTeSky
+REPO=sitio-luz
+MS_TITLE="v1.16.0"
+MS_DESC="Próxima versión (en desarrollo)"
+MS_NUM=$(gh api repos/$OWNER/$REPO/milestones --jq '.[] | select(.title=="'"$MS_TITLE"'") | .number' | head -n1)
+if [ -z "$MS_NUM" ]; then
+  MS_NUM=$(gh api -X POST repos/$OWNER/$REPO/milestones -f title="$MS_TITLE" -f description="$MS_DESC" --jq '.number')
+fi
+
+# Asignar un issue ejemplo al milestone (reemplazar 123 por el número)
+gh api -X PATCH repos/$OWNER/$REPO/issues/123 -f milestone=$MS_NUM
+```
