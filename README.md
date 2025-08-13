@@ -300,6 +300,42 @@ Para que las eliminaciones de imágenes sean persistentes en Vercel:
 
 **📋 Documentación Detallada:** Ver archivo `vercel-kv-setup.md` para instrucciones paso a paso.
 
+### 🔧 **Configuración de Vercel Blob (Producción)**
+
+Para almacenar imágenes de forma persistente con CDN y URLs públicas:
+
+1. Conectar Blob al proyecto en Vercel:
+   - Dashboard de Vercel → tu proyecto `sitio-luz` → pestaña "Storage" → "Add" → seleccionar "Blob"
+   - Esto crea el bucket y agrega automáticamente las variables de entorno requeridas (p. ej. `BLOB_READ_WRITE_TOKEN`) sin exponerlas en el repo
+
+2. Dependencias y backend:
+   - `package.json` ya incluye `@vercel/blob`
+   - El backend usa `put()` para subir y obtiene `url` pública; no registres ni expongas el valor del token en logs
+
+3. Seguridad y CSP (ya aplicado en `app.js`):
+   - `helmet` `contentSecurityPolicy.imgSrc` debe permitir: `"'self'", "data:", "blob:", "*.vercel-storage.com"`
+   - `crossOriginEmbedderPolicy: false` y `crossOriginResourcePolicy: 'cross-origin'` para permitir imágenes del CDN
+
+4. Verificación rápida:
+   - Subir una imagen desde Admin y comprobar que el JSON de respuesta incluya `url` de `*.vercel-storage.com`
+   - Ver la galería pública y confirmar que las miniaturas cargan desde esa URL
+
+5. Deploy:
+   - Si conectaste Blob o cambiaste variables de entorno, haz un redeploy desde Vercel para que los cambios apliquen
+
+### ✅ **Checklist de Seguridad y Entorno (Producción)**
+
+- Variables sensibles en Vercel (no en el repo):
+  - `ADMIN_PASSWORD` (usa un valor fuerte; puede ser hash `bcrypt` o texto plano)
+  - `SESSION_SECRET` (mín. 32 caracteres aleatorios)
+  - `BLOB_READ_WRITE_TOKEN` (inyectado automáticamente al conectar Blob; no loguear)
+  - KV sólo si se usa: `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN`
+- No exponer tokens ni contraseñas en frontend ni en logs
+- Revisar CSP/COEP/CORP en `helmet` para sólo permitir los orígenes necesarios
+- Mantener `rate limiting` activo para evitar abuso
+- Rotar `SESSION_SECRET` periódicamente y cambiar `ADMIN_PASSWORD` si se sospecha filtración
+- Tras cambios de entorno (env/Storage), redeploy en Vercel
+
 ### Pasos de Instalación
 
 1. **Clonar el repositorio**
