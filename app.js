@@ -1344,10 +1344,25 @@ app.delete('/api/albums/:id/images/:imageId', async (req, res) => {
 // PUT /api/albums/reorder - Reordenar álbumes
 app.put('/api/albums/reorder', express.json(), async (req, res) => {
   try {
-    const { albumsOrder } = req.body;
+    let { albumsOrder } = req.body || {};
+    // Tolerancia a distintos payloads o parsers
+    if (!Array.isArray(albumsOrder)) {
+      if (Array.isArray(req.body)) {
+        albumsOrder = req.body;
+      } else if (req.body && Array.isArray(req.body.order)) {
+        albumsOrder = req.body.order;
+      } else if (typeof req.body === 'string') {
+        try {
+          const parsed = JSON.parse(req.body);
+          if (Array.isArray(parsed)) albumsOrder = parsed;
+          if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.albumsOrder)) albumsOrder = parsed.albumsOrder;
+          if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.order)) albumsOrder = parsed.order;
+        } catch (_) {}
+      }
+    }
     
     if (!Array.isArray(albumsOrder)) {
-      return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes' });
+      return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes', debug: { bodyType: typeof req.body, body: req.body } });
     }
     
     const albums = await loadAlbums();
