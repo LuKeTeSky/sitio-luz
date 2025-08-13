@@ -26,6 +26,30 @@
   - [x] La funcionalidad es fluida y responsiva
 - **Notas**: Sistema implementado en v1.8.0 con efectos visuales y persistencia
 
+### **Issue #8: Persistencia de Álbumes falla en Producción (Vercel)**
+- **Descripción**: Al crear un álbum nuevo desde el admin en producción, los datos no persisten. Tras unos segundos, reinicios de funciones o nuevos deploys, los álbumes desaparecen porque actualmente en prod se guarda en memoria.
+- **Tipo**: Bug
+- **Componente**: Álbumes (Frontend `albums.js` / Backend `app.js` + Vercel KV)
+- **Estado**: 🔴 PENDIENTE
+- **Causa raíz (probable)**: En Vercel, `loadAlbums()`/`saveAlbums()` usan memoria en vez de almacenamiento persistente.
+- **Criterios de Aceptación**:
+  - [ ] Crear un álbum en admin lo persiste en **Vercel KV** (producción) y en archivo local (desarrollo)
+  - [ ] El listado de álbumes se obtiene desde KV en producción (fallback seguro si KV no disponible)
+  - [ ] Los álbumes creados sobreviven reinicios, escalado y nuevos deploys
+  - [ ] Admin y página pública ven el mismo conjunto de álbumes
+  - [ ] Logs sin exponer secretos; manejo de errores claro
+- **Tareas**:
+  - [ ] Implementar persistencia en `app.js` para `loadAlbums()`/`saveAlbums()` usando KV en Vercel
+  - [ ] Exponer endpoints REST: `GET /api/albums`, `POST /api/albums`, `PUT /api/albums/:id`, `DELETE /api/albums/:id`
+  - [ ] Actualizar `albums.js` y `albums-homepage.js` para consumir la API
+  - [ ] Agregar validaciones básicas (nombre requerido, longitudes)
+  - [ ] Tests manuales en producción y local
+- **Pasos de Prueba**:
+  1. Crear un álbum en admin (producción) y verificar respuesta 200 con ID
+  2. Refrescar admin y página pública: el álbum debe aparecer
+  3. Forzar nuevo deployment y/o esperar reinicio: el álbum debe seguir presente
+  4. Editar/eliminar el álbum y verificar persistencia
+
 ---
 
 ## 🟡 **PRIORIDAD MEDIA (Importante)**
@@ -88,12 +112,12 @@
 
 ## 📊 **ESTADO DEL BACKLOG**
 
-- **Total de Issues**: 7
+- **Total de Issues**: 8
 - **✅ Completados**: 2 (Issues #1 y #2)
 - **🟡 En Desarrollo**: 2 (Issues #3 y #4)
-- **🟢 Pendientes**: 3 (Issues #5, #6 y #7)
-- **🎯 Progreso**: 28.6% completado
-- **🚨 Críticos**: 0/2 (100% resueltos)
+- **🟢 Pendientes**: 4 (Issues #5, #6, #7 y #8)
+- **🎯 Progreso**: 25% completado
+- **🚨 Críticos**: 2/3 (66.7% resueltos)
 
 ## 🔄 **FLUJO DE TRABAJO**
 
@@ -117,6 +141,6 @@
 
 ---
 
-**Última actualización**: 10 de agosto de 2025  
+**Última actualización**: 13 de agosto de 2025  
 **Versión del backlog**: v1.0  
 **Responsable**: Equipo de desarrollo
