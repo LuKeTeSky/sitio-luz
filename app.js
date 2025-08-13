@@ -40,14 +40,8 @@ if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
 const app = express();
 
 // 🔍 Debug: Verificar variables de entorno
-console.log('🔍 Variables de entorno Vercel KV:');
-console.log('- VERCEL:', process.env.VERCEL);
-console.log('- NODE_ENV:', process.env.NODE_ENV);
-console.log('- REDIS_URL:', process.env.REDIS_URL ? '✅ Configurada' : '❌ No configurada');
-console.log('- KV inicializado:', kv ? '✅ Sí' : '❌ No');
-if (kv) {
-  console.log('- KV methods:', Object.getOwnPropertyNames(kv).filter(name => typeof kv[name] === 'function'));
-}
+  console.log('🔍 Entorno: VERCEL=', process.env.VERCEL, ' NODE_ENV=', process.env.NODE_ENV);
+  console.log('🔍 KV:', kv ? '✅ disponible' : '❌ no disponible');
 
 // 🛡️ Configuración de seguridad
 app.use(helmet({
@@ -490,6 +484,16 @@ app.get('/uploads/:filename', (req, res) => {
       return fs.createReadStream(filePath).pipe(res);
     }
     console.log(`[GET /uploads ${rid}] NOT_FOUND ${filePath}`);
+    // Fallback especial para hero para evitar 404s públicos
+    if (filename === 'luz-hero.jpg' || filename === 'luz-hero.png') {
+      const transparent1x1Png = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMB9pA1trEAAAAASUVORK5CYII=',
+        'base64'
+      );
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Length', transparent1x1Png.length);
+      return res.send(transparent1x1Png);
+    }
     return res.status(404).json({ error: 'Archivo no encontrado' });
   } else {
     // En local: servir desde public/uploads
