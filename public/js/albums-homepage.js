@@ -196,11 +196,13 @@ class AlbumsHomepageManager {
                         <i class="fas fa-images"></i>
                         <h3>Álbum vacío</h3>
                         <p>El álbum "${album.name}" no tiene fotos disponibles.</p>
-                        <button class="btn-show-all" onclick="homepageAlbums.showAllImages()">
-                            Ver todas las fotos
-                        </button>
                     </div>
                 `;
+                const btn = document.createElement('button');
+                btn.className = 'btn-show-all';
+                btn.innerHTML = 'Ver todas las fotos';
+                btn.addEventListener('click', () => this.showAllImages());
+                emptyMessage.querySelector('.empty-album-content').appendChild(btn);
                 galleryGrid.appendChild(emptyMessage);
             } else {
                 // Mostrar las imágenes del álbum directamente (sin encabezado duplicado)
@@ -225,11 +227,11 @@ class AlbumsHomepageManager {
             // Agregar botón "Ver todas las fotos" al final de la galería
             const showAllBtn = document.createElement('div');
             showAllBtn.className = 'show-all-button-container';
-            showAllBtn.innerHTML = `
-                <button class="btn-show-all-public" onclick="homepageAlbums.showAllImages()">
-                    <i class="fas fa-th"></i> Ver todas las fotos
-                </button>
-            `;
+            const showBtn = document.createElement('button');
+            showBtn.className = 'btn-show-all-public';
+            showBtn.innerHTML = '<i class="fas fa-th"></i> Ver todas las fotos';
+            showBtn.addEventListener('click', () => this.showAllImages());
+            showAllBtn.appendChild(showBtn);
             galleryGrid.appendChild(showAllBtn);
             
         } catch (error) {
