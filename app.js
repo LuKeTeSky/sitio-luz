@@ -866,19 +866,11 @@ app.post('/api/hero', express.json(), (req, res) => {
 app.delete('/api/images/:filename', async (req, res) => {
   try {
     const filename = decodeURIComponent(req.params.filename);
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
     const filePath = path.join(__dirname, 'public/uploads', filename);
     
     console.log(`🗑️ Intentando eliminar: ${filename}`);
     console.log(`📁 Ruta del archivo: ${filePath}`);
-    
-    // Verificar que el archivo existe
-    if (!fs.existsSync(filePath)) {
-      console.log(`❌ Archivo no encontrado: ${filePath}`);
-      return res.status(404).json({ error: 'Archivo no encontrado' });
-    }
-    
-    // En Vercel, no se pueden eliminar archivos físicos (sistema de solo lectura)
-    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
     
     if (isVercel) {
       console.log(`⚠️ En Vercel: No se puede eliminar archivo físico ${filename}`);
@@ -898,6 +890,12 @@ app.delete('/api/images/:filename', async (req, res) => {
         console.warn(`Blob delete error for ${filename}:`, blobErr.message);
       }
     } else {
+      // Entorno local: eliminar archivo físico
+      // Verificar que el archivo existe
+      if (!fs.existsSync(filePath)) {
+        console.log(`❌ Archivo no encontrado: ${filePath}`);
+        return res.status(404).json({ error: 'Archivo no encontrado' });
+      }
       // Verificar permisos de escritura (solo en desarrollo)
       try {
         fs.accessSync(filePath, fs.constants.W_OK);
