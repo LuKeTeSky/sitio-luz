@@ -235,7 +235,7 @@ class AlbumsManager {
             // Filtrar solo las imágenes del álbum seleccionado que realmente existen
             const albumImages = allImages.filter(image => 
                 album.images && album.images.includes(image.filename) && image.filename
-            );
+            ).map(img => ({ ...img, url: img.url || (img.filename ? undefined : undefined) }));
             
             // Verificar si hay imágenes huérfanas (referencias en el álbum que ya no existen)
             const existingImageFilenames = allImages.map(img => img.filename);

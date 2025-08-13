@@ -693,7 +693,7 @@ app.get('/api/images', async (req, res) => {
         uploadedAt: it.uploadedAt || new Date().toISOString()
       })).sort((a,b)=> new Date(b.uploadedAt) - new Date(a.uploadedAt));
 
-      // Fallback: si KV está vacío, listar directo desde Blob
+      // Fallback 1: si KV está vacío, listar directo desde Blob
       if ((!images || images.length === 0) && typeof blobList === 'function') {
         try {
           const { blobs } = await blobList({ prefix: 'uploads/' });
@@ -706,6 +706,41 @@ app.get('/api/images', async (req, res) => {
           })).sort((a,b)=> new Date(b.uploadedAt) - new Date(a.uploadedAt));
         } catch (e) {
           console.error('Blob list fallback error:', e.message);
+        }
+      }
+
+      // Fallback 2: si hay registros en KV sin url, completar desde Blob y opcionalmente persistir
+      const needUrl = (images || []).filter(img => !img.url && img.filename);
+      if (needUrl.length > 0 && typeof blobList === 'function') {
+        try {
+          const { blobs } = await blobList({ prefix: 'uploads/' });
+          const byFilename = new Map((blobs || []).map(b => [String(b.pathname || '').split('/').pop(), b.url]));
+          let updated = false;
+          images = images.map(img => {
+            if (!img.url && img.filename && byFilename.has(img.filename)) {
+              updated = true;
+              return { ...img, url: byFilename.get(img.filename) };
+            }
+            return img;
+          });
+          // Persistir de vuelta en KV para futuras respuestas (best-effort)
+          if (updated && kv && typeof kv.set === 'function') {
+            try {
+              const kvPayload = (await kv.get('images')) || [];
+              const map = new Map(kvPayload.map(it => [it.filename, it]));
+              images.forEach(img => {
+                const entry = map.get(img.filename) || { filename: img.filename };
+                if (!entry.url && img.url) entry.url = img.url;
+                if (!entry.uploadedAt && img.uploadedAt) entry.uploadedAt = img.uploadedAt;
+                map.set(img.filename, entry);
+              });
+              await kv.set('images', Array.from(map.values()));
+            } catch (persistErr) {
+              console.warn('KV persist fallback skipped:', persistErr.message);
+            }
+          }
+        } catch (e) {
+          console.error('Blob lookup to complete missing URLs failed:', e.message);
         }
       }
 
