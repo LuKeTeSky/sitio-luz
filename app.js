@@ -245,6 +245,13 @@ app.use((req, res, next) => {
   
   // Rutas que requieren autenticación (solo /admin y /upload)
   if (!req.session.authenticated) {
+    // Para peticiones API/XHR o no-GET, devolver JSON 401 en vez de redirigir
+    const acceptsJson = req.headers.accept && req.headers.accept.includes('application/json');
+    const isApiPath = req.path.startsWith('/api') || req.path.startsWith('/upload');
+    const isAjax = req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest';
+    if (acceptsJson || isApiPath || req.method !== 'GET' || isAjax) {
+      return res.status(401).json({ error: 'No autenticado' });
+    }
     return res.redirect('/login');
   }
   next();
