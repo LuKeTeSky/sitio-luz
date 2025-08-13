@@ -704,6 +704,14 @@ app.get('/api/images', async (req, res) => {
         }
       }
 
+      // Filtrar imágenes marcadas para eliminación
+      try {
+        const deletedImages = await getDeletedImages();
+        if (Array.isArray(deletedImages) && deletedImages.length > 0) {
+          images = images.filter(img => !deletedImages.includes(img.filename));
+        }
+      } catch (_) {}
+
       return res.json(images || []);
     } else {
       // En local: leer desde public/uploads
@@ -874,11 +882,21 @@ app.delete('/api/images/:filename', async (req, res) => {
     
     if (isVercel) {
       console.log(`⚠️ En Vercel: No se puede eliminar archivo físico ${filename}`);
-      console.log(`📝 Marcando imagen para eliminación en Vercel KV`);
-      
-      // En Vercel, usar Vercel KV para persistencia
+      console.log(`📝 Marcando imagen para eliminación en Vercel KV y opcionalmente borrando del Blob`);
+
+      // Marcar en KV
       const deletedImages = await addDeletedImage(filename);
       console.log(`📋 Total de imágenes marcadas: ${deletedImages.length}`);
+
+      // Intentar eliminación en Blob si está disponible (best-effort)
+      try {
+        if (blobDel && typeof blobDel === 'function') {
+          await blobDel(`uploads/${filename}`);
+          console.log(`🗑️ Eliminada en Blob: uploads/${filename}`);
+        }
+      } catch (blobErr) {
+        console.warn(`Blob delete error for ${filename}:`, blobErr.message);
+      }
     } else {
       // Verificar permisos de escritura (solo en desarrollo)
       try {
@@ -926,11 +944,10 @@ app.delete('/api/images/:filename', async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: isVercel ? 'Foto marcada para eliminación (persistente en Vercel KV)' : 'Foto eliminada exitosamente',
+      message: isVercel ? 'Foto eliminada (Blob/KV)' : 'Foto eliminada exitosamente',
       filename: filename,
       albumsUpdated: true,
-      isVercel: isVercel,
-      deletedImagesCount: isVercel ? deletedImages.length : 0
+      isVercel: isVercel
     });
     
   } catch (error) {
