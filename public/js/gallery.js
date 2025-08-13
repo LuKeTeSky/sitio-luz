@@ -1038,7 +1038,7 @@ function toggleCoverImage(filename, index) {
   }
   
   localStorage.setItem('coverImages', JSON.stringify(coverImages));
-  updateCoverButtons();
+  setTimeout(() => updateCoverButtons(), 0);
   updateCoverSection();
 }
 
@@ -1048,7 +1048,8 @@ function updateCoverButtons() {
   const coverButtons = document.querySelectorAll('.cover-btn, .lightbox-action-btn.cover-btn');
   
   coverButtons.forEach((btn, index) => {
-    const imageData = allImages[index];
+    const imageData = allImages[index] || allImages[index % (allImages.length || 1)];
+    if (!imageData) return; // Guardar si no hay correspondencia
     if (coverImages.includes(imageData.filename)) {
       btn.classList.add('active');
       btn.innerHTML = '<i class="fas fa-star"></i>';
@@ -1124,8 +1125,9 @@ async function updateCoverSection() {
   const firstImageData = allImages.find(img => img.filename === allCoverImages[0]);
   if (firstImageData && coverSection) {
     coverSection.classList.add('has-cover-image');
-    // Crear un fondo sutil con la primera imagen
-    coverSection.style.backgroundImage = `linear-gradient(135deg, rgba(26, 26, 26, 0.8) 0%, rgba(51, 51, 51, 0.8) 100%), url('/uploads/${firstImageData.filename}')`;
+    // Crear un fondo sutil con la primera imagen (usar URL pública si existe)
+    const bgSrc = firstImageData.url ? firstImageData.url : `/uploads/${firstImageData.filename}`;
+    coverSection.style.backgroundImage = `linear-gradient(135deg, rgba(26, 26, 26, 0.8) 0%, rgba(51, 51, 51, 0.8) 100%), url('${bgSrc}')`;
     coverSection.style.backgroundSize = 'cover';
     coverSection.style.backgroundPosition = 'center';
     coverSection.style.backgroundAttachment = 'fixed';
