@@ -1360,67 +1360,31 @@ function setupUploadForm() {
     submitBtn.disabled = true;
     
     try {
-      const response = await fetch('/upload', {
-        method: 'POST',
-        body: formData
+      // Subir en lotes para evitar 413 (límite de payload de Vercel)
+      const batchesResult = await uploadFilesInBatches(Array.from(selectedFiles), (done, total) => {
+        const uploadingText = `<i class="fas fa-spinner fa-spin"></i> Subiendo lote ${done}/${total}...`;
+        submitBtn.innerHTML = uploadingText;
       });
-      
-      if (response.ok) {
-        const result = await response.json();
-        
-        // Mostrar mensaje de éxito personalizado
-        showNotification(result.message || '¡Fotos subidas exitosamente!', 'success');
-        
-        // Si hay un álbum seleccionado, agregar las fotos automáticamente
-        await handleAutoAddToSelectedAlbum(result.files);
-        
-        // Recargar galería solo una vez después del upload
-        // Usar un delay más corto y evitar loops infinitos
-        setTimeout(() => {
-          if (!isLoadingGallery) {
-            loadGalleryImages();
-          }
-        }, 500);
-        
-        // Resetear formulario
-        form.reset();
-        fileLabel.innerHTML = `
-          <i class="fas fa-images"></i>
-          <span>Seleccionar imágenes</span>
-        `;
-        fileLabel.style.borderColor = '#d4af37';
-        fileLabel.style.background = 'rgba(212, 175, 55, 0.05)';
-        
-      } else {
-        const errorData = await response.json();
-        
-        // Mostrar errores específicos según el código
-        let errorMessage = errorData.error || 'Error al subir las imágenes';
-        let errorType = 'error';
-        
-        switch (errorData.code) {
-          case 'FILE_TOO_LARGE':
-            errorMessage = '📁 ' + errorData.error;
-            errorType = 'warning';
-            break;
-          case 'TOO_MANY_FILES':
-            errorMessage = '📊 ' + errorData.error;
-            errorType = 'warning';
-            break;
-          case 'INVALID_FILE_TYPE':
-            errorMessage = '📷 ' + errorData.error;
-            errorType = 'warning';
-            break;
-          case 'NO_FILES':
-            errorMessage = '❌ ' + errorData.error;
-            break;
-          default:
-            errorMessage = '⚠️ ' + errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
-      
+
+      // Consolidar archivos subidos
+      const uploadedAll = batchesResult.flatMap(r => (r && r.files) ? r.files : []);
+      showNotification(`Subida completada: ${uploadedAll.length} foto(s)`, 'success');
+
+      // Auto-agregar al álbum seleccionado si corresponde
+      await handleAutoAddToSelectedAlbum(uploadedAll);
+
+      // Recargar galería
+      setTimeout(() => { if (!isLoadingGallery) loadGalleryImages(); }, 500);
+
+      // Resetear formulario
+      form.reset();
+      fileLabel.innerHTML = `
+        <i class=\"fas fa-images\"></i>
+        <span>Seleccionar imágenes</span>
+      `;
+      fileLabel.style.borderColor = '#d4af37';
+      fileLabel.style.background = 'rgba(212, 175, 55, 0.05)';
+
     } catch (error) {
       console.error('Error:', error);
       showNotification(error.message || 'Error al subir las imágenes', 'error');
@@ -1429,6 +1393,49 @@ function setupUploadForm() {
       submitBtn.disabled = false;
     }
   });
+}
+
+// Subir archivos en lotes pequeños para evitar 413 (límite de body en serverless)
+async function uploadFilesInBatches(files, onProgress) {
+  const MAX_BATCH_BYTES = 4 * 1024 * 1024; // ~4MB por request
+  const MAX_FILES_PER_BATCH = 5; // seguridad adicional
+  const batches = [];
+
+  let i = 0;
+  while (i < files.length) {
+    let batch = [];
+    let size = 0;
+    while (i < files.length) {
+      const f = files[i];
+      const fitsCount = batch.length < MAX_FILES_PER_BATCH;
+      const fitsSize = (size + f.size) <= MAX_BATCH_BYTES || batch.length === 0; // si no entra, enviar solo ese
+      if (fitsCount && fitsSize) {
+        batch.push(f);
+        size += f.size;
+        i++;
+      } else {
+        break;
+      }
+    }
+    batches.push(batch);
+  }
+
+  const results = [];
+  for (let b = 0; b < batches.length; b++) {
+    const form = new FormData();
+    batches[b].forEach(file => form.append('photo', file));
+    if (onProgress) onProgress(b + 1, batches.length);
+
+    const resp = await fetch('/upload', { method: 'POST', body: form });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(`Upload falló (HTTP ${resp.status}) ${text?.slice(0,120)}`);
+    }
+    let json = {};
+    try { json = await resp.json(); } catch (_) { json = { success: true, files: [] }; }
+    results.push(json);
+  }
+  return results;
 }
 
 // Función para mostrar notificaciones
