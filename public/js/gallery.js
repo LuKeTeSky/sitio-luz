@@ -1212,8 +1212,8 @@ function createCoverItem(imageData, isHeroImage = false) {
 
 // Función para validar archivos seleccionados
 function validateFiles(files) {
-  const maxSize = 5 * 1024 * 1024; // 5MB
-  const maxFiles = 10;
+  const maxSize = 30 * 1024 * 1024; // 30MB
+  const maxFiles = 15;
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   const allowedExtensions = /\.(jpg|jpeg|png|gif|webp)$/i;
   

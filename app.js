@@ -107,8 +107,8 @@ const galleryLimiter = rateLimit({
 const upload = multer({
   dest: process.env.VERCEL === '1' ? '/tmp/' : path.join(__dirname, 'public/uploads'),
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // 5MB por archivo
-    files: parseInt(process.env.MAX_FILES) || 10 // Máximo 10 archivos simultáneos
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 30 * 1024 * 1024, // 30MB por archivo
+    files: parseInt(process.env.MAX_FILES) || 15 // Máximo 15 archivos simultáneos
   },
   fileFilter: (req, file, cb) => {
     // Validar tipo de archivo
@@ -539,7 +539,7 @@ app.post('/upload', (req, res) => {
   const rid = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
   console.log(`[POST /upload ${rid}] START ip=${ip}`);
-  upload.array('photo', 10)(req, res, async (err) => {
+  upload.array('photo', parseInt(process.env.MAX_FILES) || 15)(req, res, async (err) => {
     // Manejar errores de multer/validación
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
