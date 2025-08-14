@@ -71,8 +71,9 @@ class AlbumsHomepageManager {
     }
 
     createAlbumCard(album) {
-        const previewImages = this.getPreviewImages(album.images);
-        const imageCount = album.images ? album.images.length : 0;
+        const safeImages = Array.isArray(album.images) ? this.filterExistingFilenames(album.images) : [];
+        const previewImages = this.getPreviewImages(safeImages);
+        const imageCount = safeImages.length;
         
         return `
             <div class="album-card" data-album-id="${album.id}">
@@ -130,8 +131,15 @@ class AlbumsHomepageManager {
 
     getPreviewImages(images) {
         if (!images || images.length === 0) return [];
+        // Filtrar imágenes huérfanas (no existen en /api/images)
+        const existing = this.filterExistingFilenames(images);
         // Tomar las primeras 4 imágenes para el preview
-        return images.slice(0, 4);
+        return existing.slice(0, 4);
+    }
+
+    filterExistingFilenames(filenames = []) {
+        if (!Array.isArray(filenames) || this.imagesIndex.size === 0) return [];
+        return filenames.filter(name => this.imagesIndex.has(name));
     }
 
     addEventListeners() {
