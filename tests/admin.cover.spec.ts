@@ -1,9 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 test.describe('Admin - Portada (cover)', () => {
   test('Marcar portada persiste', async ({ page }) => {
+    if (!ADMIN_PASSWORD) {
+      test.skip(true, 'ADMIN_PASSWORD no configurado en CI/entorno');
+    }
     test.slow();
     // Login
     await page.goto('/login');
