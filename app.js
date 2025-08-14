@@ -833,6 +833,9 @@ let heroConfig = {
   subtitle: 'Portfolio de Moda & Fotografía'
 };
 
+// 💾 Portadas (cover images) en memoria (fallback para dev/prod si KV no está)
+let coverImagesMemory = [];
+
 // 🎯 Helper: obtener URL pública de imagen por filename (Vercel Blob/KV)
 async function getPublicUrlForFilename(filename) {
   try {
@@ -927,6 +930,87 @@ app.post('/api/hero', express.json(), async (req, res) => {
     
   } catch (error) {
     console.error('Error guardando configuración del hero:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ====== Portadas (Cover Images) ======
+async function getCoverImagesKV() {
+  try {
+    if (kv && typeof kv.get === 'function') {
+      const list = (await kv.get('coverImages')) || [];
+      return Array.isArray(list) ? list : [];
+    }
+  } catch (e) {
+    console.warn('KV get coverImages error:', e.message);
+  }
+  return null; // indica que no hay KV
+}
+
+async function setCoverImagesKV(list) {
+  try {
+    if (kv && typeof kv.set === 'function') {
+      await kv.set('coverImages', Array.isArray(list) ? list : []);
+      return true;
+    }
+  } catch (e) {
+    console.warn('KV set coverImages error:', e.message);
+  }
+  return false;
+}
+
+// GET /api/cover - obtener lista de filenames marcados como portada
+app.get('/api/cover', async (req, res) => {
+  try {
+    const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    if (isProd) {
+      const kvList = await getCoverImagesKV();
+      if (kvList) return res.json({ coverImages: kvList });
+    }
+    // Fallback memoria
+    return res.json({ coverImages: coverImagesMemory });
+  } catch (e) {
+    console.error('GET /api/cover error:', e);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/cover - marcar/desmarcar portada o reemplazar lista completa
+// Body: { filename, marked }  ó  { coverImages: [] }
+app.post('/api/cover', express.json(), async (req, res) => {
+  try {
+    const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    let current = [];
+    if (isProd) {
+      const kvList = await getCoverImagesKV();
+      current = Array.isArray(kvList) ? kvList : coverImagesMemory;
+    } else {
+      current = coverImagesMemory;
+    }
+
+    if (Array.isArray(req.body?.coverImages)) {
+      current = req.body.coverImages.filter(Boolean);
+    } else if (req.body && typeof req.body.filename === 'string') {
+      const fn = req.body.filename;
+      const marked = !!req.body.marked;
+      const idx = current.indexOf(fn);
+      if (marked && idx === -1) current.push(fn);
+      if (!marked && idx !== -1) current.splice(idx, 1);
+    } else {
+      return res.status(400).json({ error: 'Body inválido' });
+    }
+
+    // Persistir según entorno
+    if (isProd) {
+      const ok = await setCoverImagesKV(current);
+      if (!ok) coverImagesMemory = current;
+    } else {
+      coverImagesMemory = current;
+    }
+
+    res.json({ success: true, coverImages: current });
+  } catch (e) {
+    console.error('POST /api/cover error:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

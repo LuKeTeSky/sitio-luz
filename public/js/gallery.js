@@ -1044,8 +1044,20 @@ function toggleCoverImage(filename, index) {
   }
   
   localStorage.setItem('coverImages', JSON.stringify(coverImages));
+  // Persistir en servidor (KV) cuando esté en producción
+  persistCoverImagesServer(coverImages).catch(() => {});
   setTimeout(() => updateCoverButtons(), 0);
   updateCoverSection();
+}
+
+async function persistCoverImagesServer(list) {
+  try {
+    await fetch('/api/cover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coverImages: list })
+    });
+  } catch (_) {}
 }
 
 // Función para actualizar botones de portada
@@ -1092,7 +1104,18 @@ async function updateCoverSection() {
   if (!coverGrid || !coverEmpty) return;
   
   // Obtener tanto las imágenes de cover como la imagen del hero actual
-  const coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
+  // Primero intentar desde servidor (persistencia KV), fallback a localStorage
+  let coverImages = [];
+  try {
+    const r = await fetch('/api/cover');
+    if (r.ok) {
+      const j = await r.json();
+      if (Array.isArray(j.coverImages)) coverImages = j.coverImages;
+    }
+  } catch (_) {}
+  if (!Array.isArray(coverImages) || coverImages.length === 0) {
+    coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
+  }
   let currentHeroImage = null;
   
   try {
