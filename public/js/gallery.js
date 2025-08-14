@@ -442,7 +442,12 @@ async function loadGalleryImages() {
   }
   
   if (galleryLoadAttempts >= MAX_LOAD_ATTEMPTS) {
-    console.warn('⚠️ Máximo de intentos de carga alcanzado, saltando loadGalleryImages');
+    console.warn('⚠️ Máximo de intentos de carga alcanzado, reintentando suave en 2s...');
+    setTimeout(() => {
+      // Permitir otro intento controlado
+      galleryLoadAttempts = Math.max(0, galleryLoadAttempts - 1);
+      if (!isLoadingGallery) loadGalleryImages();
+    }, 2000);
     return;
   }
   
@@ -518,6 +523,7 @@ async function loadGalleryImages() {
     
     // Reset de protección después de carga exitosa
     isLoadingGallery = false;
+    galleryLoadAttempts = 0; // ← importante: permitir futuras recargas después de una exitosa
     console.log('✅ Galería cargada exitosamente');
     
   } catch (error) {
