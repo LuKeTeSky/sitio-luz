@@ -3,6 +3,23 @@
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
 ## 🎯 **Novedades Principales v1.15.0**
+## 🎯 **Novedades Principales v1.16.0**
+
+### 🗂️ Persistencia de Portadas (Cover) en Producción
+- Endpoints nuevos: `GET /api/cover` y `POST /api/cover`.
+- Portadas persistidas en Upstash KV (fallback en memoria/localStorage en dev).
+- Frontend sincroniza contra servidor; ya no desaparecen tras recargas/subidas.
+
+### 🧪 QA E2E con Playwright (CI)
+- Configuración Playwright (`playwright.config.ts`) con baseURL a producción.
+- Tests smoke (Home, Galería) y persistencia de Portada.
+- GitHub Actions `E2E - Playwright` ejecuta en PRs y push a main; sube `playwright-report` como artifact.
+
+### 🔧 Varias
+- Límite de upload ajustado: 30MB por imagen y 15 archivos por lote.
+- Subida en lotes (~4MB/request) para evitar 413 en Vercel.
+- Selectores de pruebas robustecidos.
+
 
 ### 🗂️ Imágenes en Vercel Blob + URLs públicas
 - Almacenamiento persistente de imágenes con `@vercel/blob` (CDN y URLs públicas `*.vercel-storage.com`).
@@ -771,11 +788,11 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.10.0** | 09 Ago 2025 | ✅ Stable | **Bug crítico de eliminación CORREGIDO + Eliminación directa del DOM** |
 | **v1.9.0** | 09 Ago 2025 | ✅ Stable | **Persistencia de eliminaciones con Vercel KV + Sistema robusto** |
 
-#### 🔄 **Versión Actual: v1.15.0**
+#### 🔄 **Versión Actual: v1.16.0**
 - **Fecha de lanzamiento**: 12 de agosto de 2025
 - **Características principales**: Vercel Blob para almacenamiento persistente, CSP/COEP/CORP ajustado, frontend usa URLs públicas de Blob
 - **Estado**: Estable y en producción
-- **Próxima versión**: v1.16.0 (en desarrollo)
+- **Próxima versión**: v1.17.0 (en desarrollo)
 
 #### 📋 **Cómo Verificar Tu Versión**
 ```zsh
