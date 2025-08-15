@@ -13,6 +13,8 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 ### 🧪 QA E2E con Playwright (CI)
 - Configuración Playwright (`playwright.config.ts`) con baseURL a producción.
 - Tests smoke (Home, Galería) y persistencia de Portada.
+- Helper `tests/utils/auth.ts` para login por API en pruebas Admin.
+- Nuevos tests Admin (álbumes) usando login por API (más estable en CI).
 - GitHub Actions `E2E - Playwright` ejecuta en PRs y push a main; sube `playwright-report` como artifact.
 
 ### 🔧 Varias
