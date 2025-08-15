@@ -8,11 +8,12 @@ test.describe('Admin - Portada (cover)', () => {
       test.skip(true, 'ADMIN_PASSWORD no configurado en CI/entorno');
     }
     test.slow();
-    // Login
-    await page.goto('/login');
-    const passField = page.getByLabel(/contraseña|password/i).or(page.locator('input[type="password"]'));
-    await passField.first().fill(ADMIN_PASSWORD);
-    await page.locator('form button[type="submit"]').first().click();
+    // Login por API (más robusto en CI): crea la sesión y cookie
+    const resp = await page.request.post('/login', {
+      form: { password: ADMIN_PASSWORD }
+    });
+    expect(resp.ok()).toBeTruthy();
+    await page.goto('/admin');
     await expect(page).toHaveURL(/admin/);
 
     // Marcar primera imagen como portada
