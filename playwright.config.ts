@@ -6,6 +6,10 @@ export default defineConfig({
 	testDir: './tests',
 	fullyParallel: true,
 	retries: process.env.CI ? 1 : 0,
+	reporter: [
+		['html', { open: 'never', outputFolder: 'playwright-report' }],
+		['github']
+	],
 	use: {
 		baseURL: BASE_URL,
 		headless: true,
