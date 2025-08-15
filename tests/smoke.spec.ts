@@ -3,8 +3,9 @@ import { test, expect } from '@playwright/test';
 test.describe('Sitio LUZ - smoke', () => {
   test('Home carga y muestra navbar', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('link', { name: 'Álbumes' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Galería' })).toBeVisible();
+    const nav = page.getByRole('navigation');
+    await expect(nav.getByRole('link', { name: 'Álbumes', exact: true })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Galería', exact: true })).toBeVisible();
   });
 
   test('Galería pública renderiza imágenes', async ({ page }) => {
@@ -15,8 +16,9 @@ test.describe('Sitio LUZ - smoke', () => {
 
   test('Admin login rechaza credenciales vacías', async ({ page }) => {
     await page.goto('/login');
-    await page.getByRole('button', { name: /ingresar|login|acceder/i }).click();
-    // Debe seguir en /login o devolver 401 JSON si fuera XHR
+    // Si no hay label, asegurar por tipo
+    await expect(page.locator('form')).toBeVisible();
+    await page.locator('form button[type="submit"]').first().click({ timeout: 15000 });
     await expect(page).toHaveURL(/login/);
   });
 });

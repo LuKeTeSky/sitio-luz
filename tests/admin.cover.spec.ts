@@ -10,8 +10,9 @@ test.describe('Admin - Portada (cover)', () => {
     test.slow();
     // Login
     await page.goto('/login');
-    await page.getByLabel(/contraseña|password/i).fill(ADMIN_PASSWORD);
-    await page.getByRole('button', { name: /ingresar|acceder|login/i }).click();
+    const passField = page.getByLabel(/contraseña|password/i).or(page.locator('input[type="password"]'));
+    await passField.first().fill(ADMIN_PASSWORD);
+    await page.locator('form button[type="submit"]').first().click();
     await expect(page).toHaveURL(/admin/);
 
     // Marcar primera imagen como portada
