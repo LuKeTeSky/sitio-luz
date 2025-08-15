@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.production
+.env.example
 
 # 📦 Dependencias
 node_modules/
@@ -33,3 +34,6 @@ hero-config.json
 # 🚀 Archivos de deployment
 .vercel
 .netlify
+.env*.local
+playwright-report/
+test-results/
