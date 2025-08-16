@@ -259,21 +259,31 @@
     <script src="/js/albums.js"></script>
     <script>
     (function(){
-      let chartLoaded=false; let chartInstance=null;
-      async function ensureChart(){
-        if(chartLoaded) return;
-        await new Promise((resolve)=>{
-          const s=document.createElement('script');
-          s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js';
-          s.onload=()=>resolve();
-          document.body.appendChild(s);
+      function drawLineChart(canvas, labels, values){
+        const ctx=canvas.getContext('2d');
+        const W=canvas.width=canvas.clientWidth; const H=canvas.height=160;
+        const pad=30; const innerW=W-pad*2; const innerH=H-pad*2;
+        const max=Math.max(1, ...values);
+        const min=0;
+        // fondo
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+        // ejes
+        ctx.strokeStyle='#eee'; ctx.lineWidth=1;
+        for(let i=0;i<=4;i++){ const y=pad + (innerH*i/4); ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke(); }
+        // línea
+        ctx.strokeStyle='#d4af37'; ctx.lineWidth=2; ctx.beginPath();
+        values.forEach((v,idx)=>{
+          const x=pad + innerW*(idx/(Math.max(values.length-1,1)));
+          const y=pad + innerH*(1 - (v-min)/(max-min));
+          if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
         });
-        chartLoaded=true;
+        ctx.stroke();
+        // relleno suave
+        ctx.fillStyle='rgba(212,175,55,0.12)'; ctx.lineTo(W-pad, H-pad); ctx.lineTo(pad, H-pad); ctx.closePath(); ctx.fill();
       }
       async function loadMetrics(){
         try{
-          await ensureChart();
-          // registrar una vista para tener datos inmediatos
           try{ await fetch('/api/metrics/event',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'page_view'})}); }catch(_){ }
           const res=await fetch('/api/metrics/summary?days=7',{headers:{'accept':'application/json'}});
           if(!res.ok) throw new Error('HTTP '+res.status);
@@ -290,9 +300,7 @@
           };
           cards.appendChild(card('Visitas (7 días)', totalVisits));
           cards.appendChild(card('Eventos (7 días)', totalEvents));
-          const ctx=document.getElementById('visitsChart').getContext('2d');
-          if(chartInstance) chartInstance.destroy();
-          chartInstance=new Chart(ctx,{type:'line',data:{labels:data.labels||[],datasets:[{label:'Visitas',data:data.visits||[],borderColor:'#d4af37',backgroundColor:'rgba(212,175,55,0.15)',tension:0.3,fill:true}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+          drawLineChart(document.getElementById('visitsChart'), data.labels||[], data.visits||[]);
         }catch(e){console.warn('loadMetrics error',e);}
       }
       const metricsSection=document.getElementById('metrics');
