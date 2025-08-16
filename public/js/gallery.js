@@ -1194,6 +1194,7 @@ async function updateCoverSection() {
 function createCoverItem(imageData, isHeroImage = false) {
   const item = document.createElement('div');
   item.className = `cover-item ${isHeroImage ? 'hero-image' : ''}`;
+  item.setAttribute('data-filename', imageData.filename || '');
   
   const img = document.createElement('img');
   

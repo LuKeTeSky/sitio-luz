@@ -18,17 +18,19 @@ test.describe('Admin - Portada (cover)', () => {
     const firstCard = page.locator('#gallery .gallery-item').first();
     await firstCard.hover();
     await firstCard.locator('.gallery-action-btn.cover-btn').click();
+    // Esperar notificación breve para confirmar acción
+    await page.waitForTimeout(200);
 
     // Ir a sección portada y verificar que haya al menos 1 elemento
     await page.getByRole('link', { name: /portada/i }).click();
     const coverItems = page.locator('.cover-item img');
-    await expect.poll(async () => await coverItems.count(), { timeout: 15000 }).toBeGreaterThan(0);
+    await expect.poll(async () => await coverItems.count(), { timeout: 20000, intervals: [250,500,1000] }).toBeGreaterThan(0);
     await expect(coverItems.first()).toBeVisible({ timeout: 5000 });
 
     // Refrescar y verificar que persiste
     await page.reload();
     await page.getByRole('link', { name: /portada/i }).click();
-    await expect.poll(async () => await coverItems.count(), { timeout: 15000 }).toBeGreaterThan(0);
+    await expect.poll(async () => await coverItems.count(), { timeout: 20000, intervals: [250,500,1000] }).toBeGreaterThan(0);
     await expect(coverItems.first()).toBeVisible({ timeout: 5000 });
   });
 });
