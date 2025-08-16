@@ -171,6 +171,7 @@
                     <div class="chart-wrap" style="margin-top:16px">
                         <canvas id="visitsChart" height="120"></canvas>
                     </div>
+                    <div id="metrics-breakdown" style="margin-top:12px;font-size:13px;color:#444"></div>
                 </div>
             </div>
         </section>
@@ -291,7 +292,8 @@
           const cards=document.getElementById('metric-cards');
           cards.innerHTML='';
           const totalVisits=(data.visits||[]).reduce((a,b)=>a+b,0);
-          const totalEvents=Object.values(data.eventsTotals||{}).reduce((a,b)=>a+b,0);
+          const eventsTotals=(data.eventsTotals||{});
+          const totalEvents=Object.values(eventsTotals).reduce((a,b)=>a+b,0);
           const card= (title, value)=>{
             const el=document.createElement('div');
             el.style.padding='12px';el.style.border='1px solid #eee';el.style.borderRadius='8px';
@@ -300,7 +302,18 @@
           };
           cards.appendChild(card('Visitas (7 días)', totalVisits));
           cards.appendChild(card('Eventos (7 días)', totalEvents));
+          // tarjetas específicas
+          const uploads = eventsTotals['upload']||0;
+          const apiErrors = eventsTotals['api_error']||0;
+          cards.appendChild(card('Uploads (7 días)', uploads));
+          cards.appendChild(card('Errores API (7 días)', apiErrors));
           drawLineChart(document.getElementById('visitsChart'), data.labels||[], data.visits||[]);
+          // breakdown
+          const breakdown=document.getElementById('metrics-breakdown');
+          const entries=Object.entries(eventsTotals).sort((a,b)=>b[1]-a[1]);
+          if(entries.length){
+            breakdown.innerHTML = 'Desglose (7 días): ' + entries.map(([k,v])=>`${k}: ${v}`).join(' · ');
+          } else { breakdown.innerHTML=''; }
         }catch(e){console.warn('loadMetrics error',e);}
       }
       const metricsSection=document.getElementById('metrics');

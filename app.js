@@ -301,6 +301,18 @@ async function saveDailyMetrics(dateKey, data) {
   return false;
 }
 
+async function incrementMetric(type) {
+  try {
+    const key = getDateKey(0);
+    const daily = await getDailyMetrics(key);
+    daily.events = daily.events || {};
+    daily.events[type] = (daily.events[type] || 0) + 1;
+    await saveDailyMetrics(key, daily);
+  } catch (e) {
+    console.warn('incrementMetric error:', e.message);
+  }
+}
+
 // POST /api/metrics/event  Body: { type, label?, metadata? }
 app.post('/api/metrics/event', express.json(), async (req, res) => {
   try {
@@ -1674,6 +1686,8 @@ app.get('/api/gallery/order', galleryLimiter, (req, res) => {
 // 🚨 Manejo global de errores
 app.use((err, req, res, next) => {
   console.error('Error global:', err.stack);
+  // métrica de error API
+  incrementMetric('api_error').catch(()=>{});
   
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
