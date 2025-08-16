@@ -40,6 +40,27 @@ class AlbumsManager {
 
         if (albumForm) {
             albumForm.addEventListener('submit', (e) => this.handleAlbumSubmit(e));
+            // slug live validation
+            const slugInput = document.getElementById('album-slug');
+            if (slugInput) {
+                const hint = document.getElementById('slug-hint');
+                const updateHint = () => {
+                    const raw = slugInput.value || document.getElementById('album-name')?.value || '';
+                    const slug = (raw || '')
+                      .normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()
+                      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80);
+                    const exists = this.albums.some(a => (a.slug||'')===slug && (!this.isEditing || a.id!==this.editingAlbumId));
+                    if (hint) {
+                        hint.style.display = 'block';
+                        hint.textContent = exists ? `Slug en uso: ${slug} (se ajustará automáticamente)` : `Slug: ${slug}`;
+                        hint.style.color = exists ? '#b00020' : '#666';
+                    }
+                };
+                slugInput.addEventListener('input', updateHint);
+                const nameInput = document.getElementById('album-name');
+                if (nameInput) nameInput.addEventListener('input', updateHint);
+                setTimeout(updateHint,0);
+            }
         }
 
         // Guardar edición con Enter desde inputs

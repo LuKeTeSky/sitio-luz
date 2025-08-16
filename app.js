@@ -585,6 +585,12 @@ app.get('/gallery', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'gallery-public.html'));
 });
 
+// 🖼️ Página pública para un álbum específico por slug
+app.get('/album/:slug', (req, res) => {
+  // Reutilizamos la misma vista pública y el JS filtrará por slug
+  res.sendFile(path.join(__dirname, 'views', 'gallery-public.html'));
+});
+
 // 📁 Servir archivos de upload
 app.get('/uploads/:filename', (req, res) => {
   const filename = req.params.filename;
