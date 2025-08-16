@@ -2,7 +2,6 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
-## 🎯 **Novedades Principales v1.15.0**
 ## 🎯 **Novedades Principales v1.16.0**
 
 ### 🗂️ Persistencia de Portadas (Cover) en Producción
@@ -14,7 +13,6 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Configuración Playwright (`playwright.config.ts`) con baseURL a producción.
 - Tests smoke (Home, Galería) y persistencia de Portada.
 - GitHub Actions `E2E - Playwright` ejecuta en PRs y push a main; sube `playwright-report` como artifact.
-\n+### 🔗 Issues cerrados en esta versión
 - [#2](https://github.com/LuKeTeSky/sitio-luz/issues/2) Persistencia de Álbumes falla en Producción (Vercel)
 - [#3](https://github.com/LuKeTeSky/sitio-luz/issues/3) Subida de Fotos No Funciona
 
@@ -748,7 +746,7 @@ Este proyecto sigue las mejores prácticas de **Gitflow** con versionado semánt
 
 Las ramas `release/*` cumplen el rol de **backup congelado (RC)** de cada versión:
 
-- Disponibles: `release/v1.15.0` (actual), `release/v1.14.0`, `release/v1.13.0`
+- Disponibles: `release/v1.16.0` (actual), `release/v1.15.0`, `release/v1.14.0`, `release/v1.13.0`
 - Para futuros ciclos: crear desde `develop` con `git checkout -b release/vX.Y.Z` y `git push -u origin release/vX.Y.Z`
 - Evitar crear ramas `backup/*`; usar siempre `release/*` como respaldo
 
@@ -1334,7 +1332,7 @@ git push origin develop
 
 - Issues del proyecto: `https://github.com/LuKeTeSky/sitio-luz/issues`
 - Labels usadas: `bug`, `enhancement`, `infrastructure`, `high-priority`, `medium-priority`, `low-priority`
-- Milestones: `v1.16.0` (próxima versión)
+- Milestones: `v1.17.0` (próxima versión)
 
 #### Crear milestone y asignar issues (con GitHub CLI)
 ```zsh
