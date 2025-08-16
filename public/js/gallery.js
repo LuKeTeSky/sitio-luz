@@ -1177,8 +1177,20 @@ async function updateCoverSection() {
   coverEmpty.style.display = 'none';
   coverGrid.innerHTML = '';
   
+  // Preparar mapa de imágenes por filename; si falta información, pedir /api/images como fallback
+  let imagesByFilename = new Map((allImages || []).map(img => [img.filename, img]));
+  if (allCoverImages.some(fn => !imagesByFilename.has(fn))) {
+    try {
+      const ri = await fetch('/api/images');
+      if (ri.ok) {
+        const list = await ri.json();
+        imagesByFilename = new Map((list || []).map(img => [img.filename, img]));
+      }
+    } catch (_) {}
+  }
+
   // Tomar la primera imagen como fondo principal (prioridad al hero)
-  const firstImageData = allImages.find(img => img.filename === allCoverImages[0]);
+  const firstImageData = imagesByFilename.get(allCoverImages[0]);
   if (firstImageData && coverSection) {
     coverSection.classList.add('has-cover-image');
     // Crear un fondo sutil con la primera imagen (usar URL pública si existe)
@@ -1190,12 +1202,10 @@ async function updateCoverSection() {
   }
   
   allCoverImages.forEach(filename => {
-    const imageData = allImages.find(img => img.filename === filename);
-    if (imageData) {
-      const isHeroImage = filename === currentHeroImage;
-      const coverItem = createCoverItem(imageData, isHeroImage);
-      coverGrid.appendChild(coverItem);
-    }
+    const imageData = imagesByFilename.get(filename) || { filename, url: null, title: 'Foto de Portada' };
+    const isHeroImage = filename === currentHeroImage;
+    const coverItem = createCoverItem(imageData, isHeroImage);
+    coverGrid.appendChild(coverItem);
   });
 }
 
