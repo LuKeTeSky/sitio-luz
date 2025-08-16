@@ -21,13 +21,17 @@ test.describe('Admin - Portada (cover)', () => {
 
     // Ir a sección portada y verificar que haya al menos 1 elemento
     await page.getByRole('link', { name: /portada/i }).click();
+    await page.waitForResponse(r => r.url().includes('/api/cover') && r.request().method() === 'GET', { timeout: 10000 });
+    await page.waitForSelector('.cover-item img', { timeout: 10000 });
     const coverItems = page.locator('.cover-item img');
-    await expect(coverItems.first()).toBeVisible();
+    await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
 
     // Refrescar y verificar que persiste
     await page.reload();
     await page.getByRole('link', { name: /portada/i }).click();
-    await expect(coverItems.first()).toBeVisible();
+    await page.waitForResponse(r => r.url().includes('/api/cover') && r.request().method() === 'GET', { timeout: 10000 });
+    await page.waitForSelector('.cover-item img', { timeout: 10000 });
+    await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
   });
 });
 
