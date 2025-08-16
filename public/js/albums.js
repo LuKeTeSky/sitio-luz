@@ -484,6 +484,7 @@ class AlbumsManager {
             if (response.ok) {
                 this.closeModal();
                 await this.loadAlbums();
+                try { await fetch('/api/metrics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type: this.isEditing ? 'album_update' : 'album_create'})}); } catch (_) {}
                 
                 // Mostrar mensaje de éxito
                 this.showNotification(
@@ -512,6 +513,7 @@ class AlbumsManager {
             if (response.ok) {
                 await this.loadAlbums();
                 this.showNotification('Álbum eliminado correctamente', 'success');
+                try { await fetch('/api/metrics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'album_delete'})}); } catch(_) {}
             } else {
                 throw new Error('Error eliminando álbum');
             }

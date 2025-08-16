@@ -50,6 +50,17 @@ let galleryLoadAttempts = 0;
 const MAX_LOAD_ATTEMPTS = 3;
 let isDOMContentLoadedExecuted = false;
 
+// ===== Métricas helper =====
+async function sendMetric(type, label, metadata) {
+  try {
+    await fetch('/api/metrics/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, label, metadata })
+    });
+  } catch (_) {}
+}
+
 // Función para configurar drag & drop en la galería
 function setupGalleryDragAndDrop() {
   const galleryGrid = document.getElementById('gallery-grid');
@@ -611,6 +622,7 @@ function createGalleryItem(imageData, index) {
   coverBtn.onclick = (e) => {
     e.stopPropagation();
     toggleCoverImage(imageData.filename, index);
+    sendMetric('cover_toggle', imageData.filename);
   };
   
   const expandBtn = document.createElement('button');
@@ -620,6 +632,7 @@ function createGalleryItem(imageData, index) {
   expandBtn.onclick = (e) => {
     e.stopPropagation();
     openLightbox(index);
+    sendMetric('lightbox_open', imageData.filename);
   };
   
   const heroBtn = document.createElement('button');
@@ -629,6 +642,7 @@ function createGalleryItem(imageData, index) {
   heroBtn.onclick = (e) => {
     e.stopPropagation();
     setHeroImage(imageData.filename);
+    // métrica final se envía en setHeroImage() al confirmarse en backend
   };
   
   // Botón de álbumes
@@ -980,6 +994,7 @@ async function deleteImage(filename, index) {
     
     if (response.ok) {
       const result = await response.json();
+      sendMetric('delete', filename);
       
       // Mostrar mensaje de éxito
       showNotification('Foto eliminada exitosamente', 'success');
@@ -1395,6 +1410,9 @@ function setupUploadForm() {
         submitBtn.innerHTML = uploadingText;
       });
 
+      // métrica de subida
+      sendMetric('upload', 'batch', { files: selectedFiles.length });
+
       // Consolidar archivos subidos
       const uploadedAll = batchesResult.flatMap(r => (r && r.files) ? r.files : []);
       showNotification(`Subida completada: ${uploadedAll.length} foto(s)`, 'success');
@@ -1764,6 +1782,7 @@ async function setHeroImage(filename) {
     if (response.ok) {
       const result = await response.json();
       showNotification('¡Imagen del hero actualizada exitosamente!', 'success');
+      sendMetric('hero_set', filename);
       
       // Actualizar botones de hero
       updateHeroButtons();
