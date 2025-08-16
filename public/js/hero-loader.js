@@ -14,7 +14,16 @@ async function loadHeroConfiguration() {
     if (heroImage) {
       const src = config.heroImageUrl || (config.heroImage ? `/uploads/${config.heroImage}` : '/uploads/luz-hero.jpg');
       heroImage.src = src;
-      heroImage.alt = `${config.title} - Modelo de Moda`;
+      heroImage.alt = `${config.title || 'LUZ'} - Modelo de Moda`;
+      // Si falla la carga, intentar usar primera portada como fallback visual
+      heroImage.onerror = async () => {
+        try {
+          const r = await fetch('/api/cover');
+          const j = r.ok ? await r.json() : { coverImages: [] };
+          const first = Array.isArray(j.coverImages) && j.coverImages[0];
+          if (first) heroImage.src = `/uploads/${first}`;
+        } catch (_) {}
+      };
     }
     
     // Actualizar el título

@@ -994,6 +994,20 @@ app.get('/api/hero', async (req, res) => {
         config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       }
     }
+    // Fallback: si no hay hero definido, usar primera imagen de portada (cover)
+    if (!config.heroImage) {
+      try {
+        let covers = [];
+        if (kv && typeof kv.get === 'function') {
+          covers = (await kv.get('coverImages')) || [];
+        } else if (Array.isArray(coverImagesMemory)) {
+          covers = coverImagesMemory;
+        }
+        if (Array.isArray(covers) && covers.length > 0) {
+          config.heroImage = covers[0];
+        }
+      } catch (_) {}
+    }
     // Adjuntar URL pública si existe
     const heroImageUrl = await getPublicUrlForFilename(config.heroImage);
     res.json({ ...config, heroImageUrl });
@@ -1131,6 +1145,12 @@ app.post('/api/cover', express.json(), async (req, res) => {
       if (!ok) coverImagesMemory = current;
     } else {
       coverImagesMemory = current;
+    }
+
+    // Unificación: establecer hero igual a la primera portada si existe
+    if (Array.isArray(current) && current.length > 0) {
+      heroConfig.heroImage = current[0];
+      heroConfig.updatedAt = new Date().toISOString();
     }
 
     res.json({ success: true, coverImages: current });
