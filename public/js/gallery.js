@@ -1110,7 +1110,16 @@ function loadCoverSettings() {
 async function updateCoverSection() {
   // Protección contra ejecuciones múltiples
   if (isLoadingGallery) {
-    console.log('🔄 updateCoverSection saltado - galería cargando');
+    console.log('🔄 updateCoverSection pospuesto - galería cargando');
+    setTimeout(() => {
+      // Reintentar cuando la galería probablemente ya esté cargada
+      if (!isLoadingGallery) {
+        updateCoverSection();
+      } else {
+        // Volver a intentar en otro ciclo si sigue cargando
+        setTimeout(() => updateCoverSection(), 300);
+      }
+    }, 300);
     return;
   }
   
