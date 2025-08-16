@@ -983,6 +983,27 @@ async function getPublicUrlForFilename(filename) {
   return null;
 }
 
+// 🎯 Helper: obtener Set de filenames existentes (KV/Blob)
+async function getExistingImageFilenamesSet() {
+  const names = new Set();
+  try {
+    if (kv && typeof kv.get === 'function') {
+      const list = (await kv.get('images')) || [];
+      for (const it of (Array.isArray(list) ? list : [])) {
+        if (it && it.filename) names.add(it.filename);
+      }
+    }
+    if (names.size === 0 && typeof blobList === 'function') {
+      const { blobs } = await blobList({ prefix: 'uploads/' });
+      for (const b of (blobs || [])) {
+        const fn = String(b.pathname || '').split('/').pop();
+        if (fn) names.add(fn);
+      }
+    }
+  } catch (_) {}
+  return names;
+}
+
 // 🎯 API para obtener la configuración del hero (pública)
 app.get('/api/hero', async (req, res) => {
   try {
@@ -1104,6 +1125,16 @@ app.get('/api/cover', async (req, res) => {
     const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     if (isProd) {
       const kvList = await getCoverImagesKV();
+      // Filtrar portadas que ya no existen en Blob/KV para evitar fantasmas
+      if (Array.isArray(kvList) && kvList.length) {
+        const existing = await getExistingImageFilenamesSet();
+        const filtered = kvList.filter(fn => existing.has(fn));
+        if (filtered.length !== kvList.length) {
+          // Persistir limpieza best-effort
+          await setCoverImagesKV(filtered);
+        }
+        return res.json({ coverImages: filtered });
+      }
       if (kvList) return res.json({ coverImages: kvList });
     }
     // Fallback memoria
@@ -1128,10 +1159,18 @@ app.post('/api/cover', express.json(), async (req, res) => {
     }
 
     if (Array.isArray(req.body?.coverImages)) {
-      current = req.body.coverImages.filter(Boolean);
+      // Limpiar referencias a archivos inexistentes
+      const requested = req.body.coverImages.filter(Boolean);
+      const existing = await getExistingImageFilenamesSet();
+      current = requested.filter(fn => existing.size === 0 || existing.has(fn));
     } else if (req.body && typeof req.body.filename === 'string') {
       const fn = req.body.filename;
       const marked = !!req.body.marked;
+      // No permitir portadas de archivos inexistentes
+      const existing = await getExistingImageFilenamesSet();
+      if (marked && existing.size && !existing.has(fn)) {
+        return res.status(404).json({ error: 'Imagen no encontrada' });
+      }
       const idx = current.indexOf(fn);
       if (marked && idx === -1) current.push(fn);
       if (!marked && idx !== -1) current.splice(idx, 1);
