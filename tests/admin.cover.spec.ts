@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { apiLogin } from './utils/auth';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
@@ -8,11 +9,9 @@ test.describe('Admin - Portada (cover)', () => {
       test.skip(true, 'ADMIN_PASSWORD no configurado en CI/entorno');
     }
     test.slow();
-    // Login
-    await page.goto('/login');
-    const passField = page.getByLabel(/contraseña|password/i).or(page.locator('input[type="password"]'));
-    await passField.first().fill(ADMIN_PASSWORD);
-    await page.locator('form button[type="submit"]').first().click();
+    // Login por API para evitar flakiness de UI
+    await apiLogin(page, ADMIN_PASSWORD);
+    await page.goto('/admin');
     await expect(page).toHaveURL(/admin/);
 
     // Marcar primera imagen como portada
