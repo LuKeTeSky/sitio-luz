@@ -585,6 +585,12 @@ app.get('/gallery', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'gallery-public.html'));
 });
 
+// 🖼️ Página pública para un álbum específico por slug
+app.get('/album/:slug', (req, res) => {
+  // Reutilizamos la misma vista pública y el JS filtrará por slug
+  res.sendFile(path.join(__dirname, 'views', 'gallery-public.html'));
+});
+
 // 📁 Servir archivos de upload
 app.get('/uploads/:filename', (req, res) => {
   const filename = req.params.filename;
@@ -1261,6 +1267,27 @@ function getAlbumsFilePath() {
 let albumsData = [];
 let albumsInitialized = false;
 
+// Utilidades de slug para álbumes
+function slugify(text) {
+  return String(text || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+function buildUniqueSlug(existing, baseSlug, currentId) {
+  let slug = baseSlug || 'album';
+  const set = new Set((existing || []).filter(Boolean).map(a => a.slug).filter(Boolean));
+  if (!set.has(slug)) return slug;
+  let i = 2;
+  while (set.has(`${slug}-${i}`)) i++;
+  return `${slug}-${i}`;
+}
+
 // Cargar álbumes (KV en Vercel; archivo en dev; memoria como fallback)
 async function loadAlbums() {
   try {
@@ -1287,6 +1314,27 @@ async function loadAlbums() {
           }
           console.log('✨ Álbumes inicializados en KV (producción)');
         }
+        // Migración ligera: asegurar campos slug/coverImage/featured
+        let migrated = false;
+        const seen = new Set();
+        albums = albums.map((a) => {
+          const copy = { ...a };
+          if (!copy.slug) {
+            copy.slug = slugify(copy.name || 'album');
+            migrated = true;
+          }
+          if (seen.has(copy.slug)) { // colisión
+            copy.slug = buildUniqueSlug(albums, copy.slug, copy.id);
+            migrated = true;
+          }
+          seen.add(copy.slug);
+          if (copy.featured === undefined) { copy.featured = false; migrated = true; }
+          if (copy.coverImage === undefined) { copy.coverImage = ''; migrated = true; }
+          return copy;
+        });
+        if (migrated && typeof kv.set === 'function') {
+          await kv.set('albums', albums);
+        }
         return albums;
       }
       // Fallback en Vercel sin KV: usar memoria del proceso (no persistente)
@@ -1295,14 +1343,36 @@ async function loadAlbums() {
         albumsInitialized = true;
         console.log('⚠️ KV no disponible: usando memoria como fallback para álbumes');
       }
+      // Migración para memoria
+      albumsData = (albumsData || []).map((a) => ({
+        ...a,
+        slug: a.slug || slugify(a.name || 'album'),
+        featured: a.featured === undefined ? false : a.featured,
+        coverImage: a.coverImage === undefined ? '' : a.coverImage,
+      }));
       return [...albumsData];
     }
 
     // Desarrollo: archivo local
     const albumsPath = getAlbumsFilePath();
     if (fs.existsSync(albumsPath)) {
-      const data = fs.readFileSync(albumsPath, 'utf8');
-      return JSON.parse(data);
+      const data = JSON.parse(fs.readFileSync(albumsPath, 'utf8'));
+      // Migración local
+      let migrated = false;
+      const seen = new Set();
+      const albums = (Array.isArray(data) ? data : []).map((a) => {
+        const copy = { ...a };
+        if (!copy.slug) { copy.slug = slugify(copy.name || 'album'); migrated = true; }
+        if (seen.has(copy.slug)) { copy.slug = buildUniqueSlug(data, copy.slug, copy.id); migrated = true; }
+        seen.add(copy.slug);
+        if (copy.featured === undefined) { copy.featured = false; migrated = true; }
+        if (copy.coverImage === undefined) { copy.coverImage = ''; migrated = true; }
+        return copy;
+      });
+      if (migrated) {
+        fs.writeFileSync(albumsPath, JSON.stringify(albums, null, 2));
+      }
+      return albums;
     }
     return [];
   } catch (error) {
@@ -1364,10 +1434,24 @@ app.get('/api/albums', async (req, res) => {
   }
 });
 
+// GET /api/albums/slug/:slug - obtener álbum por slug
+app.get('/api/albums/slug/:slug', async (req, res) => {
+  try {
+    const albums = await loadAlbums();
+    const slug = String(req.params.slug || '').toLowerCase();
+    const album = albums.find(a => (a.slug || '').toLowerCase() === slug);
+    if (!album) return res.status(404).json({ error: 'Álbum no encontrado' });
+    return res.json(album);
+  } catch (e) {
+    console.error('Error obteniendo álbum por slug:', e);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // POST /api/albums - Crear nuevo álbum
 app.post('/api/albums', express.json(), async (req, res) => {
   try {
-    const { name, description, campaign } = req.body;
+    const { name, description, campaign, coverImage, featured } = req.body;
     
     if (!name || name.trim() === '') {
       return res.status(400).json({ error: 'El nombre del álbum es requerido' });
@@ -1378,6 +1462,10 @@ app.post('/api/albums', express.json(), async (req, res) => {
     // Generar ID único
     const newId = Date.now().toString();
     
+    // generar slug único
+    const baseSlug = slugify(name);
+    const slug = buildUniqueSlug(albums, baseSlug);
+
     const newAlbum = {
       id: newId,
       name: name.trim(),
@@ -1385,6 +1473,9 @@ app.post('/api/albums', express.json(), async (req, res) => {
       campaign: campaign ? campaign.trim() : '',
       images: [],
       order: albums.length, // Agregar al final por defecto
+      slug,
+      coverImage: coverImage || '',
+      featured: !!featured,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -1404,7 +1495,7 @@ app.post('/api/albums', express.json(), async (req, res) => {
 app.put('/api/albums/:id', express.json(), async (req, res) => {
   try {
     const albumId = req.params.id;
-    const { name, description, campaign } = req.body;
+    const { name, description, campaign, coverImage, featured, slug: desiredSlug } = req.body;
     
     if (!name || name.trim() === '') {
       return res.status(400).json({ error: 'El nombre del álbum es requerido' });
@@ -1417,13 +1508,19 @@ app.put('/api/albums/:id', express.json(), async (req, res) => {
       return res.status(404).json({ error: 'Álbum no encontrado' });
     }
     
-    albums[albumIndex] = {
-      ...albums[albumIndex],
-      name: name.trim(),
-      description: description ? description.trim() : '',
-      campaign: campaign ? campaign.trim() : '',
-      updatedAt: new Date().toISOString()
-    };
+    const album = { ...albums[albumIndex] };
+    album.name = name.trim();
+    album.description = description ? description.trim() : '';
+    album.campaign = campaign ? campaign.trim() : '';
+    album.coverImage = coverImage !== undefined ? coverImage : (album.coverImage || '');
+    album.featured = featured !== undefined ? !!featured : !!album.featured;
+    // si se pide cambiar slug, validar unicidad
+    if (desiredSlug && desiredSlug !== album.slug) {
+      const base = slugify(desiredSlug);
+      album.slug = buildUniqueSlug(albums.filter(a=>a.id!==albumId), base);
+    }
+    album.updatedAt = new Date().toISOString();
+    albums[albumIndex] = album;
     
     await saveAlbums(albums);
     

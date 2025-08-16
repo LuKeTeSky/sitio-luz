@@ -2,6 +2,19 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
+## 🎯 **Novedades Principales v1.17.0 (RC)**
+
+### 📊 Métricas en Admin (Issue #13)
+- Backend: `POST /api/metrics/event`, `GET /api/metrics/summary?days=7` con Vercel KV y fallback en memoria.
+- Conteo diario por tipo + totales y series; auto-conteo `api_error` desde middleware de errores.
+- Admin UI: sección “Métricas” con gráfico (canvas nativo compatible CSP), tarjetas (Visitas, Eventos, Uploads, Errores API) y desglose por tipo.
+- Instrumentación en frontend: `upload`, `delete`, `cover_toggle`, `lightbox_open`, `hero_set`, `album_create/update/delete`.
+
+### 🔜 Próximo
+- RUM (TTFB/LCP/CLS), navegación lightbox (`next/prev`, dwell), reordenamientos (galería/álbumes), top listas (imágenes/álbumes) y selector 7/30 días.
+
+---
+
 ## 🎯 **Novedades Principales v1.16.0**
 
 ### 🗂️ Persistencia de Portadas (Cover) en Producción
@@ -36,7 +49,7 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 
 ### 🧭 Gitflow (backup/RC)
 - Ramas `release/*` funcionan como respaldo congelado (Release Candidate).
-- Creadas: `release/v1.16.0` (actual), `release/v1.15.0`, `release/v1.14.0`, `release/v1.13.0`.
+- Creadas: `release/v1.17.0` (actual), `release/v1.16.0`, `release/v1.15.0`, `release/v1.14.0`, `release/v1.13.0`.
 
 ---
 

@@ -40,6 +40,27 @@ class AlbumsManager {
 
         if (albumForm) {
             albumForm.addEventListener('submit', (e) => this.handleAlbumSubmit(e));
+            // slug live validation
+            const slugInput = document.getElementById('album-slug');
+            if (slugInput) {
+                const hint = document.getElementById('slug-hint');
+                const updateHint = () => {
+                    const raw = slugInput.value || document.getElementById('album-name')?.value || '';
+                    const slug = (raw || '')
+                      .normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()
+                      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80);
+                    const exists = this.albums.some(a => (a.slug||'')===slug && (!this.isEditing || a.id!==this.editingAlbumId));
+                    if (hint) {
+                        hint.style.display = 'block';
+                        hint.textContent = exists ? `Slug en uso: ${slug} (se ajustará automáticamente)` : `Slug: ${slug}`;
+                        hint.style.color = exists ? '#b00020' : '#666';
+                    }
+                };
+                slugInput.addEventListener('input', updateHint);
+                const nameInput = document.getElementById('album-name');
+                if (nameInput) nameInput.addEventListener('input', updateHint);
+                setTimeout(updateHint,0);
+            }
         }
 
         // Guardar edición con Enter desde inputs
@@ -437,6 +458,12 @@ class AlbumsManager {
         if (albumName) albumName.value = album.name || '';
         if (albumDescription) albumDescription.value = album.description || '';
         if (albumCampaign) albumCampaign.value = album.campaign || '';
+        const albumSlug = document.getElementById('album-slug');
+        if (albumSlug) albumSlug.value = album.slug || '';
+        const albumCover = document.getElementById('album-cover');
+        if (albumCover) albumCover.value = album.coverImage || '';
+        const albumFeatured = document.getElementById('album-featured');
+        if (albumFeatured) albumFeatured.checked = !!album.featured;
 
         modal.classList.add('active');
     }
@@ -456,7 +483,10 @@ class AlbumsManager {
         const albumData = {
             name: formData.get('name'),
             description: formData.get('description'),
-            campaign: formData.get('campaign')
+            campaign: formData.get('campaign'),
+            slug: (formData.get('slug') || '').trim() || undefined,
+            coverImage: (formData.get('coverImage') || '').trim(),
+            featured: document.getElementById('album-featured')?.checked || false
         };
 
         try {

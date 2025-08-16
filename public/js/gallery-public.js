@@ -112,10 +112,24 @@ async function loadGalleryImages() {
         
         if (imagesResponse.ok && albumsResponse.ok && heroResponse.ok) {
             const images = await imagesResponse.json();
-            const albums = await albumsResponse.json();
+            let albums = await albumsResponse.json();
             const heroConfig = await heroResponse.json();
             
             // Ordenar imágenes según prioridad: portada primero, luego por álbumes según su orden
+            // Filtrar por slug si estamos en /album/:slug
+            const slugMatch = window.location.pathname.match(/\/album\/(.+)$/);
+            if (slugMatch) {
+                const slug = decodeURIComponent(slugMatch[1]);
+                const album = albums.find(a => (a.slug||'').toLowerCase() === slug.toLowerCase());
+                if (album) {
+                    const imageSet = new Set(album.images || []);
+                    const filtered = (images || []).filter(img => imageSet.has(img.filename));
+                    allImages = filtered;
+                    displayGalleryImages();
+                    loadHeroImage();
+                    return;
+                }
+            }
             const orderedImages = sortImagesByPriority(images, albums, heroConfig);
             
             allImages = orderedImages;
