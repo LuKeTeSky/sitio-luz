@@ -1061,8 +1061,10 @@ function toggleCoverImage(filename, index) {
   localStorage.setItem('coverImages', JSON.stringify(coverImages));
   // Persistir en servidor (KV) cuando esté en producción
   persistCoverImagesServer(coverImages).catch(() => {});
+  // Refrescar sección portada inmediatamente para que el test vea el DOM
+  setTimeout(() => updateCoverSection(), 100);
   setTimeout(() => updateCoverButtons(), 0);
-  updateCoverSection();
+  // updateCoverSection();
 }
 
 async function persistCoverImagesServer(list) {
@@ -1128,9 +1130,10 @@ async function updateCoverSection() {
       if (Array.isArray(j.coverImages)) coverImages = j.coverImages;
     }
   } catch (_) {}
-  if (!Array.isArray(coverImages) || coverImages.length === 0) {
-    coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
-  }
+  // Mezclar con localStorage para evitar carreras (POST async)
+  const ls = JSON.parse(localStorage.getItem('coverImages') || '[]');
+  const set = new Set([...(Array.isArray(coverImages)?coverImages:[]), ...(Array.isArray(ls)?ls:[])]);
+  coverImages = Array.from(set);
   let currentHeroImage = null;
   
   try {
