@@ -38,7 +38,7 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 
 ### 🧭 Gitflow (backup/RC)
 - Ramas `release/*` funcionan como respaldo congelado (Release Candidate).
-- Creadas: `release/v1.15.0` (actual), `release/v1.14.0`, `release/v1.13.0`.
+- Creadas: `release/v1.16.0` (actual), `release/v1.15.0`, `release/v1.14.0`, `release/v1.13.0`.
 
 ---
 
@@ -796,6 +796,10 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 - **Características principales**: Vercel Blob para almacenamiento persistente, CSP/COEP/CORP ajustado, frontend usa URLs públicas de Blob
 - **Estado**: Estable y en producción
 - **Próxima versión**: v1.17.0 (en desarrollo)
+
+#### 📌 Plan para la próxima release (v1.17.0)
+- [#16](https://github.com/LuKeTeSky/sitio-luz/issues/16) **UX Álbumes premium** (edición completa, slug, portada, página pública /album/:slug)
+- [#15](https://github.com/LuKeTeSky/sitio-luz/issues/15) **Ampliar QA E2E** (flujos críticos admin/público)
 
 #### 📋 **Cómo Verificar Tu Versión**
 ```zsh
