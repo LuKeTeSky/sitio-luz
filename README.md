@@ -10,6 +10,12 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Admin UI: sección “Métricas” con gráfico (canvas nativo compatible CSP), tarjetas (Visitas, Eventos, Uploads, Errores API) y desglose por tipo.
 - Instrumentación en frontend: `upload`, `delete`, `cover_toggle`, `lightbox_open`, `hero_set`, `album_create/update/delete`.
 
+### 📚 Álbumes – UX y página pública
+- Campos nuevos en álbum: `slug` (URL/SEO), `coverImage`, `featured`.
+- Slug único con autogeneración; colisiones resueltas con sufijo automático.
+- Edición desde Admin: modal con campos y validación/preview de slug.
+- Página pública por álbum: `/album/:slug` reutilizando la vista pública y filtrando por slug.
+
 ### 🔜 Próximo
 - RUM (TTFB/LCP/CLS), navegación lightbox (`next/prev`, dwell), reordenamientos (galería/álbumes), top listas (imágenes/álbumes) y selector 7/30 días.
 
@@ -50,6 +56,12 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 ### 🧭 Gitflow (backup/RC)
 - Ramas `release/*` funcionan como respaldo congelado (Release Candidate).
 - Creadas: `release/v1.17.0` (actual), `release/v1.16.0`, `release/v1.15.0`, `release/v1.14.0`, `release/v1.13.0`.
+
+#### 🔀 Ramas activas hoy
+- `main` (producción)
+- `develop` (integración)
+- `release/v1.17.0` (backup/RC)
+- `feature/next-version-v1.16.0` (histórico)
 
 ---
 
