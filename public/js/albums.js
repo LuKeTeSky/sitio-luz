@@ -437,6 +437,12 @@ class AlbumsManager {
         if (albumName) albumName.value = album.name || '';
         if (albumDescription) albumDescription.value = album.description || '';
         if (albumCampaign) albumCampaign.value = album.campaign || '';
+        const albumSlug = document.getElementById('album-slug');
+        if (albumSlug) albumSlug.value = album.slug || '';
+        const albumCover = document.getElementById('album-cover');
+        if (albumCover) albumCover.value = album.coverImage || '';
+        const albumFeatured = document.getElementById('album-featured');
+        if (albumFeatured) albumFeatured.checked = !!album.featured;
 
         modal.classList.add('active');
     }
@@ -456,7 +462,10 @@ class AlbumsManager {
         const albumData = {
             name: formData.get('name'),
             description: formData.get('description'),
-            campaign: formData.get('campaign')
+            campaign: formData.get('campaign'),
+            slug: (formData.get('slug') || '').trim() || undefined,
+            coverImage: (formData.get('coverImage') || '').trim(),
+            featured: document.getElementById('album-featured')?.checked || false
         };
 
         try {
