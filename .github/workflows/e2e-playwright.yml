@@ -37,7 +37,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ github.ref_name }}-${{ github.run_number }}
           path: playwright-report
           if-no-files-found: ignore
 
@@ -45,7 +45,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: traces
+          name: traces-${{ github.ref_name }}-${{ github.run_number }}
           path: test-results
           if-no-files-found: ignore
 
