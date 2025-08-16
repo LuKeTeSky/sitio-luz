@@ -264,7 +264,7 @@
         if(chartLoaded) return;
         await new Promise((resolve)=>{
           const s=document.createElement('script');
-          s.src='https://cdn.jsdelivr.net/npm/chart.js';
+          s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js';
           s.onload=()=>resolve();
           document.body.appendChild(s);
         });
@@ -273,6 +273,8 @@
       async function loadMetrics(){
         try{
           await ensureChart();
+          // registrar una vista para tener datos inmediatos
+          try{ await fetch('/api/metrics/event',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'page_view'})}); }catch(_){ }
           const res=await fetch('/api/metrics/summary?days=7',{headers:{'accept':'application/json'}});
           if(!res.ok) throw new Error('HTTP '+res.status);
           const data=await res.json();
