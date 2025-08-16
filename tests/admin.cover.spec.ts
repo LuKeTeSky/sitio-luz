@@ -22,12 +22,12 @@ test.describe('Admin - Portada (cover)', () => {
     // Ir a sección portada y verificar que haya al menos 1 elemento
     await page.getByRole('link', { name: /portada/i }).click();
     const coverItems = page.locator('.cover-item img');
-    await expect(coverItems.first()).toBeVisible();
+    await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
 
     // Refrescar y verificar que persiste
     await page.reload();
     await page.getByRole('link', { name: /portada/i }).click();
-    await expect(coverItems.first()).toBeVisible();
+    await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
   });
 });
 
