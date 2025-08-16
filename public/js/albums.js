@@ -195,6 +195,9 @@ class AlbumsManager {
                 <h4 class="album-name">${album.name}</h4>
                 <div class="album-actions">
                     <span class="album-count">${album.images ? album.images.length : 0}</span>
+                    <button class="album-edit-btn" title="Editar álbum">
+                        <i class="fas fa-pen"></i>
+                    </button>
                     <button class="album-delete-btn" title="Eliminar álbum">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -224,6 +227,15 @@ class AlbumsManager {
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.deleteAlbum(album.id);
+            });
+        }
+
+        // Event listener para el botón de editar (acceso directo)
+        const editBtn = albumDiv.querySelector('.album-edit-btn');
+        if (editBtn) {
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.editAlbum(album);
             });
         }
 
