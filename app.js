@@ -252,6 +252,106 @@ app.use((req, res, next) => {
   next();
 });
 
+// ===================== MÉTRICAS (Issue #13) =====================
+// Estructura diaria: { date: 'YYYY-MM-DD', visits: number, events: { [type]: number } }
+let metricsMemory = { daily: {} };
+
+function getDateKey(offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - offsetDays);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+async function getDailyMetrics(dateKey) {
+  try {
+    if (kv && typeof kv.get === 'function') {
+      const data = await kv.get(`metrics:daily:${dateKey}`);
+      if (data && typeof data === 'object') return data;
+      return { date: dateKey, visits: 0, events: {} };
+    }
+  } catch (e) {
+    console.warn('KV get metrics error:', e.message);
+  }
+  // Fallback memoria
+  if (!metricsMemory.daily[dateKey]) metricsMemory.daily[dateKey] = { date: dateKey, visits: 0, events: {} };
+  return metricsMemory.daily[dateKey];
+}
+
+async function saveDailyMetrics(dateKey, data) {
+  try {
+    if (kv && typeof kv.set === 'function') {
+      await kv.set(`metrics:daily:${dateKey}`, data);
+      return true;
+    }
+  } catch (e) {
+    console.warn('KV set metrics error:', e.message);
+  }
+  // Fallback memoria
+  metricsMemory.daily[dateKey] = data;
+  return false;
+}
+
+// POST /api/metrics/event  Body: { type, label?, metadata? }
+app.post('/api/metrics/event', express.json(), async (req, res) => {
+  try {
+    const { type } = req.body || {};
+    if (!type || typeof type !== 'string') {
+      return res.status(400).json({ error: 'type requerido' });
+    }
+    const dateKey = getDateKey(0);
+    const daily = await getDailyMetrics(dateKey);
+    if (type === 'page_view') {
+      daily.visits = (daily.visits || 0) + 1;
+    } else {
+      daily.events = daily.events || {};
+      daily.events[type] = (daily.events[type] || 0) + 1;
+    }
+    await saveDailyMetrics(dateKey, daily);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('POST /api/metrics/event error:', e);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// GET /api/metrics/summary?days=7
+app.get('/api/metrics/summary', async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days) || 7, 30);
+    const labels = [];
+    const visits = [];
+    const eventsTotals = {}; // por tipo
+    const seriesByType = {}; // opcional por día
+    for (let i = days - 1; i >= 0; i--) {
+      const key = getDateKey(i);
+      const daily = await getDailyMetrics(key);
+      labels.push(key);
+      visits.push(daily.visits || 0);
+      const ev = daily.events || {};
+      for (const t of Object.keys(ev)) {
+        eventsTotals[t] = (eventsTotals[t] || 0) + (ev[t] || 0);
+        if (!seriesByType[t]) seriesByType[t] = [];
+      }
+    }
+    // Reconstruir series por tipo en el mismo orden de labels
+    for (const t of Object.keys(seriesByType)) {
+      seriesByType[t] = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const key = getDateKey(i);
+        const daily = await getDailyMetrics(key);
+        seriesByType[t].push((daily.events && daily.events[t]) || 0);
+      }
+    }
+    res.json({ labels, visits, eventsTotals, seriesByType });
+  } catch (e) {
+    console.error('GET /api/metrics/summary error:', e);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // 📥 Página de login
 app.get('/login', (req, res) => {
   res.send(`

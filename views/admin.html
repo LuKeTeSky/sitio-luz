@@ -22,6 +22,7 @@
                 <a href="#cover-photos" class="nav-link">Portada</a>
                 <a href="#gallery" class="nav-link" id="gallery-nav-btn">Galería</a>
                 <a href="#upload" class="nav-link">Subir Fotos</a>
+                <a href="#metrics" class="nav-link">Métricas</a>
                 <a href="/logout" class="nav-link logout-link">
                     <i class="fas fa-sign-out-alt"></i>
                     Cerrar Sesión
@@ -158,6 +159,22 @@
             </div>
         </section>
 
+        <!-- Metrics Section -->
+        <section id="metrics" class="metrics-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Métricas</h2>
+                    <p>Visitas y eventos (últimos 7 días)</p>
+                </div>
+                <div id="metrics-content">
+                    <div class="cards" id="metric-cards" style="display:flex;gap:16px;flex-wrap:wrap"></div>
+                    <div class="chart-wrap" style="margin-top:16px">
+                        <canvas id="visitsChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- About Section -->
         <section id="about" class="about-section">
             <div class="container">
@@ -240,5 +257,46 @@
 
     <script src="/js/gallery.js"></script>
     <script src="/js/albums.js"></script>
+    <script>
+    (function(){
+      let chartLoaded=false; let chartInstance=null;
+      async function ensureChart(){
+        if(chartLoaded) return;
+        await new Promise((resolve)=>{
+          const s=document.createElement('script');
+          s.src='https://cdn.jsdelivr.net/npm/chart.js';
+          s.onload=()=>resolve();
+          document.body.appendChild(s);
+        });
+        chartLoaded=true;
+      }
+      async function loadMetrics(){
+        try{
+          await ensureChart();
+          const res=await fetch('/api/metrics/summary?days=7',{headers:{'accept':'application/json'}});
+          if(!res.ok) throw new Error('HTTP '+res.status);
+          const data=await res.json();
+          const cards=document.getElementById('metric-cards');
+          cards.innerHTML='';
+          const totalVisits=(data.visits||[]).reduce((a,b)=>a+b,0);
+          const totalEvents=Object.values(data.eventsTotals||{}).reduce((a,b)=>a+b,0);
+          const card= (title, value)=>{
+            const el=document.createElement('div');
+            el.style.padding='12px';el.style.border='1px solid #eee';el.style.borderRadius='8px';
+            el.innerHTML='<div style="font-size:12px;color:#666">'+title+'</div><div style="font-size:22px;font-weight:600">'+value+'</div>';
+            return el;
+          };
+          cards.appendChild(card('Visitas (7 días)', totalVisits));
+          cards.appendChild(card('Eventos (7 días)', totalEvents));
+          const ctx=document.getElementById('visitsChart').getContext('2d');
+          if(chartInstance) chartInstance.destroy();
+          chartInstance=new Chart(ctx,{type:'line',data:{labels:data.labels||[],datasets:[{label:'Visitas',data:data.visits||[],borderColor:'#d4af37',backgroundColor:'rgba(212,175,55,0.15)',tension:0.3,fill:true}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+        }catch(e){console.warn('loadMetrics error',e);}
+      }
+      const metricsSection=document.getElementById('metrics');
+      const obs=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){loadMetrics();}})},{threshold:0.2});
+      if(metricsSection) obs.observe(metricsSection);
+    })();
+    </script>
 </body>
 </html> 
