@@ -53,7 +53,14 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdnjs.cloudflare.com",
+        // Algunos entornos corporativos/ZeroTrust redirigen cdnjs a speed.cloudflareaccess.com
+        // Permitimos este host para evitar bloqueos del loader de terceros
+        "https://speed.cloudflareaccess.com"
+      ],
       imgSrc: [
         "'self'",
         "data:",
