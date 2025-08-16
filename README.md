@@ -14,6 +14,9 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Configuración Playwright (`playwright.config.ts`) con baseURL a producción.
 - Tests smoke (Home, Galería) y persistencia de Portada.
 - GitHub Actions `E2E - Playwright` ejecuta en PRs y push a main; sube `playwright-report` como artifact.
+\n+### 🔗 Issues cerrados en esta versión
+- [#2](https://github.com/LuKeTeSky/sitio-luz/issues/2) Persistencia de Álbumes falla en Producción (Vercel)
+- [#3](https://github.com/LuKeTeSky/sitio-luz/issues/3) Subida de Fotos No Funciona
 
 ### 🔧 Varias
 - Límite de upload ajustado: 30MB por imagen y 15 archivos por lote.
