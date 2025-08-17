@@ -1007,6 +1007,7 @@ async function getExistingImageFilenamesSet() {
 // 🎯 API para obtener la configuración del hero (pública)
 app.get('/api/hero', async (req, res) => {
   try {
+    res.set('Cache-Control', 'no-store');
     let config = heroConfig;
     // En desarrollo, intentar archivo local
     if (process.env.NODE_ENV !== 'production') {
@@ -1122,6 +1123,7 @@ async function setCoverImagesKV(list) {
 // GET /api/cover - obtener lista de filenames marcados como portada
 app.get('/api/cover', async (req, res) => {
   try {
+    res.set('Cache-Control', 'no-store');
     const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     if (isProd) {
       const kvList = await getCoverImagesKV();
