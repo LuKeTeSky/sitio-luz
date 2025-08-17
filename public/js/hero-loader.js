@@ -9,21 +9,39 @@ async function loadHeroConfiguration() {
     const response = await fetch('/api/hero');
     const config = await response.json();
     
-    // Actualizar la imagen del hero (usar URL pública si está disponible)
+    // Actualizar la imagen del hero (priorizar URL pública; evitar /uploads en Vercel)
     const heroImage = document.getElementById('hero-image');
     if (heroImage) {
-      const src = config.heroImageUrl || (config.heroImage ? `/uploads/${config.heroImage}` : '/uploads/luz-hero.jpg');
-      heroImage.src = src;
       heroImage.alt = `${config.title || 'LUZ'} - Modelo de Moda`;
-      // Si falla la carga, intentar usar primera portada como fallback visual
-      heroImage.onerror = async () => {
+      let src = config.heroImageUrl || null;
+      if (!src && config.heroImage) {
+        // No tenemos URL pública, intentar obtenerla desde /api/cover
         try {
-          const r = await fetch('/api/cover');
-          const j = r.ok ? await r.json() : { coverImages: [] };
-          const first = Array.isArray(j.coverImages) && j.coverImages[0];
-          if (first) heroImage.src = `/uploads/${first}`;
+          const r = await fetch('/api/cover', { cache: 'no-store' });
+          if (r.ok) {
+            const j = await r.json();
+            const match = Array.isArray(j.items) && j.items.find(it => it.filename === config.heroImage);
+            if (match && match.url) src = match.url;
+          }
         } catch (_) {}
-      };
+      }
+      // Si aún no hay, intentar usar la primera portada con URL pública
+      if (!src) {
+        try {
+          const r = await fetch('/api/cover', { cache: 'no-store' });
+          if (r.ok) {
+            const j = await r.json();
+            if (Array.isArray(j.items) && j.items[0] && j.items[0].url) {
+              src = j.items[0].url;
+            }
+          }
+        } catch (_) {}
+      }
+      if (src) {
+        heroImage.src = src;
+      }
+      // Si todo falla, mantener sin src en lugar de usar /uploads/luz-hero.jpg (evita 404s)
+      heroImage.onerror = null;
     }
     
     // Actualizar el título
