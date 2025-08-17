@@ -1045,22 +1045,19 @@ async function deleteImage(filename, index) {
 
 // Función para alternar imagen de portada
 function toggleCoverImage(filename, index) {
-  const coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
-  const imageIndex = coverImages.indexOf(filename);
-  
-  if (imageIndex > -1) {
-    // Remover de portada
-    coverImages.splice(imageIndex, 1);
+  // Portada ÚNICA: si clic en otra imagen, reemplaza; si clic en la misma, quita
+  const current = JSON.parse(localStorage.getItem('coverImages') || '[]');
+  let newList = [];
+  if (current.length === 1 && current[0] === filename) {
+    newList = []; // quitar
     showNotification('Imagen removida de la portada', 'info');
   } else {
-    // Agregar a portada
-    coverImages.push(filename);
-    showNotification('Imagen agregada a la portada', 'success');
+    newList = [filename]; // reemplazar única portada
+    showNotification('Imagen establecida como portada', 'success');
   }
-  
-  localStorage.setItem('coverImages', JSON.stringify(coverImages));
+  localStorage.setItem('coverImages', JSON.stringify(newList));
   // Persistir en servidor (KV) cuando esté en producción
-  persistCoverImagesServer(coverImages).catch(() => {});
+  persistCoverImagesServer(newList).catch(() => {});
   // Refrescar sección portada inmediatamente para que el test vea el DOM
   setTimeout(() => updateCoverSection(), 100);
   setTimeout(() => updateCoverButtons(), 0);

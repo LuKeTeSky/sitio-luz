@@ -1165,8 +1165,8 @@ app.post('/api/cover', express.json(), async (req, res) => {
     }
 
     if (Array.isArray(req.body?.coverImages)) {
-      // Limpiar referencias a archivos inexistentes
-      const requested = req.body.coverImages.filter(Boolean);
+      // Modo portada única: tomar solo el primero si hay varios
+      const requested = req.body.coverImages.filter(Boolean).slice(0, 1);
       const existing = await getExistingImageFilenamesSet();
       current = requested.filter(fn => existing.size === 0 || existing.has(fn));
     } else if (req.body && typeof req.body.filename === 'string') {
