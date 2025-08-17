@@ -1133,12 +1133,18 @@ app.get('/api/cover', async (req, res) => {
           // Persistir limpieza best-effort
           await setCoverImagesKV(filtered);
         }
-        return res.json({ coverImages: filtered });
+        // Adjuntar URLs públicas para evitar 404s de /uploads
+        const items = await Promise.all(filtered.map(async (fn) => ({
+          filename: fn,
+          url: await getPublicUrlForFilename(fn)
+        })));
+        return res.json({ coverImages: filtered, items });
       }
-      if (kvList) return res.json({ coverImages: kvList });
+      if (kvList) return res.json({ coverImages: kvList, items: [] });
     }
     // Fallback memoria
-    return res.json({ coverImages: coverImagesMemory });
+    const items = await Promise.all((coverImagesMemory || []).map(async (fn) => ({ filename: fn, url: await getPublicUrlForFilename(fn) })));
+    return res.json({ coverImages: coverImagesMemory, items });
   } catch (e) {
     console.error('GET /api/cover error:', e);
     res.status(500).json({ error: 'Error interno del servidor' });

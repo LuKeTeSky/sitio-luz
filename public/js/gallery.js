@@ -1137,6 +1137,15 @@ async function updateCoverSection() {
     if (r.ok) {
       const j = await r.json();
       if (Array.isArray(j.coverImages)) coverImages = j.coverImages;
+      // Si el backend adjunta URLs públicas, úsalas para evitar 404s de /uploads
+      if (Array.isArray(j.items)) {
+        j.items.forEach(it => {
+          if (it && it.filename) {
+            const found = allImages.find(img => img.filename === it.filename);
+            if (found && it.url) found.url = it.url;
+          }
+        });
+      }
     }
   } catch (_) {}
   // Mezclar con localStorage para evitar carreras (POST async)
