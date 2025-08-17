@@ -110,6 +110,12 @@ const galleryLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// 🧩 Correlation ID simple para trazas
+app.use((req, res, next) => {
+  req._rid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  next();
+});
+
 // 📁 Configuración de multer con límites y validación
 const upload = multer({
   dest: process.env.VERCEL === '1' ? '/tmp/' : path.join(__dirname, 'public/uploads'),
@@ -1177,10 +1183,11 @@ app.post('/api/cover', express.json(), async (req, res) => {
       // No permitir portadas de archivos inexistentes
       const existing = await getExistingImageFilenamesSet();
       if (marked && existing.size && !existing.has(fn)) {
+        console.warn(`[RID ${req._rid}] cover: attempt to mark missing file ${fn}`);
         return res.status(404).json({ error: 'Imagen no encontrada' });
       }
       const idx = current.indexOf(fn);
-      if (marked && idx === -1) current.push(fn);
+      if (marked && idx === -1) current = [fn]; // portada única
       if (!marked && idx !== -1) current.splice(idx, 1);
     } else {
       return res.status(400).json({ error: 'Body inválido' });
