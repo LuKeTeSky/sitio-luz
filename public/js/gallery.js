@@ -1260,6 +1260,15 @@ function createCoverItem(imageData, isHeroImage = false) {
       // Para la imagen del hero, preguntamos si quiere removerla como hero
       if (confirm('¿Quieres remover esta imagen como imagen principal del home?')) {
         setHeroImage(''); // Remover hero image
+        // Además, si estaba en portadas, removerla de Portada
+        const current = JSON.parse(localStorage.getItem('coverImages') || '[]');
+        const idx = current.indexOf(imageData.filename);
+        if (idx > -1) {
+          current.splice(idx, 1);
+          localStorage.setItem('coverImages', JSON.stringify(current));
+          persistCoverImagesServer(current).catch(()=>{});
+          setTimeout(() => updateCoverSection(), 200);
+        }
       }
     };
   } else {

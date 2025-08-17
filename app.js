@@ -1042,28 +1042,28 @@ app.get('/api/hero', async (req, res) => {
 app.post('/api/hero', express.json(), async (req, res) => {
   try {
     const { heroImage, title, subtitle } = req.body;
-    
-    if (!heroImage) {
-      return res.status(400).json({ error: 'Se requiere una imagen para el hero' });
-    }
+    // Permitir limpiar heroImage cuando venga vacío/null
+    const clearHero = !heroImage;
     
     const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
-    if (!isProd) {
-      // Desarrollo: validar en filesystem local
-      const imagePath = path.join(__dirname, 'public/uploads', heroImage);
-      if (!fs.existsSync(imagePath)) {
-        return res.status(404).json({ error: 'Imagen no encontrada' });
-      }
-    } else {
-      // Producción (Vercel): intentar validar contra KV/Blob; si no se encuentra, seguimos best-effort
-      const publicUrl = await getPublicUrlForFilename(heroImage);
-      if (!publicUrl) {
-        console.warn(`Hero image '${heroImage}' no encontrada en KV/Blob. Se guarda igualmente (best-effort).`);
+    if (!clearHero) {
+      if (!isProd) {
+        // Desarrollo: validar en filesystem local
+        const imagePath = path.join(__dirname, 'public/uploads', heroImage);
+        if (!fs.existsSync(imagePath)) {
+          return res.status(404).json({ error: 'Imagen no encontrada' });
+        }
+      } else {
+        // Producción (Vercel): intentar validar contra KV/Blob; si no se encuentra, seguimos best-effort
+        const publicUrl = await getPublicUrlForFilename(heroImage);
+        if (!publicUrl) {
+          console.warn(`Hero image '${heroImage}' no encontrada en KV/Blob. Se guarda igualmente (best-effort).`);
+        }
       }
     }
     
     const config = {
-      heroImage,
+      heroImage: clearHero ? '' : heroImage,
       title: title || 'LUZ',
       subtitle: subtitle || 'Portfolio de Moda & Fotografía',
       updatedAt: new Date().toISOString()
