@@ -1044,39 +1044,56 @@ async function deleteImage(filename, index) {
 }
 
 // Función para alternar imagen de portada
-function toggleCoverImage(filename, index) {
-  // Portada ÚNICA: si clic en otra imagen, reemplaza; si clic en la misma, quita
-  const current = JSON.parse(localStorage.getItem('coverImages') || '[]');
-  let newList = [];
-  if (current.length === 1 && current[0] === filename) {
-    newList = []; // quitar
-    showNotification('Imagen removida de la portada', 'info');
-  } else {
-    newList = [filename]; // reemplazar única portada
-    showNotification('Imagen establecida como portada', 'success');
+async function toggleCoverImage(filename, index) {
+  // Portada ÚNICA: servidor es la fuente de verdad
+  const optimistic = [filename];
+  try {
+    const serverList = await persistCoverImagesServer(optimistic);
+    const finalList = Array.isArray(serverList) ? serverList : optimistic;
+    localStorage.setItem('coverImages', JSON.stringify(finalList));
+    if (finalList.length === 0) {
+      showNotification('Imagen removida de la portada', 'info');
+    } else {
+      showNotification('Imagen establecida como portada', 'success');
+    }
+  } catch (_) {
+    // fallback local para no quedar sin feedback
+    localStorage.setItem('coverImages', JSON.stringify(optimistic));
   }
-  localStorage.setItem('coverImages', JSON.stringify(newList));
-  // Persistir en servidor (KV) cuando esté en producción
-  persistCoverImagesServer(newList).catch(() => {});
-  // Refrescar sección portada inmediatamente para que el test vea el DOM
-  setTimeout(() => updateCoverSection(), 100);
-  setTimeout(() => updateCoverButtons(), 0);
-  // updateCoverSection();
+  // Tras persistir, refrescar desde servidor para evitar carreras
+  await updateCoverSection();
+  updateCoverButtons();
 }
 
 async function persistCoverImagesServer(list) {
   try {
-    await fetch('/api/cover', {
+    const r = await fetch('/api/cover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ coverImages: list })
     });
+    if (r.ok) {
+      const j = await r.json();
+      return j && Array.isArray(j.coverImages) ? j.coverImages : list;
+    }
   } catch (_) {}
+  return list;
 }
 
 // Función para actualizar botones de portada
-function updateCoverButtons() {
-  const coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
+async function updateCoverButtons() {
+  // Consultar al servidor para evitar desfasajes
+  let coverImages = [];
+  try {
+    const r = await fetch('/api/cover');
+    if (r.ok) {
+      const j = await r.json();
+      coverImages = Array.isArray(j.coverImages) ? j.coverImages : [];
+      localStorage.setItem('coverImages', JSON.stringify(coverImages));
+    }
+  } catch (_) {
+    coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
+  }
   const coverButtons = document.querySelectorAll('.cover-btn, .lightbox-action-btn.cover-btn');
   
   coverButtons.forEach((btn, index) => {
@@ -1126,53 +1143,24 @@ async function updateCoverSection() {
   
   if (!coverGrid || !coverEmpty) return;
   
-  // Obtener tanto las imágenes de cover como la imagen del hero actual
-  // Primero intentar desde servidor (persistencia KV), fallback a localStorage
+  // Estado del servidor es la verdad. Fallback a localStorage solo si la API falla.
   let coverImages = [];
+  let itemsFromServer = [];
   try {
     const r = await fetch('/api/cover');
     if (r.ok) {
       const j = await r.json();
-      if (Array.isArray(j.coverImages)) coverImages = j.coverImages;
-      // Si el backend adjunta URLs públicas, úsalas para evitar 404s de /uploads
-      if (Array.isArray(j.items)) {
-        j.items.forEach(it => {
-          if (it && it.filename) {
-            const found = allImages.find(img => img.filename === it.filename);
-            if (found && it.url) found.url = it.url;
-          }
-        });
-      }
+      coverImages = Array.isArray(j.coverImages) ? j.coverImages : [];
+      itemsFromServer = Array.isArray(j.items) ? j.items : [];
+      localStorage.setItem('coverImages', JSON.stringify(coverImages));
+    } else {
+      coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
     }
-  } catch (_) {}
-  // Mezclar con localStorage para evitar carreras (POST async)
-  const ls = JSON.parse(localStorage.getItem('coverImages') || '[]');
-  const set = new Set([...(Array.isArray(coverImages)?coverImages:[]), ...(Array.isArray(ls)?ls:[])]);
-  coverImages = Array.from(set);
-  let currentHeroImage = null;
-  
-  try {
-    const response = await fetch('/api/hero');
-    if (response.ok) {
-      const heroConfig = await response.json();
-      currentHeroImage = heroConfig.image || heroConfig.heroImage;
-    }
-  } catch (error) {
-    console.log('No se pudo obtener configuración del hero:', error);
+  } catch (_) {
+    coverImages = JSON.parse(localStorage.getItem('coverImages') || '[]');
   }
   
-  // Crear lista unificada de imágenes de portada (hero + cover images, sin duplicados)
-  const allCoverImages = [];
-  
-  // Agregar imagen del hero primero si existe y no está en coverImages
-  if (currentHeroImage && !coverImages.includes(currentHeroImage)) {
-    allCoverImages.push(currentHeroImage);
-  }
-  
-  // Agregar las demás imágenes de cover
-  allCoverImages.push(...coverImages);
-  
-  if (allCoverImages.length === 0) {
+  if (coverImages.length === 0) {
     coverGrid.style.display = 'none';
     coverEmpty.style.display = 'block';
     coverSection.classList.remove('has-cover-image');
@@ -1183,9 +1171,9 @@ async function updateCoverSection() {
   coverEmpty.style.display = 'none';
   coverGrid.innerHTML = '';
   
-  // Preparar mapa de imágenes por filename; si falta información, pedir /api/images como fallback
+  // Preparar mapa de imágenes por filename; si falta info, pedir /api/images
   let imagesByFilename = new Map((allImages || []).map(img => [img.filename, img]));
-  if (allCoverImages.some(fn => !imagesByFilename.has(fn))) {
+  if (coverImages.some(fn => !imagesByFilename.has(fn))) {
     try {
       const ri = await fetch('/api/images');
       if (ri.ok) {
@@ -1194,9 +1182,16 @@ async function updateCoverSection() {
       }
     } catch (_) {}
   }
+  // Complementar URLs con lo que venga del servidor
+  itemsFromServer.forEach(it => {
+    if (it && it.filename && it.url) {
+      const found = imagesByFilename.get(it.filename);
+      if (found) found.url = it.url;
+    }
+  });
 
-  // Tomar la primera imagen como fondo principal (prioridad al hero)
-  const firstImageData = imagesByFilename.get(allCoverImages[0]);
+  // Tomar la primera imagen como fondo principal
+  const firstImageData = imagesByFilename.get(coverImages[0]);
   if (firstImageData && coverSection) {
     coverSection.classList.add('has-cover-image');
     // Crear un fondo sutil con la primera imagen (usar URL pública si existe)
@@ -1207,10 +1202,9 @@ async function updateCoverSection() {
     coverSection.style.backgroundAttachment = 'fixed';
   }
   
-  allCoverImages.forEach(filename => {
+  coverImages.forEach(filename => {
     const imageData = imagesByFilename.get(filename) || { filename, url: null, title: 'Foto de Portada' };
-    const isHeroImage = filename === currentHeroImage;
-    const coverItem = createCoverItem(imageData, isHeroImage);
+    const coverItem = createCoverItem(imageData, false);
     coverGrid.appendChild(coverItem);
   });
 }
