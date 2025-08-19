@@ -20,6 +20,7 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Portada única y sincronizada con KV (`/api/cover`), UI con borde azul en Admin para la seleccionada.
 - Home y Admin con auto-refresh suave cada 30s para mantenerse en línea con KV.
 - `hero-loader` prioriza URL pública de Blob; se eliminó cualquier fallback a `/uploads` para Vercel.
+- Logs de troubleshooting opcionales con RID en `/api/cover`, `/api/hero`, POST `/api/cover` y `/uploads/:filename` (ver "Debug logging opcional" más abajo).
 
 ### 🔜 Próximo
 - RUM (TTFB/LCP/CLS), navegación lightbox (`next/prev`, dwell), reordenamientos (galería/álbumes), top listas (imágenes/álbumes) y selector 7/30 días.
@@ -76,6 +77,25 @@ Luego validar en Vercel/CI y, al finalizar, mergear a `main` y taggear.
 - `develop` (integración)
 - `release/v1.17.0` (backup/RC)
 - `feature/next-version-v1.16.0` (histórico)
+
+---
+
+## 🪵 Debug logging opcional (RID)
+Para activar logs detallados de troubleshooting en producción:
+1. Vercel → Project → Settings → Environment Variables → agregar `DEBUG_LOGS=1`.
+2. Redeploy.
+
+Para desactivar: eliminar la variable o poner `DEBUG_LOGS=0` y redeploy. Por defecto, los logs están desactivados.
+
+---
+
+## 🖼️ Submenú de acciones y selector de álbumes (UX)
+- Overlay de acciones: mayor contraste, blur y botones más grandes (responsive).
+- Menú “Agregar a álbum”: ahora se monta en `document.body` con posición fija para evitar recortes; se reposiciona si no hay espacio.
+- En el selector, los álbumes que ya contienen la foto se marcan con ✓ y estilo `selected`; permite alternar agregar/remover.
+
+## 🧭 Navegación en Admin
+- En el navbar, “Galería” realiza el mismo comportamiento que “Ver todas las fotos”: resetea filtros/álbum seleccionado y hace scroll a la sección (con reintentos si está cargando).
 
 ---
 
