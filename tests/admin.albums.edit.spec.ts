@@ -14,14 +14,20 @@ test.describe('Admin - Álbumes (edición básica)', () => {
     // Crear álbum con sufijo único para no dejar residuos
     const uniqueName = `RC Edit ${Date.now()}`;
     await page.getByRole('button', { name: /nuevo álbum/i }).click();
-    await page.getByLabel(/nombre del álbum/i).fill(uniqueName);
+    const modal = page.locator('#album-modal');
+    await expect(modal).toHaveClass(/active/);
+    const nameInput = page.locator('#album-name');
+    await nameInput.scrollIntoViewIfNeeded();
+    await expect(nameInput).toBeVisible();
+    await nameInput.fill(uniqueName);
     await page.getByLabel(/descripción/i).fill('desc original');
     await page.getByRole('button', { name: /guardar/i }).click();
-    await expect(page.locator('#albums-list .album-item')).toContainText(uniqueName);
+    await expect(page.locator('#albums-list .album-item', { hasText: uniqueName }).first()).toBeVisible();
 
     // Abrir modal de edición usando el botón de editar
-    const created = page.locator('#albums-list .album-item').filter({ hasText: uniqueName });
+    const created = page.locator('#albums-list .album-item').filter({ hasText: uniqueName }).first();
     await created.locator('.album-edit-btn').click();
+    await expect(modal).toHaveClass(/active/);
 
     // Editar nombre y slug
     await page.getByLabel(/nombre del álbum/i).fill('RC Editado');
@@ -30,7 +36,7 @@ test.describe('Admin - Álbumes (edición básica)', () => {
     await page.getByRole('button', { name: /guardar/i }).click();
 
     // Verificar en UI
-    await expect(page.locator('#albums-list .album-item')).toContainText('RC Editado');
+    await expect(page.locator('#albums-list .album-item', { hasText: 'RC Editado' }).first()).toBeVisible();
 
     // Verificar por API que exista con slug actualizado
     const res = await page.request.get('/api/albums');
@@ -42,7 +48,7 @@ test.describe('Admin - Álbumes (edición básica)', () => {
     try {
       const delRes = await page.request.delete(`/api/albums/${found.id}`);
       expect(delRes.ok()).toBeTruthy();
-    } catch (_) { /* ignorar en caso de permisos o fallos transitorios */ }
+    } catch (_) { /* ignorar */ }
   });
 });
 

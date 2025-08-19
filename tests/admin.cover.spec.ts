@@ -31,6 +31,7 @@ test.describe('Admin - Portada (cover)', () => {
 
     await page.getByRole('link', { name: /portada/i }).click();
     const coverItems = page.locator('.cover-item img');
+    await expect.poll(async () => await coverItems.count(), { timeout: 20000, intervals: [500,1000] }).toBeGreaterThan(0);
     await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
 
     // Refrescar y verificar que persiste
@@ -43,6 +44,7 @@ test.describe('Admin - Portada (cover)', () => {
       return (Array.isArray(j.coverImages) ? j.coverImages.length : 0);
     }, { timeout: 20000, intervals: [500,1000] }).toBeGreaterThan(0);
     await page.getByRole('link', { name: /portada/i }).click();
+    await expect.poll(async () => await coverItems.count(), { timeout: 20000, intervals: [500,1000] }).toBeGreaterThan(0);
     await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
   });
 });
