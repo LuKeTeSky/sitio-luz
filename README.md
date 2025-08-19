@@ -36,6 +36,9 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Tests Playwright estabilizados:
   - Portada: espera render de `.cover-item` con `expect.poll`.
   - Álbumes: espera a que el modal esté activo y el input sea visible; limpieza al finalizar.
+ - Rama dedicada para estabilización de CI: `ci/test-stabilization`.
+   - El workflow E2E corre en: `push` a `main` y `ci/test-stabilization`, y en `pull_request` hacia `main`, `develop`, `release/*` y `ci/test-stabilization`.
+   - Usar esta rama para probar ajustes de tiempo/esperas sin bloquear `main`.
 
 ### 🔜 Próximo
 - RUM (TTFB/LCP/CLS), navegación lightbox (`next/prev`, dwell), reordenamientos (galería/álbumes), top listas (imágenes/álbumes) y selector 7/30 días.
