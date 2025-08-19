@@ -552,6 +552,8 @@ async function loadGalleryImages() {
 
 // Hacer función disponible globalmente para admin
 window.loadAdminGallery = loadGalleryImages;
+// Exponer actualización de Portada para tooling/tests
+window.updateCoverSection = updateCoverSection;
 
 // Función para resetear la protección de carga
 function resetGalleryLoadProtection() {

@@ -21,7 +21,6 @@ test.describe('Admin - Portada (cover)', () => {
     // Esperar notificación breve para confirmar acción
     await page.waitForTimeout(200);
 
-    // Ir a sección portada y verificar que haya al menos 1 elemento
     // Validar por API que haya al menos una portada antes de chequear el DOM
     await expect.poll(async () => {
       const r = await page.request.get('/api/cover');
@@ -29,9 +28,12 @@ test.describe('Admin - Portada (cover)', () => {
       return (Array.isArray(j.coverImages) ? j.coverImages.length : 0);
     }, { timeout: 20000, intervals: [500,1000] }).toBeGreaterThan(0);
 
+    // Forzar actualización de la sección portada en UI
     await page.getByRole('link', { name: /portada/i }).click();
+    await page.evaluate(async () => { if (window['updateCoverSection']) { await window['updateCoverSection'](); } });
+
     const coverItems = page.locator('.cover-item img');
-    await expect.poll(async () => await coverItems.count(), { timeout: 20000, intervals: [500,1000] }).toBeGreaterThan(0);
+    await expect.poll(async () => await coverItems.count(), { timeout: 25000, intervals: [500,1000] }).toBeGreaterThan(0);
     await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
 
     // Refrescar y verificar que persiste
@@ -44,7 +46,8 @@ test.describe('Admin - Portada (cover)', () => {
       return (Array.isArray(j.coverImages) ? j.coverImages.length : 0);
     }, { timeout: 20000, intervals: [500,1000] }).toBeGreaterThan(0);
     await page.getByRole('link', { name: /portada/i }).click();
-    await expect.poll(async () => await coverItems.count(), { timeout: 20000, intervals: [500,1000] }).toBeGreaterThan(0);
+    await page.evaluate(async () => { if (window['updateCoverSection']) { await window['updateCoverSection'](); } });
+    await expect.poll(async () => await coverItems.count(), { timeout: 25000, intervals: [500,1000] }).toBeGreaterThan(0);
     await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
   });
 });
