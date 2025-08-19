@@ -1107,6 +1107,17 @@ async function updateCoverButtons() {
       btn.innerHTML = '<i class="far fa-star"></i>';
     }
   });
+
+  // Resaltar tarjeta seleccionada como portada (borde azul)
+  const items = document.querySelectorAll('#gallery-grid .gallery-item');
+  items.forEach((item) => {
+    const fn = item.getAttribute('data-filename');
+    if (fn && coverImages.includes(fn)) {
+      item.classList.add('selected-cover');
+    } else {
+      item.classList.remove('selected-cover');
+    }
+  });
 }
 
 // Función para cargar configuración de portada

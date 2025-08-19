@@ -634,6 +634,13 @@ body.admin-page {
   border: 1px solid var(--lv-border);
 }
 
+/* Resaltado de portada seleccionada */
+.gallery-item.selected-cover {
+  outline: 3px solid #2d7ff9;
+  outline-offset: -3px;
+  box-shadow: 0 0 0 4px rgba(45, 127, 249, 0.25), 0 12px 36px rgba(0,0,0,0.25);
+}
+
 .gallery-item:hover {
   transform: translateY(-8px);
   box-shadow: 0 16px 48px var(--lv-shadow-hover);
