@@ -24,15 +24,8 @@ function handleHeaderScroll() {
 function loadHeroImage() {
     const heroImage = document.getElementById('hero-image');
     if (heroImage) {
-        // Intentar cargar una imagen de hero específica, si no existe usar la primera imagen de la galería
-        heroImage.onerror = function() {
-            // Si no existe luz-hero.jpg, usar la primera imagen de la galería
-            if (allImages.length > 0) {
-                const first = allImages[0];
-                const firstSrc = first.url || `/uploads/${first.filename}`;
-                heroImage.src = firstSrc;
-            }
-        };
+        // No usar /uploads; hero-loader.js fijará el src con URL pública
+        heroImage.onerror = null;
     }
 }
 
