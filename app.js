@@ -602,19 +602,19 @@ app.get('/uploads/:filename', (req, res) => {
   const filename = req.params.filename;
   const rid = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
-  if (process.env.DEBUG_LOGS === '1') console.log(`[GET /uploads ${rid}] ip=${ip} filename=${filename}`);
+  console.log(`[GET /uploads ${rid}] ip=${ip} filename=${filename}`);
 
   if (process.env.VERCEL === '1') {
     // En Vercel: servir desde /tmp (filesystem efímero)
     const filePath = path.join('/tmp', filename);
     if (fs.existsSync(filePath)) {
-      if (process.env.DEBUG_LOGS === '1') console.log(`[GET /uploads ${rid}] FOUND ${filePath}`);
+      console.log(`[GET /uploads ${rid}] FOUND ${filePath}`);
       const ext = path.extname(filename).toLowerCase();
       const mimeTypes = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
       res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
       return fs.createReadStream(filePath).pipe(res);
     }
-    if (process.env.DEBUG_LOGS === '1') console.log(`[GET /uploads ${rid}] NOT_FOUND ${filePath}`);
+    console.log(`[GET /uploads ${rid}] NOT_FOUND ${filePath}`);
     return res.status(404).json({ error: 'Archivo no encontrado' });
   } else {
     // En local: servir desde public/uploads
@@ -1029,9 +1029,7 @@ app.get('/api/hero', async (req, res) => {
     }
     // Adjuntar URL pública si existe
     const heroImageUrl = await getPublicUrlForFilename(config.heroImage);
-    if (process.env.DEBUG_LOGS === '1') {
-      console.log(`[RID ${rid}] GET /api/hero → heroImage=${config.heroImage || ''} url=${heroImageUrl || ''}`);
-    }
+    console.log(`[RID ${rid}] GET /api/hero → heroImage=${config.heroImage || ''} url=${heroImageUrl || ''}`);
     res.json({ ...config, heroImageUrl });
   } catch (error) {
     console.error('Error leyendo configuración del hero:', error);
@@ -1140,9 +1138,7 @@ app.get('/api/cover', async (req, res) => {
           filename: fn,
           url: await getPublicUrlForFilename(fn)
         })));
-        if (process.env.DEBUG_LOGS === '1') {
-          console.log(`[RID ${req._rid}] GET /api/cover → ${items.length} cover(s): ${filtered.join(',')}`);
-        }
+        console.log(`[RID ${req._rid}] GET /api/cover → ${items.length} cover(s): ${filtered.join(',')}`);
         return res.json({ coverImages: filtered, items });
       }
       if (kvList) return res.json({ coverImages: kvList, items: [] });
@@ -1180,7 +1176,7 @@ app.post('/api/cover', express.json(), async (req, res) => {
       // No permitir portadas de archivos inexistentes
       const existing = await getExistingImageFilenamesSet();
       if (marked && existing.size && !existing.has(fn)) {
-        if (process.env.DEBUG_LOGS === '1') console.warn(`[RID ${req._rid}] cover: attempt to mark missing file ${fn}`);
+        console.warn(`[RID ${req._rid}] cover: attempt to mark missing file ${fn}`);
         return res.status(404).json({ error: 'Imagen no encontrada' });
       }
       const idx = current.indexOf(fn);
@@ -1204,7 +1200,7 @@ app.post('/api/cover', express.json(), async (req, res) => {
       heroConfig.updatedAt = new Date().toISOString();
     }
 
-    if (process.env.DEBUG_LOGS === '1') console.log(`[RID ${req._rid}] POST /api/cover saved -> ${current.join(',')}`);
+    console.log(`[RID ${req._rid}] POST /api/cover saved -> ${current.join(',')}`);
     res.json({ success: true, coverImages: current });
   } catch (e) {
     console.error('POST /api/cover error:', e);
