@@ -615,16 +615,6 @@ app.get('/uploads/:filename', (req, res) => {
       return fs.createReadStream(filePath).pipe(res);
     }
     console.log(`[GET /uploads ${rid}] NOT_FOUND ${filePath}`);
-    // Fallback especial para hero para evitar 404s públicos
-    if (filename === 'luz-hero.jpg' || filename === 'luz-hero.png') {
-      const transparent1x1Png = Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMB9pA1trEAAAAASUVORK5CYII=',
-        'base64'
-      );
-      res.setHeader('Content-Type', 'image/png');
-      res.setHeader('Content-Length', transparent1x1Png.length);
-      return res.send(transparent1x1Png);
-    }
     return res.status(404).json({ error: 'Archivo no encontrado' });
   } else {
     // En local: servir desde public/uploads
@@ -1014,6 +1004,7 @@ async function getExistingImageFilenamesSet() {
 app.get('/api/hero', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
+    const rid = req._rid || `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
     let config = heroConfig;
     // En desarrollo, intentar archivo local
     if (process.env.NODE_ENV !== 'production') {
@@ -1038,6 +1029,7 @@ app.get('/api/hero', async (req, res) => {
     }
     // Adjuntar URL pública si existe
     const heroImageUrl = await getPublicUrlForFilename(config.heroImage);
+    console.log(`[RID ${rid}] GET /api/hero → heroImage=${config.heroImage || ''} url=${heroImageUrl || ''}`);
     res.json({ ...config, heroImageUrl });
   } catch (error) {
     console.error('Error leyendo configuración del hero:', error);
@@ -1146,6 +1138,7 @@ app.get('/api/cover', async (req, res) => {
           filename: fn,
           url: await getPublicUrlForFilename(fn)
         })));
+        console.log(`[RID ${req._rid}] GET /api/cover → ${items.length} cover(s): ${filtered.join(',')}`);
         return res.json({ coverImages: filtered, items });
       }
       if (kvList) return res.json({ coverImages: kvList, items: [] });
@@ -1207,6 +1200,7 @@ app.post('/api/cover', express.json(), async (req, res) => {
       heroConfig.updatedAt = new Date().toISOString();
     }
 
+    console.log(`[RID ${req._rid}] POST /api/cover saved -> ${current.join(',')}`);
     res.json({ success: true, coverImages: current });
   } catch (e) {
     console.error('POST /api/cover error:', e);
