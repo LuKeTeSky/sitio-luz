@@ -1563,8 +1563,8 @@ app.post('/api/albums', express.json(), async (req, res) => {
   }
 });
 
-// PUT /api/albums/:id - Actualizar álbum
-app.put('/api/albums/:id', express.json(), async (req, res) => {
+// PUT /api/albums/:id - Actualizar álbum (ids numéricos: evita conflicto con /api/albums/reorder)
+app.put('/api/albums/:id(\\d+)', express.json(), async (req, res) => {
   try {
     const albumId = req.params.id;
     const { name, description, campaign, coverImage, featured, slug: desiredSlug } = req.body;
@@ -1604,8 +1604,8 @@ app.put('/api/albums/:id', express.json(), async (req, res) => {
   }
 });
 
-// DELETE /api/albums/:id - Eliminar álbum
-app.delete('/api/albums/:id', async (req, res) => {
+// DELETE /api/albums/:id - Eliminar álbum (ids numéricos)
+app.delete('/api/albums/:id(\\d+)', async (req, res) => {
   try {
     const albumId = req.params.id;
     const albums = await loadAlbums();
