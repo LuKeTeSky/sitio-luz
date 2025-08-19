@@ -16,6 +16,11 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Edición desde Admin: modal con campos y validación/preview de slug.
 - Página pública por álbum: `/album/:slug` reutilizando la vista pública y filtrando por slug.
 
+### 🖼️ Portada/Hero – Persistencia y estabilidad
+- Portada única y sincronizada con KV (`/api/cover`), UI con borde azul en Admin para la seleccionada.
+- Home y Admin con auto-refresh suave cada 30s para mantenerse en línea con KV.
+- `hero-loader` prioriza URL pública de Blob; se eliminó cualquier fallback a `/uploads` para Vercel.
+
 ### 🔜 Próximo
 - RUM (TTFB/LCP/CLS), navegación lightbox (`next/prev`, dwell), reordenamientos (galería/álbumes), top listas (imágenes/álbumes) y selector 7/30 días.
 
@@ -56,6 +61,15 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 ### 🧭 Gitflow (backup/RC)
 - Ramas `release/*` funcionan como respaldo congelado (Release Candidate).
 - Creadas: `release/v1.17.0` (actual), `release/v1.16.0`, `release/v1.15.0`, `release/v1.14.0`, `release/v1.13.0`.
+
+#### 📦 Cómo crear una Release Candidate nueva
+```zsh
+git checkout develop
+git pull origin develop
+git checkout -b release/v1.17.0-rc.1
+git push -u origin release/v1.17.0-rc.1
+```
+Luego validar en Vercel/CI y, al finalizar, mergear a `main` y taggear.
 
 #### 🔀 Ramas activas hoy
 - `main` (producción)

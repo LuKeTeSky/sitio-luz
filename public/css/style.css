@@ -1743,6 +1743,33 @@ body.dragging .gallery-item:not(.dragging):hover {
   gap: 8px;
 }
 
+.album-edit-btn {
+  background: rgba(33, 150, 243, 0.2);
+  border: 1px solid rgba(33, 150, 243, 0.35);
+  color: #2196f3;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  transition: all 0.3s ease;
+  opacity: 1;
+}
+
+.album-item:hover .album-edit-btn {
+  opacity: 1;
+}
+
+.album-edit-btn:hover {
+  background: rgba(33, 150, 243, 0.85);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(33,150,243,0.4);
+}
+
 .album-delete-btn {
   background: rgba(220, 53, 69, 0.2);
   border: 1px solid rgba(220, 53, 69, 0.3);
