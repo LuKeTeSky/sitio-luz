@@ -230,7 +230,7 @@ class AlbumsManager {
             });
         }
 
-        // Event listener para el botón de editar (accesible sin doble clic)
+        // Event listener para el botón de editar (acceso directo)
         const editBtn = albumDiv.querySelector('.album-edit-btn');
         if (editBtn) {
             editBtn.addEventListener('click', (e) => {
