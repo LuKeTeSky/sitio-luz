@@ -29,13 +29,23 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Reordenamiento: endpoint `PUT /api/albums/reorder` robustecido (acepta `albumsOrder`, `order`, array, form-encoded y querystring). Rutas `/api/albums/:id` ya no interceptan `/reorder`.
 
 ### 🎛️ UI/UX
-- Overlay de acciones con mayor contraste, blur y botones responsivos.
+- Overlay de acciones con mayor contraste y botones responsivos.
 - En Admin, el enlace “Galería” resetea a “Ver todas las fotos” y hace scroll confiable.
+- Galería sin blur ni textos superpuestos; se prioriza la foto limpia.
+- Marca de agua ligera por CSS (© LUZ) aplicada sobre miniaturas y grandes via clase `.watermark`.
+  - Próximo: editable desde Admin (ver [#26](https://github.com/LuKeTeSky/sitio-luz/issues/26)).
 
 ### 🧪 QA
 - Tests Playwright estabilizados:
   - Portada: espera render de `.cover-item` con `expect.poll`.
   - Álbumes: espera a que el modal esté activo y el input sea visible; limpieza al finalizar.
+  - Rama `ci/test-stabilization`: el workflow E2E corre en push a `main` y `ci/test-stabilization`, y en PR hacia `main`, `develop`, `release/*` y `ci/test-stabilization`.
+
+### 🧰 Operación
+- Nuevo endpoint de reparación de URLs públicas (evita 403 de Blob):
+  - `POST /api/images/repair-urls` (requiere sesión). Parámetro opcional `dryRun=1`.
+  - Relee `@vercel/blob` y actualiza `images.url` en KV.
+- Álbum “Portada” se sincroniza automáticamente con la lista de cover en `POST /api/cover` (álbum con nombre o slug `portada`).
 
 ### 🔜 Próximo
 - RUM (TTFB/LCP/CLS), navegación lightbox (`next/prev`, dwell), reordenamientos (galería/álbumes), top listas (imágenes/álbumes) y selector 7/30 días.
