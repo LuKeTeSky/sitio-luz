@@ -1926,37 +1926,19 @@ function showAlbumSelector(imageFilename, albumBtn) {
   } else {
     albums.forEach(album => {
       const option = document.createElement('div');
-      const alreadyIn = Array.isArray(album.images) && album.images.includes(imageFilename);
-      option.className = `album-option${alreadyIn ? ' selected' : ''}`;
+      option.className = 'album-option';
       option.innerHTML = `
-        <span class="album-option-name">${alreadyIn ? '✓ ' : ''}${album.name}</span>
+        <span class="album-option-name">${album.name}</span>
         <span class="album-option-count">${album.images ? album.images.length : 0}</span>
       `;
-
+      
       option.addEventListener('click', async () => {
-        let success = false;
-        if (option.classList.contains('selected')) {
-          success = await window.albumsManager.removeImageFromAlbum(imageFilename, album.id);
-          if (success) {
-            option.classList.remove('selected');
-            // actualizar contador visual
-            const count = option.querySelector('.album-option-count');
-            if (count) count.textContent = String(Math.max(0, (album.images?.length || 1) - 1));
-            const nameEl = option.querySelector('.album-option-name');
-            if (nameEl) nameEl.textContent = album.name;
-          }
-        } else {
-          success = await window.albumsManager.addImageToAlbum(imageFilename, album.id);
-          if (success) {
-            option.classList.add('selected');
-            const count = option.querySelector('.album-option-count');
-            if (count) count.textContent = String((album.images?.length || 0) + 1);
-            const nameEl = option.querySelector('.album-option-name');
-            if (nameEl) nameEl.textContent = `✓ ${album.name}`;
-          }
+        const success = await window.albumsManager.addImageToAlbum(imageFilename, album.id);
+        if (success) {
+          selector.classList.remove('active');
         }
       });
-
+      
       selector.appendChild(option);
     });
   }
