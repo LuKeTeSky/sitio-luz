@@ -2050,9 +2050,10 @@ body.dragging .gallery-item:not(.dragging):hover {
 }
 
 .album-option.selected {
-  background: rgba(212, 175, 55, 0.2);
-  color: #d4af37;
+  background: rgba(33, 150, 243, 0.2);
+  border-color: rgba(33,150,243,0.45);
 }
+.album-option.selected .album-option-name { color: #e3f2fd; }
 
 .album-option-name {
   color: #fff;
