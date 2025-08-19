@@ -1563,8 +1563,60 @@ app.post('/api/albums', express.json(), async (req, res) => {
   }
 });
 
-// PUT /api/albums/:id - Actualizar álbum (ids numéricos: evita conflicto con /api/albums/reorder)
-app.put('/api/albums/:id(\\d+)', express.json(), async (req, res) => {
+// Ruta explícita para reordenar definida ANTES de rutas :id para evitar conflictos
+app.put('/api/albums/reorder', express.json(), async (req, res) => {
+  try {
+    let { albumsOrder } = req.body || {};
+    if (!Array.isArray(albumsOrder)) {
+      if (Array.isArray(req.body)) {
+        albumsOrder = req.body;
+      } else if (req.body && Array.isArray(req.body.order)) {
+        albumsOrder = req.body.order;
+      } else if (typeof req.body === 'string') {
+        try {
+          const parsed = JSON.parse(req.body);
+          if (Array.isArray(parsed)) albumsOrder = parsed;
+          if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.albumsOrder)) albumsOrder = parsed.albumsOrder;
+          if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.order)) albumsOrder = parsed.order;
+        } catch (_) {}
+      } else if (req.body && typeof req.body === 'object') {
+        const vals = Object.values(req.body);
+        if (vals.length && vals.every(v => typeof v === 'string')) {
+          albumsOrder = vals;
+        }
+      }
+    }
+    if (!Array.isArray(albumsOrder)) {
+      const q = (req.query && (req.query.order || req.query.albumsOrder));
+      if (typeof q === 'string') {
+        albumsOrder = q.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+
+    if (!Array.isArray(albumsOrder)) {
+      if (process.env.DEBUG_LOGS === '1') return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes', debug: { bodyType: typeof req.body, body: req.body, query: req.query } });
+      return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes' });
+    }
+
+    const albums = await loadAlbums();
+    albumsOrder.forEach((albumId, index) => {
+      const albumIndex = albums.findIndex(album => album.id === albumId);
+      if (albumIndex !== -1) {
+        albums[albumIndex].order = index;
+        albums[albumIndex].updatedAt = new Date().toISOString();
+      }
+    });
+    albums.sort((a, b) => (a.order || 0) - (b.order || 0));
+    await saveAlbums(albums);
+    res.json({ success: true, message: 'Orden de álbumes actualizado exitosamente', albums });
+  } catch (error) {
+    console.error('Error reordenando álbumes:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// PUT /api/albums/:id - Actualizar álbum
+app.put('/api/albums/:id', express.json(), async (req, res) => {
   try {
     const albumId = req.params.id;
     const { name, description, campaign, coverImage, featured, slug: desiredSlug } = req.body;
@@ -1604,8 +1656,8 @@ app.put('/api/albums/:id(\\d+)', express.json(), async (req, res) => {
   }
 });
 
-// DELETE /api/albums/:id - Eliminar álbum (ids numéricos)
-app.delete('/api/albums/:id(\\d+)', async (req, res) => {
+// DELETE /api/albums/:id - Eliminar álbum
+app.delete('/api/albums/:id', async (req, res) => {
   try {
     const albumId = req.params.id;
     const albums = await loadAlbums();
