@@ -947,6 +947,48 @@ app.get('/api/images', async (req, res) => {
   }
 });
 
+// 🛠️ Admin: Reparar URLs públicas en KV si quedaron obsoletas (evita 403 desde Blob)
+// Requiere sesión iniciada. Uso recomendado: POST /api/images/repair-urls
+// Opcional: ?dryRun=1 para no persistir, solo reportar cambios
+app.post('/api/images/repair-urls', express.json(), async (req, res) => {
+  try {
+    const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    if (!isVercel) {
+      return res.status(400).json({ error: 'Solo necesario en producción' });
+    }
+    if (!kv || typeof kv.get !== 'function' || typeof kv.set !== 'function') {
+      return res.status(500).json({ error: 'KV no disponible' });
+    }
+    if (typeof blobList !== 'function') {
+      return res.status(500).json({ error: 'Vercel Blob no disponible' });
+    }
+
+    const dryRun = String(req.query.dryRun || (req.body && req.body.dryRun) || '') === '1';
+    const current = (await kv.get('images')) || [];
+    const { blobs } = await blobList({ prefix: 'uploads/' });
+    const byFilename = new Map((blobs || []).map(b => [String(b.pathname || '').split('/').pop(), b.url]));
+
+    let updates = 0;
+    let missing = 0;
+    const repaired = (current || []).map((it) => {
+      if (!it || !it.filename) return it;
+      const freshUrl = byFilename.get(it.filename);
+      if (!freshUrl) { missing++; return it; }
+      if (!it.url || it.url !== freshUrl) { updates++; return { ...it, url: freshUrl }; }
+      return it;
+    });
+
+    if (!dryRun && updates > 0) {
+      await kv.set('images', repaired);
+    }
+
+    return res.json({ success: true, dryRun, total: current.length, updates, missingInBlob: missing, persisted: !dryRun && updates > 0 });
+  } catch (e) {
+    console.error('repair-urls error:', e);
+    return res.status(500).json({ error: 'Error reparando URLs', details: e.message });
+  }
+});
+
 // 💾 Hero config en memoria para producción
 let heroConfig = {
   heroImage: 'luz-hero.jpg',
