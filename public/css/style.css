@@ -2015,18 +2015,22 @@ body.dragging .gallery-item:not(.dragging):hover {
 }
 
 .album-selector {
-  position: fixed;
-  background: rgba(18, 18, 18, 0.96);
-  border: 1px solid rgba(212, 175, 55, 0.28);
-  border-radius: 12px;
-  padding: 10px;
-  z-index: 10000;
-  max-height: 60vh;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(26, 26, 26, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 8px;
+  z-index: 100;
+  max-height: 250px;
   overflow-y: auto;
   display: none;
-  min-width: 220px;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
+  min-width: 200px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .album-selector.active {
