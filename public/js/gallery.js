@@ -683,7 +683,7 @@ function createGalleryItem(imageData, index) {
   actions.appendChild(albumBtn);
   actions.appendChild(deleteBtn);
   
-  overlay.appendChild(info);
+  // (sin info/textos superpuestos)
   item.appendChild(img);
   item.appendChild(overlay);
   item.appendChild(actions);
