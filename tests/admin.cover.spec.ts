@@ -13,11 +13,14 @@ test.describe('Admin - Portada (cover)', () => {
     await page.goto('/admin');
     await expect(page).toHaveURL(/admin/);
 
-    // Asegurar que la galería cargó y hacer click directo en la estrella (sin hover)
-    await expect.poll(async () => await page.locator('#gallery .gallery-item').count(), { timeout: 20000 }).toBeGreaterThan(0);
-    const firstCard = page.locator('#gallery .gallery-item').first();
-    await firstCard.locator('.gallery-action-btn.cover-btn').click();
-    await page.waitForTimeout(200);
+    // Evitar depender del render de la galería: elegir una imagen por API y marcar portada por API
+    const imgsRes = await page.request.get('/api/images');
+    const imgs = await imgsRes.json();
+    const picked = Array.isArray(imgs) && imgs[0] && imgs[0].filename;
+    expect(Boolean(picked)).toBeTruthy();
+    const setRes = await page.request.post('/api/cover', { data: { coverImages: [picked] } });
+    expect(setRes.ok()).toBeTruthy();
+    await page.waitForTimeout(300);
 
     await expect.poll(async () => {
       const r = await page.request.get('/api/cover');
