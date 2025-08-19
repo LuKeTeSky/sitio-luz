@@ -609,7 +609,7 @@ window.addEventListener('beforeunload', () => {
 // Función para crear un elemento de galería
 function createGalleryItem(imageData, index) {
   const item = document.createElement('div');
-  item.className = 'gallery-item';
+  item.className = 'gallery-item watermark';
   item.dataset.index = index;
   item.dataset.filename = imageData.filename; // Agregar filename para eliminación
   
@@ -623,13 +623,6 @@ function createGalleryItem(imageData, index) {
   
   const overlay = document.createElement('div');
   overlay.className = 'gallery-overlay';
-  
-  const info = document.createElement('div');
-  info.className = 'gallery-info';
-  info.innerHTML = `
-    <h3>${imageData.title || 'Foto de Moda'}</h3>
-    <p>${imageData.description || 'Capturado con estilo'}</p>
-  `;
   
   // Botones de acción
   const actions = document.createElement('div');

@@ -159,16 +159,11 @@ function displayGalleryImages() {
 // Función para crear un elemento de galería
 function createGalleryItem(imageData, index) {
     const item = document.createElement('div');
-    item.className = 'gallery-item';
+    item.className = 'gallery-item watermark';
     const imageSrc = imageData.url || `/uploads/${imageData.filename}`;
     item.innerHTML = `
         <img src="${imageSrc}" alt="${imageData.title || 'Foto de modelo'}" loading="lazy">
-        <div class="gallery-overlay">
-            <div class="gallery-info">
-                <h3>${imageData.title || 'Foto de Moda'}</h3>
-                <p>${imageData.description || 'Capturado con estilo'}</p>
-            </div>
-        </div>
+        <div class="gallery-overlay"></div>
     `;
 
     item.addEventListener('click', () => openLightbox(index));
