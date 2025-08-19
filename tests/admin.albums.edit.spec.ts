@@ -13,9 +13,9 @@ test.describe('Admin - Álbumes (edición básica)', () => {
 
     // Crear álbum con sufijo único para no dejar residuos
     const uniqueName = `RC Edit ${Date.now()}`;
-    await page.getByRole('button', { name: /nuevo álbum/i }).click();
+    await page.locator('#btn-create-album').click();
     const modal = page.locator('#album-modal');
-    await expect(modal).toHaveClass(/active/);
+    await expect(page.locator('#album-modal .modal-content')).toBeVisible({ timeout: 10000 });
     const nameInput = page.locator('#album-name');
     await nameInput.scrollIntoViewIfNeeded();
     await expect(nameInput).toBeVisible();

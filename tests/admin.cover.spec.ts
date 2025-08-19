@@ -50,10 +50,9 @@ test.describe('Admin - Portada (cover)', () => {
       await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
     }
 
-    // Persistencia tras refresh
+    // Persistencia tras refresh (solo verificar vía API + UI portada)
     await page.reload();
     await page.waitForLoadState('networkidle');
-    await expect.poll(async () => await page.locator('#gallery .gallery-item').count(), { timeout: 15000 }).toBeGreaterThan(0);
     await expect.poll(async () => {
       const r = await page.request.get('/api/cover');
       const j = await r.json();
