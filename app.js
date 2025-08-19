@@ -1246,6 +1246,22 @@ app.post('/api/cover', express.json(), async (req, res) => {
       heroConfig.updatedAt = new Date().toISOString();
     }
 
+    // Sincronizar álbum "Portada" con la(s) imagen(es) de portada
+    try {
+      const albums = await loadAlbums();
+      const portadaIndex = albums.findIndex(a => (
+        (a.slug || '').toLowerCase() === 'portada' ||
+        (a.name || '').toLowerCase() === 'portada'
+      ));
+      if (portadaIndex !== -1) {
+        albums[portadaIndex].images = Array.isArray(current) ? [...current] : [];
+        albums[portadaIndex].updatedAt = new Date().toISOString();
+        await saveAlbums(albums);
+      }
+    } catch (syncErr) {
+      console.warn('No se pudo sincronizar álbum Portada:', syncErr.message);
+    }
+
     if (process.env.DEBUG_LOGS === '1') console.log(`[RID ${req._rid}] POST /api/cover saved -> ${current.join(',')}`);
     res.json({ success: true, coverImages: current });
   } catch (e) {
