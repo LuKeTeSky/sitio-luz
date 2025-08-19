@@ -422,6 +422,17 @@ class AlbumsManager {
         }
         
         console.log('showAllImages() completado');
+
+        // Scroll al inicio de la galería similar al botón de navbar "Galería"
+        setTimeout(() => {
+            const targetElement = document.querySelector('#gallery');
+            const header = document.querySelector('.header');
+            if (targetElement && header) {
+                const headerHeight = header.offsetHeight || 0;
+                const targetPosition = targetElement.offsetTop - headerHeight - 20;
+                window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
+            }
+        }, 100);
     }
 
     // Método para obtener el álbum actualmente seleccionado (usado por gallery.js)

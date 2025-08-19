@@ -1721,12 +1721,6 @@ function clearGhostEffects() {
 
 // Función para configurar navegación suave
 function setupSmoothScrolling() {
-  // Solo configurar si no está cargando la galería
-  if (isLoadingGallery) {
-    console.log('🔄 setupSmoothScrolling saltado - galería cargando');
-    return;
-  }
-  
   const links = document.querySelectorAll('a[href^="#"]');
   
   links.forEach(link => {
