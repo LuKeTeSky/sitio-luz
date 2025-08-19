@@ -3,9 +3,9 @@ name: E2E - Playwright
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, 'release/*', 'ci/test-stabilization' ]
   push:
-    branches: [ main ]
+    branches: [ main, 'ci/test-stabilization' ]
 
 jobs:
   test:
