@@ -1775,22 +1775,20 @@ function handleGalleryNavigation() {
     sectionHeader.textContent = 'Galería de Fotos';
   }
   
-  // 4. Hacer scroll a la galería
-  setTimeout(() => {
-    // Solo hacer scroll si no está cargando la galería
-    if (!isLoadingGallery) {
-      const targetElement = document.querySelector('#gallery');
-      if (targetElement) {
-        const headerHeight = document.querySelector('.header').offsetHeight;
-        const targetPosition = targetElement.offsetTop - headerHeight - 20;
-        
-        window.scrollTo({
-          top: targetPosition,
-          behavior: 'smooth'
-        });
-      }
+  // 4. Hacer scroll a la galería aun si está cargando (reintentos suaves)
+  const tryScroll = (attemptsLeft = 10) => {
+    const targetElement = document.querySelector('#gallery');
+    const header = document.querySelector('.header');
+    if (targetElement && header) {
+      const headerHeight = header.offsetHeight || 0;
+      const targetPosition = targetElement.offsetTop - headerHeight - 20;
+      window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
     }
-  }, 100); // Pequeño delay para que se carguen las imágenes
+    if (attemptsLeft > 0 && (isLoadingGallery || !targetElement)) {
+      setTimeout(() => tryScroll(attemptsLeft - 1), 200);
+    }
+  };
+  setTimeout(() => tryScroll(10), 50);
 }
 
 // Función para animar elementos cuando entran en el viewport
