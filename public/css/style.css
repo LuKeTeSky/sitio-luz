@@ -660,66 +660,61 @@ body.admin-page {
 
 .gallery-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  inset: 0;
   display: flex;
   align-items: flex-end;
-  padding: 20px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.0) 30%, rgba(0,0,0,0.45) 100%);
+  backdrop-filter: blur(2px);
 }
 
-.gallery-item:hover .gallery-overlay {
-  opacity: 1;
-}
-
-.gallery-info {
-  color: white;
-  text-align: center;
-  width: 100%;
-}
-
-.gallery-info h3 {
-  font-size: 1.2rem;
-  margin-bottom: 5px;
-}
-
-.gallery-info p {
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-/* Botones de acción en galería */
+/* Caja del submenú/acciones adapta tamaño y contraste */
 .gallery-actions {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 10px;
+  right: 10px;
   display: flex;
-  gap: 10px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.gallery-item:hover .gallery-actions {
-  opacity: 1;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(4px);
 }
 
 .gallery-action-btn {
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  font-size: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.9);
+  color: #222;
+}
+
+/* Variante sobre fondo oscuro para asegurar legibilidad */
+.gallery-item:hover .gallery-actions {
+  background: rgba(0,0,0,0.45);
+}
+
+/* Texto en overlay más legible y auto-ajustado */
+.gallery-info {
+  width: auto;
+  max-width: 85%;
+  padding: 8px 10px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  backdrop-filter: blur(3px);
+}
+
+.gallery-info h3 { color: #fff; font-weight: 600; }
+.gallery-info p { color: rgba(255,255,255,0.85); }
+
+/* Responsive: botones más grandes en móviles y overlay más sólido */
+@media (max-width: 768px) {
+  .gallery-actions { gap: 6px; padding: 6px; background: rgba(0,0,0,0.55); }
+  .gallery-action-btn { width: 38px; height: 38px; border-radius: 10px; }
+  .gallery-info { max-width: 100%; font-size: 0.95rem; }
 }
 
 .gallery-action-btn:hover {
