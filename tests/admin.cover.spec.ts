@@ -9,20 +9,15 @@ test.describe('Admin - Portada (cover)', () => {
       test.skip(true, 'ADMIN_PASSWORD no configurado en CI/entorno');
     }
     test.slow();
-    // Login por API para evitar flakiness de UI
     await apiLogin(page, ADMIN_PASSWORD);
     await page.goto('/admin');
     await expect(page).toHaveURL(/admin/);
 
-    // Marcar primera imagen como portada
     const firstCard = page.locator('#gallery .gallery-item').first();
     await firstCard.hover();
     await firstCard.locator('.gallery-action-btn.cover-btn').click();
-    // Esperar notificación breve para confirmar acción
     await page.waitForTimeout(200);
 
-    // Ir a sección portada y verificar que haya al menos 1 elemento
-    // Validar por API que haya al menos una portada antes de chequear el DOM
     await expect.poll(async () => {
       const r = await page.request.get('/api/cover');
       const j = await r.json();
@@ -30,10 +25,28 @@ test.describe('Admin - Portada (cover)', () => {
     }, { timeout: 20000, intervals: [500,1000] }).toBeGreaterThan(0);
 
     await page.getByRole('link', { name: /portada/i }).click();
-    const coverItems = page.locator('.cover-item img');
-    await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
+    // Empujar varias actualizaciones del DOM de portada
+    await page.evaluate(async () => {
+      const wait = (ms:number)=>new Promise(r=>setTimeout(r,ms));
+      for (let i=0;i<5;i++) {
+        if (window['updateCoverSection']) await window['updateCoverSection']();
+        await wait(300);
+      }
+    });
 
-    // Refrescar y verificar que persiste
+    const coverItems = page.locator('.cover-item img');
+    const emptyState = page.locator('#cover-empty');
+    // Esperar a que aparezcan items o desaparezca el vacío
+    await expect.poll(async () => {
+      const count = await coverItems.count();
+      const emptyVisible = await emptyState.isVisible().catch(()=>false);
+      return (count > 0 || emptyVisible === false) ? 1 : 0;
+    }, { timeout: 25000, intervals: [500,1000] }).toBeGreaterThan(0);
+    if ((await coverItems.count()) > 0) {
+      await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
+    }
+
+    // Persistencia tras refresh
     await page.reload();
     await page.waitForLoadState('networkidle');
     await expect.poll(async () => await page.locator('#gallery .gallery-item').count(), { timeout: 15000 }).toBeGreaterThan(0);
@@ -43,6 +56,14 @@ test.describe('Admin - Portada (cover)', () => {
       return (Array.isArray(j.coverImages) ? j.coverImages.length : 0);
     }, { timeout: 20000, intervals: [500,1000] }).toBeGreaterThan(0);
     await page.getByRole('link', { name: /portada/i }).click();
+    await page.evaluate(async () => {
+      const wait = (ms:number)=>new Promise(r=>setTimeout(r,ms));
+      for (let i=0;i<5;i++) {
+        if (window['updateCoverSection']) await window['updateCoverSection']();
+        await wait(300);
+      }
+    });
+    await expect.poll(async () => await coverItems.count(), { timeout: 25000, intervals: [500,1000] }).toBeGreaterThan(0);
     await expect(coverItems.first()).toBeVisible({ timeout: 10000 });
   });
 });

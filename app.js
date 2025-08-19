@@ -602,19 +602,19 @@ app.get('/uploads/:filename', (req, res) => {
   const filename = req.params.filename;
   const rid = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
-  console.log(`[GET /uploads ${rid}] ip=${ip} filename=${filename}`);
+  if (process.env.DEBUG_LOGS === '1') console.log(`[GET /uploads ${rid}] ip=${ip} filename=${filename}`);
 
   if (process.env.VERCEL === '1') {
     // En Vercel: servir desde /tmp (filesystem efímero)
     const filePath = path.join('/tmp', filename);
     if (fs.existsSync(filePath)) {
-      console.log(`[GET /uploads ${rid}] FOUND ${filePath}`);
+      if (process.env.DEBUG_LOGS === '1') console.log(`[GET /uploads ${rid}] FOUND ${filePath}`);
       const ext = path.extname(filename).toLowerCase();
       const mimeTypes = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
       res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
       return fs.createReadStream(filePath).pipe(res);
     }
-    console.log(`[GET /uploads ${rid}] NOT_FOUND ${filePath}`);
+    if (process.env.DEBUG_LOGS === '1') console.log(`[GET /uploads ${rid}] NOT_FOUND ${filePath}`);
     return res.status(404).json({ error: 'Archivo no encontrado' });
   } else {
     // En local: servir desde public/uploads
@@ -1071,7 +1071,9 @@ app.get('/api/hero', async (req, res) => {
     }
     // Adjuntar URL pública si existe
     const heroImageUrl = await getPublicUrlForFilename(config.heroImage);
-    console.log(`[RID ${rid}] GET /api/hero → heroImage=${config.heroImage || ''} url=${heroImageUrl || ''}`);
+    if (process.env.DEBUG_LOGS === '1') {
+      console.log(`[RID ${rid}] GET /api/hero → heroImage=${config.heroImage || ''} url=${heroImageUrl || ''}`);
+    }
     res.json({ ...config, heroImageUrl });
   } catch (error) {
     console.error('Error leyendo configuración del hero:', error);
@@ -1180,7 +1182,9 @@ app.get('/api/cover', async (req, res) => {
           filename: fn,
           url: await getPublicUrlForFilename(fn)
         })));
-        console.log(`[RID ${req._rid}] GET /api/cover → ${items.length} cover(s): ${filtered.join(',')}`);
+        if (process.env.DEBUG_LOGS === '1') {
+          console.log(`[RID ${req._rid}] GET /api/cover → ${items.length} cover(s): ${filtered.join(',')}`);
+        }
         return res.json({ coverImages: filtered, items });
       }
       if (kvList) return res.json({ coverImages: kvList, items: [] });
@@ -1218,7 +1222,7 @@ app.post('/api/cover', express.json(), async (req, res) => {
       // No permitir portadas de archivos inexistentes
       const existing = await getExistingImageFilenamesSet();
       if (marked && existing.size && !existing.has(fn)) {
-        console.warn(`[RID ${req._rid}] cover: attempt to mark missing file ${fn}`);
+        if (process.env.DEBUG_LOGS === '1') console.warn(`[RID ${req._rid}] cover: attempt to mark missing file ${fn}`);
         return res.status(404).json({ error: 'Imagen no encontrada' });
       }
       const idx = current.indexOf(fn);
@@ -1242,7 +1246,7 @@ app.post('/api/cover', express.json(), async (req, res) => {
       heroConfig.updatedAt = new Date().toISOString();
     }
 
-    console.log(`[RID ${req._rid}] POST /api/cover saved -> ${current.join(',')}`);
+    if (process.env.DEBUG_LOGS === '1') console.log(`[RID ${req._rid}] POST /api/cover saved -> ${current.join(',')}`);
     res.json({ success: true, coverImages: current });
   } catch (e) {
     console.error('POST /api/cover error:', e);
@@ -1601,6 +1605,58 @@ app.post('/api/albums', express.json(), async (req, res) => {
   }
 });
 
+// Ruta explícita para reordenar definida ANTES de rutas :id para evitar conflictos
+app.put('/api/albums/reorder', express.json(), async (req, res) => {
+  try {
+    let { albumsOrder } = req.body || {};
+    if (!Array.isArray(albumsOrder)) {
+      if (Array.isArray(req.body)) {
+        albumsOrder = req.body;
+      } else if (req.body && Array.isArray(req.body.order)) {
+        albumsOrder = req.body.order;
+      } else if (typeof req.body === 'string') {
+        try {
+          const parsed = JSON.parse(req.body);
+          if (Array.isArray(parsed)) albumsOrder = parsed;
+          if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.albumsOrder)) albumsOrder = parsed.albumsOrder;
+          if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.order)) albumsOrder = parsed.order;
+        } catch (_) {}
+      } else if (req.body && typeof req.body === 'object') {
+        const vals = Object.values(req.body);
+        if (vals.length && vals.every(v => typeof v === 'string')) {
+          albumsOrder = vals;
+        }
+      }
+    }
+    if (!Array.isArray(albumsOrder)) {
+      const q = (req.query && (req.query.order || req.query.albumsOrder));
+      if (typeof q === 'string') {
+        albumsOrder = q.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+
+    if (!Array.isArray(albumsOrder)) {
+      if (process.env.DEBUG_LOGS === '1') return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes', debug: { bodyType: typeof req.body, body: req.body, query: req.query } });
+      return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes' });
+    }
+
+    const albums = await loadAlbums();
+    albumsOrder.forEach((albumId, index) => {
+      const albumIndex = albums.findIndex(album => album.id === albumId);
+      if (albumIndex !== -1) {
+        albums[albumIndex].order = index;
+        albums[albumIndex].updatedAt = new Date().toISOString();
+      }
+    });
+    albums.sort((a, b) => (a.order || 0) - (b.order || 0));
+    await saveAlbums(albums);
+    res.json({ success: true, message: 'Orden de álbumes actualizado exitosamente', albums });
+  } catch (error) {
+    console.error('Error reordenando álbumes:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // PUT /api/albums/:id - Actualizar álbum
 app.put('/api/albums/:id', express.json(), async (req, res) => {
   try {
@@ -1768,11 +1824,27 @@ app.put('/api/albums/reorder', express.json(), async (req, res) => {
           if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.albumsOrder)) albumsOrder = parsed.albumsOrder;
           if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.order)) albumsOrder = parsed.order;
         } catch (_) {}
+      } else if (req.body && typeof req.body === 'object') {
+        // Posibles formatos form-urlencoded ({"0":"idA","1":"idB"})
+        const vals = Object.values(req.body);
+        if (vals.length && vals.every(v => typeof v === 'string')) {
+          albumsOrder = vals;
+        }
+      }
+    }
+    // Querystring como último recurso: ?order=idA,idB
+    if (!Array.isArray(albumsOrder)) {
+      const q = (req.query && (req.query.order || req.query.albumsOrder));
+      if (typeof q === 'string') {
+        albumsOrder = q.split(',').map(s => s.trim()).filter(Boolean);
       }
     }
     
     if (!Array.isArray(albumsOrder)) {
-      return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes', debug: { bodyType: typeof req.body, body: req.body } });
+      if (process.env.DEBUG_LOGS === '1') {
+        return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes', debug: { bodyType: typeof req.body, body: req.body, query: req.query } });
+      }
+      return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes' });
     }
     
     const albums = await loadAlbums();

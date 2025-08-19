@@ -422,6 +422,17 @@ class AlbumsManager {
         }
         
         console.log('showAllImages() completado');
+
+        // Scroll al inicio de la galería similar al botón de navbar "Galería"
+        setTimeout(() => {
+            const targetElement = document.querySelector('#gallery');
+            const header = document.querySelector('.header');
+            if (targetElement && header) {
+                const headerHeight = header.offsetHeight || 0;
+                const targetPosition = targetElement.offsetTop - headerHeight - 20;
+                window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
+            }
+        }, 100);
     }
 
     // Método para obtener el álbum actualmente seleccionado (usado por gallery.js)
@@ -820,8 +831,9 @@ class AlbumsManager {
                 item.dataset.albumId
             );
 
-            // Enviar al backend
-            const response = await fetch('/api/albums/reorder', {
+            // Enviar al backend (incluye query como fallback para servidores que fallen parseando el body)
+            const url = `/api/albums/reorder?order=${encodeURIComponent(albumsOrder.join(','))}`;
+            const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -850,7 +862,9 @@ class AlbumsManager {
                 // Mostrar notificación
                 this.showNotification('Orden de álbumes actualizado', 'success');
             } else {
-                console.error('Error actualizando orden de álbumes');
+                let errText = '';
+                try { errText = await response.text(); } catch (_) {}
+                console.error('Error actualizando orden de álbumes', response.status, errText);
                 this.showNotification('Error al actualizar orden', 'error');
                 // Revertir a orden original
                 this.renderAlbums();

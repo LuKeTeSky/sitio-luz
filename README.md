@@ -2,7 +2,7 @@
 
 Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de álbumes y galería profesional.
 
-## 🎯 **Novedades Principales v1.17.0 (RC)**
+## 🎯 **Novedades Principales v1.17.2 (RC)**
 
 ### 📊 Métricas en Admin (Issue #13)
 - Backend: `POST /api/metrics/event`, `GET /api/metrics/summary?days=7` con Vercel KV y fallback en memoria.
@@ -20,6 +20,22 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Portada única y sincronizada con KV (`/api/cover`), UI con borde azul en Admin para la seleccionada.
 - Home y Admin con auto-refresh suave cada 30s para mantenerse en línea con KV.
 - `hero-loader` prioriza URL pública de Blob; se eliminó cualquier fallback a `/uploads` para Vercel.
+- Logs de troubleshooting opcionales con RID en `/api/cover`, `/api/hero`, POST `/api/cover` y `/uploads/:filename` (ver "Debug logging opcional" más abajo).
+
+### 📚 Álbumes – Edición y reordenamiento
+- Botón visible “Editar” en cada álbum (además de doble clic).
+- Modal con campos: `name`, `description`, `campaign`, `coverImage`, `featured` y `slug` (autogenerado y editable con unicidad).
+- Selector “Agregar a álbum”: portal al `body` (no se corta), reposicionamiento seguro, marca ✓ si la foto ya pertenece y permite alternar agregar/remover.
+- Reordenamiento: endpoint `PUT /api/albums/reorder` robustecido (acepta `albumsOrder`, `order`, array, form-encoded y querystring). Rutas `/api/albums/:id` ya no interceptan `/reorder`.
+
+### 🎛️ UI/UX
+- Overlay de acciones con mayor contraste, blur y botones responsivos.
+- En Admin, el enlace “Galería” resetea a “Ver todas las fotos” y hace scroll confiable.
+
+### 🧪 QA
+- Tests Playwright estabilizados:
+  - Portada: espera render de `.cover-item` con `expect.poll`.
+  - Álbumes: espera a que el modal esté activo y el input sea visible; limpieza al finalizar.
 
 ### 🔜 Próximo
 - RUM (TTFB/LCP/CLS), navegación lightbox (`next/prev`, dwell), reordenamientos (galería/álbumes), top listas (imágenes/álbumes) y selector 7/30 días.
@@ -60,14 +76,14 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 
 ### 🧭 Gitflow (backup/RC)
 - Ramas `release/*` funcionan como respaldo congelado (Release Candidate).
-- Creadas: `release/v1.17.0` (actual), `release/v1.16.0`, `release/v1.15.0`, `release/v1.14.0`, `release/v1.13.0`.
+- Creadas: `release/v1.17.2-rc.1` (actual), `release/v1.17.0`, `release/v1.16.0`, `release/v1.15.0`, `release/v1.14.0`, `release/v1.13.0`.
 
 #### 📦 Cómo crear una Release Candidate nueva
 ```zsh
 git checkout develop
 git pull origin develop
-git checkout -b release/v1.17.0-rc.1
-git push -u origin release/v1.17.0-rc.1
+git checkout -b release/v1.17.2-rc.1
+git push -u origin release/v1.17.2-rc.1
 ```
 Luego validar en Vercel/CI y, al finalizar, mergear a `main` y taggear.
 
@@ -76,6 +92,25 @@ Luego validar en Vercel/CI y, al finalizar, mergear a `main` y taggear.
 - `develop` (integración)
 - `release/v1.17.0` (backup/RC)
 - `feature/next-version-v1.16.0` (histórico)
+
+---
+
+## 🪵 Debug logging opcional (RID)
+Para activar logs detallados de troubleshooting en producción:
+1. Vercel → Project → Settings → Environment Variables → agregar `DEBUG_LOGS=1`.
+2. Redeploy.
+
+Para desactivar: eliminar la variable o poner `DEBUG_LOGS=0` y redeploy. Por defecto, los logs están desactivados.
+
+---
+
+## 🖼️ Submenú de acciones y selector de álbumes (UX)
+- Overlay de acciones: mayor contraste, blur y botones más grandes (responsive).
+- Menú “Agregar a álbum”: ahora se monta en `document.body` con posición fija para evitar recortes; se reposiciona si no hay espacio.
+- En el selector, los álbumes que ya contienen la foto se marcan con ✓ y estilo `selected`; permite alternar agregar/remover.
+
+## 🧭 Navegación en Admin
+- En el navbar, “Galería” realiza el mismo comportamiento que “Ver todas las fotos”: resetea filtros/álbum seleccionado y hace scroll a la sección (con reintentos si está cargando).
 
 ---
 

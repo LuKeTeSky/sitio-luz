@@ -552,6 +552,8 @@ async function loadGalleryImages() {
 
 // Hacer función disponible globalmente para admin
 window.loadAdminGallery = loadGalleryImages;
+// Exponer actualización de Portada para tooling/tests
+window.updateCoverSection = updateCoverSection;
 
 // Función para resetear la protección de carga
 function resetGalleryLoadProtection() {
@@ -1721,12 +1723,6 @@ function clearGhostEffects() {
 
 // Función para configurar navegación suave
 function setupSmoothScrolling() {
-  // Solo configurar si no está cargando la galería
-  if (isLoadingGallery) {
-    console.log('🔄 setupSmoothScrolling saltado - galería cargando');
-    return;
-  }
-  
   const links = document.querySelectorAll('a[href^="#"]');
   
   links.forEach(link => {
@@ -1775,22 +1771,20 @@ function handleGalleryNavigation() {
     sectionHeader.textContent = 'Galería de Fotos';
   }
   
-  // 4. Hacer scroll a la galería
-  setTimeout(() => {
-    // Solo hacer scroll si no está cargando la galería
-    if (!isLoadingGallery) {
-      const targetElement = document.querySelector('#gallery');
-      if (targetElement) {
-        const headerHeight = document.querySelector('.header').offsetHeight;
-        const targetPosition = targetElement.offsetTop - headerHeight - 20;
-        
-        window.scrollTo({
-          top: targetPosition,
-          behavior: 'smooth'
-        });
-      }
+  // 4. Hacer scroll a la galería aun si está cargando (reintentos suaves)
+  const tryScroll = (attemptsLeft = 10) => {
+    const targetElement = document.querySelector('#gallery');
+    const header = document.querySelector('.header');
+    if (targetElement && header) {
+      const headerHeight = header.offsetHeight || 0;
+      const targetPosition = targetElement.offsetTop - headerHeight - 20;
+      window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
     }
-  }, 100); // Pequeño delay para que se carguen las imágenes
+    if (attemptsLeft > 0 && (isLoadingGallery || !targetElement)) {
+      setTimeout(() => tryScroll(attemptsLeft - 1), 200);
+    }
+  };
+  setTimeout(() => tryScroll(10), 50);
 }
 
 // Función para animar elementos cuando entran en el viewport
@@ -1918,7 +1912,7 @@ function showAlbumSelector(imageFilename, albumBtn) {
 
   const albums = window.albumsManager.getAlbums();
   
-  // Crear selector de álbumes
+  // Crear selector de álbumes (portal al body para evitar recortes por overflow)
   const selector = document.createElement('div');
   selector.className = 'album-selector';
   
@@ -1934,19 +1928,37 @@ function showAlbumSelector(imageFilename, albumBtn) {
   } else {
     albums.forEach(album => {
       const option = document.createElement('div');
-      option.className = 'album-option';
+      const alreadyIn = Array.isArray(album.images) && album.images.includes(imageFilename);
+      option.className = `album-option${alreadyIn ? ' selected' : ''}`;
       option.innerHTML = `
-        <span class="album-option-name">${album.name}</span>
+        <span class="album-option-name">${alreadyIn ? '✓ ' : ''}${album.name}</span>
         <span class="album-option-count">${album.images ? album.images.length : 0}</span>
       `;
-      
+
       option.addEventListener('click', async () => {
-        const success = await window.albumsManager.addImageToAlbum(imageFilename, album.id);
-        if (success) {
-          selector.classList.remove('active');
+        let success = false;
+        if (option.classList.contains('selected')) {
+          success = await window.albumsManager.removeImageFromAlbum(imageFilename, album.id);
+          if (success) {
+            option.classList.remove('selected');
+            // actualizar contador visual
+            const count = option.querySelector('.album-option-count');
+            if (count) count.textContent = String(Math.max(0, (album.images?.length || 1) - 1));
+            const nameEl = option.querySelector('.album-option-name');
+            if (nameEl) nameEl.textContent = album.name;
+          }
+        } else {
+          success = await window.albumsManager.addImageToAlbum(imageFilename, album.id);
+          if (success) {
+            option.classList.add('selected');
+            const count = option.querySelector('.album-option-count');
+            if (count) count.textContent = String((album.images?.length || 0) + 1);
+            const nameEl = option.querySelector('.album-option-name');
+            if (nameEl) nameEl.textContent = `✓ ${album.name}`;
+          }
         }
       });
-      
+
       selector.appendChild(option);
     });
   }
@@ -1961,25 +1973,44 @@ function showAlbumSelector(imageFilename, albumBtn) {
   });
   selector.appendChild(createOption);
   
-  // Posicionar y mostrar el selector
-  albumBtn.appendChild(selector);
+  // Posicionar: portal fijo al viewport y centrado respecto al botón
+  document.body.appendChild(selector);
   selector.classList.add('active');
-  
-  // Ajustar posición si está en el lightbox
-  if (albumBtn.classList.contains('lightbox-action-btn')) {
-    selector.style.position = 'absolute';
-    selector.style.top = '100%';
-    selector.style.left = '50%';
-    selector.style.transform = 'translateX(-50%)';
-    selector.style.marginTop = '10px';
-    selector.style.zIndex = '1000';
-  }
+  const placeSelector = () => {
+    const rect = albumBtn.getBoundingClientRect();
+    const selWidth = Math.max(220, Math.min(320, window.innerWidth * 0.9));
+    selector.style.position = 'fixed';
+    selector.style.width = selWidth + 'px';
+    let top = rect.bottom + 10;
+    let left = rect.left + rect.width / 2 - selWidth / 2;
+    // Evitar salir del viewport
+    left = Math.max(10, Math.min(left, window.innerWidth - selWidth - 10));
+    // Si no hay espacio abajo, mostrar arriba
+    const selHeight = selector.offsetHeight || 180;
+    if (top + selHeight > window.innerHeight - 10) {
+      top = rect.top - selHeight - 10;
+    }
+    selector.style.top = `${Math.max(10, top)}px`;
+    selector.style.left = `${left}px`;
+    selector.style.zIndex = '10000';
+  };
+  // Posicionar inicialmente y en cambios de viewport
+  placeSelector();
+  const ro = new ResizeObserver(placeSelector);
+  ro.observe(selector);
+  const onScrollResize = () => placeSelector();
+  window.addEventListener('scroll', onScrollResize, true);
+  window.addEventListener('resize', onScrollResize);
   
   // Cerrar selector al hacer clic fuera
   const closeSelector = (e) => {
     if (!selector.contains(e.target) && !albumBtn.contains(e.target)) {
       selector.classList.remove('active');
+      selector.remove();
       document.removeEventListener('click', closeSelector);
+      window.removeEventListener('scroll', onScrollResize, true);
+      window.removeEventListener('resize', onScrollResize);
+      try { ro.disconnect(); } catch(_) {}
     }
   };
   
