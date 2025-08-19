@@ -11,15 +11,16 @@ test.describe('Admin - Álbumes (edición básica)', () => {
     await apiLogin(page, ADMIN_PASSWORD);
     await page.goto('/admin');
 
-    // Crear álbum
+    // Crear álbum con sufijo único para no dejar residuos
+    const uniqueName = `RC Edit ${Date.now()}`;
     await page.getByRole('button', { name: /nuevo álbum/i }).click();
-    await page.getByLabel(/nombre del álbum/i).fill('RC Edit Test');
+    await page.getByLabel(/nombre del álbum/i).fill(uniqueName);
     await page.getByLabel(/descripción/i).fill('desc original');
     await page.getByRole('button', { name: /guardar/i }).click();
-    await expect(page.locator('#albums-list .album-item')).toContainText('RC Edit Test');
+    await expect(page.locator('#albums-list .album-item')).toContainText(uniqueName);
 
     // Abrir modal de edición usando el botón de editar
-    const created = page.locator('#albums-list .album-item').filter({ hasText: 'RC Edit Test' });
+    const created = page.locator('#albums-list .album-item').filter({ hasText: uniqueName });
     await created.locator('.album-edit-btn').click();
 
     // Editar nombre y slug
@@ -36,6 +37,12 @@ test.describe('Admin - Álbumes (edición básica)', () => {
     const list = await res.json();
     const found = Array.isArray(list) && list.find((a: any) => a.name === 'RC Editado' && a.slug === 'rc-editado');
     expect(Boolean(found)).toBeTruthy();
+
+    // Limpieza: eliminar el álbum creado para no dejarlo en producción
+    try {
+      const delRes = await page.request.delete(`/api/albums/${found.id}`);
+      expect(delRes.ok()).toBeTruthy();
+    } catch (_) { /* ignorar en caso de permisos o fallos transitorios */ }
   });
 });
 
