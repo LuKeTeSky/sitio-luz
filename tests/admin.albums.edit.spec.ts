@@ -29,9 +29,10 @@ test.describe('Admin - Álbumes (edición básica)', () => {
     await created.locator('.album-edit-btn').click();
     await expect(modal).toHaveClass(/active/);
 
-    // Editar nombre y slug
+    // Editar nombre y slug (usar IDs explícitos para evitar fallos por etiquetas)
     await page.getByLabel(/nombre del álbum/i).fill('RC Editado');
-    const slug = page.getByLabel(/slug/i);
+    const slug = page.locator('#album-slug');
+    await expect(slug).toBeVisible();
     await slug.fill('rc-editado');
     await page.getByRole('button', { name: /guardar/i }).click();
 

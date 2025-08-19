@@ -13,8 +13,9 @@ test.describe('Admin - Portada (cover)', () => {
     await page.goto('/admin');
     await expect(page).toHaveURL(/admin/);
 
+    // Asegurar que la galería cargó y hacer click directo en la estrella (sin hover)
+    await expect.poll(async () => await page.locator('#gallery .gallery-item').count(), { timeout: 20000 }).toBeGreaterThan(0);
     const firstCard = page.locator('#gallery .gallery-item').first();
-    await firstCard.hover();
     await firstCard.locator('.gallery-action-btn.cover-btn').click();
     await page.waitForTimeout(200);
 
