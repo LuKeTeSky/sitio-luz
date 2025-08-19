@@ -1730,11 +1730,27 @@ app.put('/api/albums/reorder', express.json(), async (req, res) => {
           if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.albumsOrder)) albumsOrder = parsed.albumsOrder;
           if (!Array.isArray(albumsOrder) && parsed && Array.isArray(parsed.order)) albumsOrder = parsed.order;
         } catch (_) {}
+      } else if (req.body && typeof req.body === 'object') {
+        // Posibles formatos form-urlencoded ({"0":"idA","1":"idB"})
+        const vals = Object.values(req.body);
+        if (vals.length && vals.every(v => typeof v === 'string')) {
+          albumsOrder = vals;
+        }
+      }
+    }
+    // Querystring como último recurso: ?order=idA,idB
+    if (!Array.isArray(albumsOrder)) {
+      const q = (req.query && (req.query.order || req.query.albumsOrder));
+      if (typeof q === 'string') {
+        albumsOrder = q.split(',').map(s => s.trim()).filter(Boolean);
       }
     }
     
     if (!Array.isArray(albumsOrder)) {
-      return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes', debug: { bodyType: typeof req.body, body: req.body } });
+      if (process.env.DEBUG_LOGS === '1') {
+        return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes', debug: { bodyType: typeof req.body, body: req.body, query: req.query } });
+      }
+      return res.status(400).json({ error: 'Se requiere un array de IDs de álbumes' });
     }
     
     const albums = await loadAlbums();
