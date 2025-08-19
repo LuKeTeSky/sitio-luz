@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Cargar configuración de portada
   loadCoverSettings();
+
+  // Mantener Portada sincronizada suavemente con el servidor
+  startCoverAutoRefresh();
   
   // Configurar drag & drop para la galería
   setupGalleryDragAndDrop();
@@ -585,6 +588,21 @@ function resetDOMContentLoadedProtection() {
 
 // Hacer función disponible globalmente
 window.resetDOMContentLoadedProtection = resetDOMContentLoadedProtection;
+
+// ===== Auto refresh de Portada =====
+let coverRefreshTimer = null;
+function startCoverAutoRefresh() {
+  if (coverRefreshTimer) clearInterval(coverRefreshTimer);
+  coverRefreshTimer = setInterval(() => {
+    if (!isLoadingGallery) {
+      updateCoverSection();
+      updateCoverButtons();
+    }
+  }, 30000); // cada 30s
+}
+window.addEventListener('beforeunload', () => {
+  if (coverRefreshTimer) clearInterval(coverRefreshTimer);
+});
 
 // Función para crear un elemento de galería
 function createGalleryItem(imageData, index) {

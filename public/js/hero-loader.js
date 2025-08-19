@@ -1,6 +1,10 @@
 // Script para cargar dinámicamente la configuración del hero
 document.addEventListener('DOMContentLoaded', () => {
   loadHeroConfiguration();
+  // Refresco suave para evitar quedarse con una portada vieja
+  setInterval(() => {
+    loadHeroConfiguration();
+  }, 30000);
 });
 
 // Función para cargar la configuración del hero
