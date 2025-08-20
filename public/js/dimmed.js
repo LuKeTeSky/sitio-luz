@@ -68,11 +68,14 @@
   }
 
   let autoTimer = null;
+  let autoSessionId = 0;
   function stopAuto(){ if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; } }
 
   function startAuto(){
     stopAuto();
+    const session = ++autoSessionId;
     getSunTimes().then(({sunrise, sunset}) => {
+      if (session !== autoSessionId) return; // cancel if mode changed mid-flight
       const now = new Date();
       const isNight = (now < sunrise) || (now > sunset);
       document.body.classList.toggle('dimmed-theme', isNight);
@@ -81,14 +84,15 @@
       const nextChange = isNight ? sunrise : sunset;
       let delay = nextChange - now;
       if (delay < 0) delay += 24*60*60*1000; // fallback 24h
-      autoTimer = setTimeout(startAuto, Math.min(delay, 6*60*60*1000)); // clamp ≤ 6h
+      autoTimer = setTimeout(() => { if (session === autoSessionId) startAuto(); }, Math.min(delay, 6*60*60*1000)); // clamp ≤ 6h
     }).catch(() => {
+      if (session !== autoSessionId) return;
       // Fallback: night between 19:00-07:00 local
       const h = new Date().getHours();
       const isNight = (h >= 19 || h < 7);
       document.body.classList.toggle('dimmed-theme', isNight);
       updateControls('auto');
-      autoTimer = setTimeout(startAuto, 60*60*1000);
+      autoTimer = setTimeout(() => { if (session === autoSessionId) startAuto(); }, 60*60*1000);
     });
   }
 
@@ -125,7 +129,7 @@
   // init
   ensureControls();
   const mode = readMode();
-  if (mode === 'auto') startAuto(); else { applyMode(mode); updateControls(mode); }
+  if (mode === 'auto') startAuto(); else { stopAuto(); applyMode(mode); updateControls(mode); }
 })();
 
 
