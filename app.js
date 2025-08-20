@@ -477,7 +477,15 @@ app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (
   try {
     const password = req.body.password;
     const adminPassword = process.env.ADMIN_PASSWORD;
-    
+    const rid = req._rid || `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
+    if (process.env.DEBUG_LOGS === '1') {
+      const maskedInput = typeof password === 'string' ? '*'.repeat(Math.min(password.length, 8)) : '[none]';
+      const hasEnv = Boolean(adminPassword);
+      const isHashed = hasEnv && (adminPassword.startsWith('$2b$') || adminPassword.startsWith('$2a$'));
+      console.log(`[RID ${rid}] LOGIN attempt ip=${ip} hasADMIN_PASSWORD=${hasEnv} hashed=${isHashed} inputLen=${password ? password.length : 0} inputPreview=${maskedInput}`);
+    }
+
     if (!password || !adminPassword) {
       throw new Error('Invalid credentials');
     }
@@ -498,13 +506,21 @@ app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (
         if (err) {
           console.error('Session regeneration error:', err);
         }
+        if (process.env.DEBUG_LOGS === '1') {
+          console.log(`[RID ${rid}] LOGIN success ip=${ip}`);
+        }
         res.redirect('/admin');
       });
     } else {
+      if (process.env.DEBUG_LOGS === '1') {
+        console.warn(`[RID ${rid}] LOGIN failed ip=${ip} reason=Invalid password`);
+      }
       throw new Error('Invalid password');
     }
   } catch (error) {
-    console.error('Login error:', error.message);
+    if (process.env.DEBUG_LOGS === '1') {
+      console.error('Login error:', error.message);
+    }
     res.send(`
       <html>
         <head>
