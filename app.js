@@ -61,6 +61,11 @@ app.use(helmet({
         // Permitimos este host para evitar bloqueos del loader de terceros
         "https://speed.cloudflareaccess.com"
       ],
+      connectSrc: [
+        "'self'",
+        // Permitir consulta de amanecer/atardecer para modo automático atenuado
+        "https://api.sunrise-sunset.org"
+      ],
       imgSrc: [
         "'self'",
         "data:",
