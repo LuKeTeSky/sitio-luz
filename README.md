@@ -4,6 +4,11 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 
 ## 🎯 **Novedades Principales v1.17.2 (RC)**
 
+### 🆕 Cambios recientes (ago 2025)
+- Hero: configuración persistida en KV y sincronizada con la Portada; `GET/POST /api/hero` ahora leen/escriben desde KV en producción.
+- Modo Atenuado: estabilidad del modo Automático (evita carreras entre callbacks y cambios manuales); control Sol/Luna/Auto consistente.
+- Admin: eliminado el enlace “Atenuar” del navbar.
+
 ### 📊 Métricas en Admin (Issue #13)
 - Backend: `POST /api/metrics/event`, `GET /api/metrics/summary?days=7` con Vercel KV y fallback en memoria.
 - Conteo diario por tipo + totales y series; auto-conteo `api_error` desde middleware de errores.
