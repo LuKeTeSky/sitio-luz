@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Métricas - Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .metrics-wrap{max-width:1100px;margin:110px auto 40px;padding:0 20px}
+    .cards{display:flex;gap:16px;flex-wrap:wrap}
+    .card{border:1px solid #eee;border-radius:12px;padding:16px 18px;min-width:180px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+    .card .h{font-size:12px;color:#666}
+    .card .v{font-size:24px;font-weight:700}
+    table{width:100%;border-collapse:collapse;margin-top:16px;background:#fff;border:1px solid #eee;border-radius:12px;overflow:hidden}
+    th,td{padding:10px 12px;border-bottom:1px solid #f2f2f2;text-align:left}
+    th{background:#fafafa;font-weight:600;color:#444}
+    .section{margin-top:28px}
+    .muted{color:#777;font-size:14px}
+    .back{position:fixed;top:16px;left:16px}
+  </style>
+  <script src="/js/dimmed.js" defer></script>
+  <script>
+    async function loadMetrics(){
+      const elTotals = document.getElementById('totals');
+      const tbCountries = document.getElementById('tb-countries');
+      const tbPhotos = document.getElementById('tb-photos');
+      const tbLinks = document.getElementById('tb-links');
+      try{
+        const r = await fetch('/admin/metrics-data',{headers:{'accept':'application/json'}});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const j = await r.json();
+        // Totales
+        const visits = (j.visits||[]).reduce((a,b)=>a+b,0);
+        const uniques = (j.uniques||[]).reduce((a,b)=>a+b,0);
+        elTotals.innerHTML = `
+          <div class="card"><div class="h">Visitas (últ. ${j.labels?.length||0} días)</div><div class="v">${visits}</div></div>
+          <div class="card"><div class="h">Únicas</div><div class="v">${uniques}</div></div>
+        `;
+        // Países
+        tbCountries.innerHTML = (j.topCountries||[]).map((r,i)=>`<tr><td>${i+1}</td><td>${r.key}</td><td>${r.count}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Sin datos</td></tr>';
+        // Fotos
+        tbPhotos.innerHTML = (j.topPhotos||[]).map((r,i)=>`<tr><td>${i+1}</td><td>${r.key}</td><td>${r.count}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Sin datos</td></tr>';
+        // Links
+        const links = j.linkClicks||{}; const rows = Object.entries(links).sort((a,b)=>b[1]-a[1]);
+        tbLinks.innerHTML = rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')||'<tr><td colspan="2" class="muted">Sin datos</td></tr>';
+      }catch(e){
+        console.warn(e);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', loadMetrics);
+  </script>
+</head>
+<body class="admin-page">
+  <a href="/admin" class="back nav-link">← Volver</a>
+  <div class="metrics-wrap">
+    <h2 style="margin-bottom:10px">Métricas</h2>
+    <div class="cards" id="totals"></div>
+
+    <div class="section">
+      <h3>Top 5 países</h3>
+      <table>
+        <thead><tr><th>#</th><th>País</th><th>Visitas</th></tr></thead>
+        <tbody id="tb-countries"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h3>Top 5 fotos más vistas</h3>
+      <table>
+        <thead><tr><th>#</th><th>Filename</th><th>Vistas</th></tr></thead>
+        <tbody id="tb-photos"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h3>Clicks en enlaces</h3>
+      <table>
+        <thead><tr><th>Enlace</th><th>Clicks</th></tr></thead>
+        <tbody id="tb-links"></tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
+
+

@@ -698,6 +698,12 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'admin.html'));
 });
 
+// Dashboard de métricas (HTML) - protegido por sesión
+app.get('/admin/metrics', (req, res) => {
+  if (!req.session || !req.session.authenticated) return res.redirect('/login');
+  res.sendFile(path.join(__dirname, 'views', 'admin-metrics.html'));
+});
+
 // 🖼️ Página pública de galería (accesible sin login)
 app.get('/gallery', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'gallery-public.html'));
