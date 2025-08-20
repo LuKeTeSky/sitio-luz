@@ -13,6 +13,23 @@ body {
   overflow-x: hidden;
 }
 
+/* Modo atenuado nocturno (no cambia colores, solo oscurece sutilmente) */
+.dimmed-theme body,
+body.dimmed-theme {
+  position: relative;
+}
+
+.dimmed-theme body::after,
+body.dimmed-theme::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(0,0,0,0.08); /* sutil: ~8% */
+  backdrop-filter: brightness(0.96);
+  z-index: 999; /* por encima del contenido pero por debajo de overlays interactivos */
+}
+
 /* Estilo específico para el admin */
 body.admin-page {
   background: linear-gradient(135deg, var(--lv-cream) 0%, var(--lv-beige) 100%);

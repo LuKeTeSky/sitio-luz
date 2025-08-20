@@ -24,6 +24,7 @@
                 <a href="#gallery" class="nav-link" id="gallery-nav-btn">Galería</a>
                 <a href="#upload" class="nav-link">Subir Fotos</a>
                 <a href="#metrics" class="nav-link">Métricas</a>
+                <a href="#" class="nav-link" onclick="toggleDimmed();return false;">Atenuar</a>
                 <a href="/logout" class="nav-link logout-link">
                     <i class="fas fa-sign-out-alt"></i>
                     Cerrar Sesión
@@ -275,6 +276,19 @@
 
     <script src="/js/gallery.js"></script>
     <script src="/js/albums.js"></script>
+    <script>
+    (function(){
+      try {
+        const saved = localStorage.getItem('dimmed') === '1';
+        if (saved) document.body.classList.add('dimmed-theme');
+        window.toggleDimmed = function(){
+          const on = !document.body.classList.contains('dimmed-theme');
+          document.body.classList.toggle('dimmed-theme', on);
+          try { localStorage.setItem('dimmed', on ? '1':'0'); } catch(_){}
+        };
+      } catch(_){}
+    })();
+    </script>
     <script>
     (function(){
       function drawLineChart(canvas, labels, values){

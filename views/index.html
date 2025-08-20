@@ -154,5 +154,18 @@
     <script src="/js/gallery-public.js"></script>
     <script src="/js/hero-loader.js"></script>
     <script src="/js/albums-homepage.js"></script>
+    <script>
+      (function(){
+        try {
+          const saved = localStorage.getItem('dimmed') === '1';
+          if (saved) document.body.classList.add('dimmed-theme');
+          window.toggleDimmed = function(){
+            const on = !document.body.classList.contains('dimmed-theme');
+            document.body.classList.toggle('dimmed-theme', on);
+            try { localStorage.setItem('dimmed', on ? '1':'0'); } catch(_){}
+          };
+        } catch(_){}
+      })();
+    </script>
 </body>
 </html>
