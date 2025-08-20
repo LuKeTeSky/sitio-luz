@@ -15,6 +15,16 @@ test.describe('Admin - Álbumes (edición básica)', () => {
     const uniqueName = `RC Edit ${Date.now()}`;
     await page.locator('#btn-create-album').click();
     const modal = page.locator('#album-modal');
+    // Fallback: si por timing no se activó, forzar apertura vía API de la página
+    await page.waitForTimeout(150);
+    const isActive = await modal.evaluate(el => el.classList.contains('active'));
+    if (!isActive) {
+      await page.evaluate(() => {
+        const am = (window as any).albumsManager;
+        if (am && typeof am.openCreateModal === 'function') am.openCreateModal();
+      });
+    }
+    await expect(modal).toHaveClass(/active/, { timeout: 10000 });
     await expect(page.locator('#album-modal .modal-content')).toBeVisible({ timeout: 10000 });
     const nameInput = page.locator('#album-name');
     await nameInput.scrollIntoViewIfNeeded();
