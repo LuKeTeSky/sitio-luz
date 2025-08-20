@@ -49,8 +49,7 @@ body.dimmed-theme::after {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: rgba(0,0,0,0.08); /* sutil: ~8% */
-  backdrop-filter: brightness(0.96);
+  background: rgba(0,0,0,0.15); /* ~15% */
   z-index: 999; /* por encima del contenido pero por debajo de overlays interactivos */
 }
 
