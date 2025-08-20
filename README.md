@@ -40,6 +40,9 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
   - Portada: espera render de `.cover-item` con `expect.poll`.
   - Álbumes: espera a que el modal esté activo y el input sea visible; limpieza al finalizar.
   - Rama `ci/test-stabilization`: el workflow E2E corre en push a `main` y `ci/test-stabilization`, y en PR hacia `main`, `develop`, `release/*` y `ci/test-stabilization`.
+  - Estabilizaciones recientes:
+    - Portada: el test marca la portada por API (`POST /api/cover`) para no depender del render inicial de la galería.
+    - Álbumes: apertura de modal robusta; si el click no la activa por timing, se usa `window.albumsManager.openCreateModal()` como fallback y se valida visibilidad.
 
 ### 🧰 Operación
 - Nuevo endpoint de reparación de URLs públicas (evita 403 de Blob):
