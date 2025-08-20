@@ -166,7 +166,10 @@ function createGalleryItem(imageData, index) {
         <div class="gallery-overlay"></div>
     `;
 
-    item.addEventListener('click', () => openLightbox(index));
+    item.addEventListener('click', () => {
+        openLightbox(index);
+        try { fetch('/api/metrics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'photo_view',label:imageData.filename})}); } catch(_){ }
+    });
     return item;
 }
 

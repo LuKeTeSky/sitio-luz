@@ -17,6 +17,7 @@ const session = require('express-session');
 const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const crypto = require('crypto');
 
 // 🔧 Vercel KV para persistencia
 let kv = null;
@@ -73,6 +74,11 @@ app.use(helmet({
         // Permitir imágenes servidas desde Vercel Blob (URLs públicas)
         "https://*.vercel-storage.com",
         "https://*.blob.vercel-storage.com"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://api.sunrise-sunset.org",
+        "https://ipapi.co"
       ],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
@@ -288,13 +294,13 @@ async function getDailyMetrics(dateKey) {
     if (kv && typeof kv.get === 'function') {
       const data = await kv.get(`metrics:daily:${dateKey}`);
       if (data && typeof data === 'object') return data;
-      return { date: dateKey, visits: 0, events: {} };
+      return { date: dateKey, visits: 0, uniques: 0, events: {}, countries: {}, photoViews: {}, linkClicks: {} };
     }
   } catch (e) {
     console.warn('KV get metrics error:', e.message);
   }
   // Fallback memoria
-  if (!metricsMemory.daily[dateKey]) metricsMemory.daily[dateKey] = { date: dateKey, visits: 0, events: {} };
+  if (!metricsMemory.daily[dateKey]) metricsMemory.daily[dateKey] = { date: dateKey, visits: 0, uniques: 0, events: {}, countries: {}, photoViews: {}, linkClicks: {} };
   return metricsMemory.daily[dateKey];
 }
 
@@ -327,17 +333,58 @@ async function incrementMetric(type) {
 // POST /api/metrics/event  Body: { type, label?, metadata? }
 app.post('/api/metrics/event', express.json(), async (req, res) => {
   try {
-    const { type } = req.body || {};
+    const { type, label } = req.body || {};
     if (!type || typeof type !== 'string') {
       return res.status(400).json({ error: 'type requerido' });
     }
     const dateKey = getDateKey(0);
     const daily = await getDailyMetrics(dateKey);
     if (type === 'page_view') {
+      // Totales
       daily.visits = (daily.visits || 0) + 1;
+      // Uniques por IP (hash)
+      const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0];
+      const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
+      try {
+        if (kv && typeof kv.get === 'function' && typeof kv.set === 'function') {
+          const keyIps = `metrics:ips:${dateKey}`;
+          const arr = (await kv.get(keyIps)) || [];
+          if (!arr.includes(ipHash)) {
+            arr.push(ipHash);
+            daily.uniques = (daily.uniques || 0) + 1;
+            await kv.set(keyIps, arr);
+          }
+        } else {
+          // memoria fallback
+          metricsMemory[`ips:${dateKey}`] = metricsMemory[`ips:${dateKey}`] || new Set();
+          if (!metricsMemory[`ips:${dateKey}`].has(ipHash)) {
+            metricsMemory[`ips:${dateKey}`].add(ipHash);
+            daily.uniques = (daily.uniques || 0) + 1;
+          }
+        }
+      } catch (e) {
+        // continuar aunque falle
+      }
+      // País por IP
+      try {
+        const country = await geolocateCountry(ip);
+        if (country) {
+          daily.countries = daily.countries || {};
+          daily.countries[country] = (daily.countries[country] || 0) + 1;
+        }
+      } catch (_) {}
     } else {
       daily.events = daily.events || {};
       daily.events[type] = (daily.events[type] || 0) + 1;
+      // Contadores específicos
+      if (type === 'photo_view' && label) {
+        daily.photoViews = daily.photoViews || {};
+        daily.photoViews[label] = (daily.photoViews[label] || 0) + 1;
+      }
+      if ((type === 'link_click' || type === 'external_click') && label) {
+        daily.linkClicks = daily.linkClicks || {};
+        daily.linkClicks[label] = (daily.linkClicks[label] || 0) + 1;
+      }
     }
     await saveDailyMetrics(dateKey, daily);
     res.json({ success: true });
@@ -353,6 +400,10 @@ app.get('/api/metrics/summary', async (req, res) => {
     const days = Math.min(parseInt(req.query.days) || 7, 30);
     const labels = [];
     const visits = [];
+    const uniques = [];
+    const countriesAgg = {};
+    const photoViewsAgg = {};
+    const linkClicksAgg = {};
     const eventsTotals = {}; // por tipo
     const seriesByType = {}; // opcional por día
     for (let i = days - 1; i >= 0; i--) {
@@ -360,6 +411,14 @@ app.get('/api/metrics/summary', async (req, res) => {
       const daily = await getDailyMetrics(key);
       labels.push(key);
       visits.push(daily.visits || 0);
+      uniques.push(daily.uniques || 0);
+      // Acumulados
+      const cc = daily.countries || {};
+      for (const c of Object.keys(cc)) countriesAgg[c] = (countriesAgg[c] || 0) + (cc[c] || 0);
+      const pv = daily.photoViews || {};
+      for (const k of Object.keys(pv)) photoViewsAgg[k] = (photoViewsAgg[k] || 0) + (pv[k] || 0);
+      const lc = daily.linkClicks || {};
+      for (const k of Object.keys(lc)) linkClicksAgg[k] = (linkClicksAgg[k] || 0) + (lc[k] || 0);
       const ev = daily.events || {};
       for (const t of Object.keys(ev)) {
         eventsTotals[t] = (eventsTotals[t] || 0) + (ev[t] || 0);
@@ -375,12 +434,44 @@ app.get('/api/metrics/summary', async (req, res) => {
         seriesByType[t].push((daily.events && daily.events[t]) || 0);
       }
     }
-    res.json({ labels, visits, eventsTotals, seriesByType });
+    // Top 5
+    const topArray = (obj) => Object.entries(obj || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>({ key:k, count:v }));
+    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topArray(photoViewsAgg), linkClicks: linkClicksAgg });
   } catch (e) {
     console.error('GET /api/metrics/summary error:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+
+// Admin JSON dashboard (protegido por sesión a través del middleware global)
+app.get('/admin/metrics-data', async (req, res) => {
+  try {
+    if (!req.session || !req.session.authenticated) return res.status(401).json({ error: 'No autenticado' });
+    const j = await (await fetch('http://localhost:'+PORT+'/api/metrics/summary?days=30')).json().catch(()=>({}));
+    res.json(j);
+  } catch (e) {
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Helper: geolocate country by IP with caching (KV)
+async function geolocateCountry(ip) {
+  try {
+    if (!ip) return null;
+    const key = `geo:${ip}`;
+    if (kv && typeof kv.get === 'function') {
+      const cached = await kv.get(key);
+      if (cached) return cached;
+    }
+    // Use ipapi.co (no key) as simple source
+    const url = `https://ipapi.co/${encodeURIComponent(ip)}/country_name/`;
+    const r = await fetch(url, { headers: { 'accept': 'text/plain' }, cache: 'no-store' });
+    const txt = await r.text();
+    const country = (txt || '').trim() || null;
+    if (country && kv && typeof kv.set === 'function') await kv.set(key, country);
+    return country;
+  } catch (_) { return null; }
+}
 
 // 📥 Página de login
 app.get('/login', (req, res) => {

@@ -23,6 +23,7 @@
                 <a href="#gallery" class="nav-link">Galería</a>
                 <a href="#about" class="nav-link">Sobre Mí</a>
                 <a href="#contact" class="nav-link">Contacto</a>
+                <a href="https://instagram.com/maria_luzcm" target="_blank" class="nav-link" onclick="try{fetch('/api/metrics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'link_click',label:'instagram'})});}catch(_){ }">Instagram</a>
                 <a href="/login" class="nav-link login-link">
                     <i class="fas fa-user"></i>
                     Admin
@@ -112,15 +113,15 @@
             </div>
             <div class="contact-content">
                 <div class="contact-info">
-                    <div class="contact-item">
+                    <div class="contact-item" onclick="try{fetch('/api/metrics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'link_click',label:'instagram'})});}catch(_){ }">
                         <i class="fab fa-instagram"></i>
                         <a href="https://instagram.com/maria_luzcm" target="_blank" class="contact-link">@maria_luzcm</a>
                     </div>
-                    <div class="contact-item">
+                    <div class="contact-item" onclick="try{fetch('/api/metrics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'link_click',label:'whatsapp'})});}catch(_){ }">
                         <i class="fab fa-whatsapp"></i>
                         <a href="https://wa.me/5491153257400" target="_blank" class="contact-link">+54 9 11 5325-7400</a>
                     </div>
-                    <div class="contact-item">
+                    <div class="contact-item" onclick="try{fetch('/api/metrics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'link_click',label:'email'})});}catch(_){ }">
                         <i class="fas fa-envelope"></i>
                         <span>msmvdg@gmail.com</span>
                     </div>
