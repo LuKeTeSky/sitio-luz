@@ -1160,6 +1160,27 @@ let heroConfig = {
 // 💾 Portadas (cover images) en memoria (fallback para dev/prod si KV no está)
 let coverImagesMemory = [];
 
+// 🎯 Helpers KV para hero config (persistencia en producción)
+async function getHeroConfigKV() {
+  try {
+    if (kv && typeof kv.get === 'function') {
+      const cfg = await kv.get('heroConfig');
+      if (cfg && typeof cfg === 'object') return cfg;
+    }
+  } catch (_) {}
+  return null;
+}
+
+async function setHeroConfigKV(config) {
+  try {
+    if (kv && typeof kv.set === 'function') {
+      await kv.set('heroConfig', config);
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
 // 🎯 Helper: obtener URL pública de imagen por filename (Vercel Blob/KV)
 async function getPublicUrlForFilename(filename) {
   try {
@@ -1208,9 +1229,13 @@ app.get('/api/hero', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
     const rid = req._rid || `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     let config = heroConfig;
-    // En desarrollo, intentar archivo local
-    if (process.env.NODE_ENV !== 'production') {
+    if (isProd) {
+      const kvCfg = await getHeroConfigKV();
+      if (kvCfg) config = kvCfg;
+    } else {
+      // En desarrollo, intentar archivo local
       const configPath = path.join(__dirname, 'hero-config.json');
       if (fs.existsSync(configPath)) {
         config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -1260,10 +1285,16 @@ app.post('/api/hero', express.json(), async (req, res) => {
       updatedAt: new Date().toISOString()
     };
     
-    // Guardar configuración en memoria o archivo
+    // Guardar configuración (KV en prod; archivo en dev; memoria como fallback)
     if (isProd) {
-      heroConfig = config; // Guardado en memoria para prod
-      console.log('💾 Hero config guardado en memoria:', config);
+      const ok = await setHeroConfigKV(config);
+      if (!ok) {
+        heroConfig = config; // Fallback memoria si KV no disponible
+        console.log('💾 Hero config guardado en memoria (fallback prod):', config);
+      } else {
+        heroConfig = config; // mantener en memoria para respuestas rápidas
+        console.log('💾 Hero config guardado en KV:', config);
+      }
     } else {
       const configPath = path.join(__dirname, 'hero-config.json');
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
@@ -1271,7 +1302,7 @@ app.post('/api/hero', express.json(), async (req, res) => {
     }
     
     // Adjuntar URL pública si está disponible
-    const heroImageUrl = await getPublicUrlForFilename(heroImage);
+    const heroImageUrl = await getPublicUrlForFilename(config.heroImage);
     
     res.json({ 
       success: true, 
@@ -1389,10 +1420,35 @@ app.post('/api/cover', express.json(), async (req, res) => {
     }
 
     // Unificación: establecer hero igual a la primera portada si existe
-    if (Array.isArray(current) && current.length > 0) {
-      heroConfig.heroImage = current[0];
-      heroConfig.updatedAt = new Date().toISOString();
-    }
+    try {
+      const now = new Date().toISOString();
+      if (Array.isArray(current) && current.length > 0) {
+        const newHero = { ...heroConfig, heroImage: current[0], updatedAt: now };
+        if (isProd) {
+          const okHero = await setHeroConfigKV(newHero);
+          if (!okHero) heroConfig = newHero; else heroConfig = newHero;
+        } else {
+          heroConfig = newHero;
+          try {
+            const devPath = path.join(__dirname, 'hero-config.json');
+            fs.writeFileSync(devPath, JSON.stringify(newHero, null, 2));
+          } catch (_) {}
+        }
+      } else {
+        // Si no hay portada, limpiar hero para evitar inconsistencias
+        const cleared = { ...heroConfig, heroImage: '', updatedAt: now };
+        if (isProd) {
+          const okHero = await setHeroConfigKV(cleared);
+          if (!okHero) heroConfig = cleared; else heroConfig = cleared;
+        } else {
+          heroConfig = cleared;
+          try {
+            const devPath = path.join(__dirname, 'hero-config.json');
+            fs.writeFileSync(devPath, JSON.stringify(cleared, null, 2));
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
 
     // Sincronizar álbum "Portada" con la(s) imagen(es) de portada
     try {
