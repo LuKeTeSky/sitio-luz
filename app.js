@@ -447,8 +447,44 @@ app.get('/api/metrics/summary', async (req, res) => {
 app.get('/admin/metrics-data', async (req, res) => {
   try {
     if (!req.session || !req.session.authenticated) return res.status(401).json({ error: 'No autenticado' });
-    const j = await (await fetch('http://localhost:'+PORT+'/api/metrics/summary?days=30')).json().catch(()=>({}));
-    res.json(j);
+    // Generar el mismo JSON que /api/metrics/summary sin hacer fetch a localhost
+    const days = 30;
+    const labels = [];
+    const visits = [];
+    const uniques = [];
+    const countriesAgg = {};
+    const photoViewsAgg = {};
+    const linkClicksAgg = {};
+    const eventsTotals = {};
+    const seriesByType = {};
+    for (let i = days - 1; i >= 0; i--) {
+      const key = getDateKey(i);
+      const daily = await getDailyMetrics(key);
+      labels.push(key);
+      visits.push(daily.visits || 0);
+      uniques.push(daily.uniques || 0);
+      const cc = daily.countries || {};
+      for (const c of Object.keys(cc)) countriesAgg[c] = (countriesAgg[c] || 0) + (cc[c] || 0);
+      const pv = daily.photoViews || {};
+      for (const k of Object.keys(pv)) photoViewsAgg[k] = (photoViewsAgg[k] || 0) + (pv[k] || 0);
+      const lc = daily.linkClicks || {};
+      for (const k of Object.keys(lc)) linkClicksAgg[k] = (linkClicksAgg[k] || 0) + (lc[k] || 0);
+      const ev = daily.events || {};
+      for (const t of Object.keys(ev)) {
+        eventsTotals[t] = (eventsTotals[t] || 0) + (ev[t] || 0);
+        if (!seriesByType[t]) seriesByType[t] = [];
+      }
+    }
+    for (const t of Object.keys(seriesByType)) {
+      seriesByType[t] = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const key = getDateKey(i);
+        const daily = await getDailyMetrics(key);
+        seriesByType[t].push((daily.events && daily.events[t]) || 0);
+      }
+    }
+    const topArray = (obj) => Object.entries(obj || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>({ key:k, count:v }));
+    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topArray(photoViewsAgg), linkClicks: linkClicksAgg });
   } catch (e) {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
