@@ -1,9 +1,15 @@
 // Script para cargar dinámicamente la configuración del hero
 document.addEventListener('DOMContentLoaded', () => {
   loadHeroConfiguration();
-  // Refresco suave para evitar quedarse con una portada vieja
-  setInterval(() => {
-    loadHeroConfiguration();
+  // Refresco suave cada 30s, pero sólo si hay hero definido explícitamente
+  setInterval(async () => {
+    try {
+      const r = await fetch('/api/hero', { cache: 'no-store' });
+      const cfg = await r.json();
+      if (cfg && cfg.heroImage) {
+        loadHeroConfiguration();
+      }
+    } catch(_){}
   }, 30000);
 });
 
@@ -29,18 +35,7 @@ async function loadHeroConfiguration() {
           }
         } catch (_) {}
       }
-      // Si aún no hay, intentar usar la primera portada con URL pública
-      if (!src) {
-        try {
-          const r = await fetch('/api/cover', { cache: 'no-store' });
-          if (r.ok) {
-            const j = await r.json();
-            if (Array.isArray(j.items) && j.items[0] && j.items[0].url) {
-              src = j.items[0].url;
-            }
-          }
-        } catch (_) {}
-      }
+      // No hacer fallback automático a la primera portada para evitar cambios no deseados
       if (src) {
         heroImage.src = src;
       }

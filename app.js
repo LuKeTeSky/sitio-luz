@@ -1076,20 +1076,7 @@ app.get('/api/hero', async (req, res) => {
         config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       }
     }
-    // Fallback: si no hay hero definido, usar primera imagen de portada (cover)
-    if (!config.heroImage) {
-      try {
-        let covers = [];
-        if (kv && typeof kv.get === 'function') {
-          covers = (await kv.get('coverImages')) || [];
-        } else if (Array.isArray(coverImagesMemory)) {
-          covers = coverImagesMemory;
-        }
-        if (Array.isArray(covers) && covers.length > 0) {
-          config.heroImage = covers[0];
-        }
-      } catch (_) {}
-    }
+    // Ya no forzamos fallback automático a primera portada para evitar cambios involuntarios
     // Adjuntar URL pública si existe
     const heroImageUrl = await getPublicUrlForFilename(config.heroImage);
     if (process.env.DEBUG_LOGS === '1') {
