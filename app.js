@@ -40,6 +40,10 @@ if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
 
 const app = express();
 
+// Vercel está detrás de un proxy/edge. Necesario para que req.secure sea true
+// y se emita correctamente la cookie `secure` de la sesión en producción.
+app.set('trust proxy', 1);
+
 // 🔍 Debug: Verificar variables de entorno
   console.log('🔍 Entorno: VERCEL=', process.env.VERCEL, ' NODE_ENV=', process.env.NODE_ENV);
   console.log('🔍 KV:', kv ? '✅ disponible' : '❌ no disponible');
@@ -633,11 +637,13 @@ app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (
     }
 
     if (isValidPassword) { // Autenticado
-      req.session.authenticated = true;
+      // Regenerar primero para evitar fijación de sesión y conservar los datos nuevos
       req.session.regenerate((err) => {
         if (err) {
           console.error('Session regeneration error:', err);
         }
+        // Marcar la nueva sesión como autenticada y guardar
+        req.session.authenticated = true;
         if (process.env.DEBUG_LOGS === '1') {
           console.log(`[RID ${rid}] LOGIN success ip=${ip}`);
         }
