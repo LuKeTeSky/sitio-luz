@@ -441,6 +441,44 @@ Para almacenar imágenes de forma persistente con CDN y URLs públicas:
 - Rotar `SESSION_SECRET` periódicamente y cambiar `ADMIN_PASSWORD` si se sospecha filtración
 - Tras cambios de entorno (env/Storage), redeploy en Vercel
 
+### 🔐 Iniciar sesión en GitHub desde Cursor (forzar que vuelva a pedir login)
+
+Si cancelaste el diálogo de GitHub en Cursor y no vuelve a aparecer, sigue estos pasos:
+
+1) Restablecer la sesión de autenticación en Cursor
+- Abre la Command Palette (Cmd+Shift+P en macOS).
+- Ejecuta: "Developer: Clear Authentication Sessions".
+- Selecciona GitHub y confirma.
+- Opcional: ejecuta también "GitHub: Sign out" si aparece.
+
+2) Volver a iniciar sesión
+- Command Palette → "GitHub: Sign in" y autoriza en el navegador.
+- O desde el icono de Accounts (abajo a la izquierda) → "Sign in to GitHub".
+- Luego ejecuta "Developer: Reload Window" para refrescar la sesión.
+
+3) Disparar el prompt desde Git
+- Abre la vista Source Control o terminal integrada y ejecuta `git push`.
+- Cursor debería abrir el diálogo de GitHub nuevamente; acepta/autoriza.
+
+4) Alternativa por terminal con GitHub CLI
+```zsh
+gh auth login -s repo -w
+gh auth status
+```
+Esto configura credenciales para Git y debería permitir `git push` sin pedir usuario/clave.
+
+5) Cambiar remoto a HTTPS (si prefieres usuario + PAT)
+```zsh
+git remote set-url origin https://github.com/LuKeTeSky/sitio-luz.git
+git push origin main
+```
+Cuando pida credenciales, usa tu usuario de GitHub y como contraseña un Personal Access Token (PAT) con scope `repo`.
+
+6) Limpiar credenciales en macOS Keychain (si quedaron corruptas)
+- Abre Keychain Access.
+- Busca "github.com" o entradas que empiecen con `git:`.
+- Elimina tokens/entradas antiguas y repite los pasos 1–3.
+
 ### Pasos de Instalación
 
 1. **Clonar el repositorio**
