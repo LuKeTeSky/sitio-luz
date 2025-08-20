@@ -590,7 +590,7 @@ app.get('/login', (req, res) => {
         <div class="login-container">
           <h1>LUZ</h1>
           <p style="color: #666; margin-bottom: 30px;">Portfolio de Moda</p>
-          <form method="POST" action="/login">
+          <form method="POST" action="/login${req.query.next ? ('?next='+encodeURIComponent(req.query.next)) : ''}">
             <input type="password" name="password" placeholder="Clave de acceso" required>
             <button type="submit">Entrar</button>
           </form>
@@ -641,7 +641,8 @@ app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (
         if (process.env.DEBUG_LOGS === '1') {
           console.log(`[RID ${rid}] LOGIN success ip=${ip}`);
         }
-        res.redirect('/admin');
+        const nextUrl = (req.query && req.query.next) ? String(req.query.next) : '/admin';
+        res.redirect(nextUrl);
       });
     } else {
       if (process.env.DEBUG_LOGS === '1') {
@@ -736,7 +737,7 @@ app.get('/admin', (req, res) => {
 
 // Dashboard de métricas (HTML) - protegido por sesión
 app.get('/admin/metrics', (req, res) => {
-  if (!req.session || !req.session.authenticated) return res.redirect('/login');
+  if (!req.session || !req.session.authenticated) return res.redirect('/login?next=/admin/metrics');
   res.sendFile(path.join(__dirname, 'views', 'admin-metrics.html'));
 });
 
