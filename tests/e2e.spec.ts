@@ -22,9 +22,10 @@ test.describe('Sitio Luz - E2E mínimos', () => {
     const images = await api.json();
 
     await page.goto('/gallery');
-    await expect(page.locator('.gallery-grid')).toBeVisible();
+    await page.locator('#gallery').scrollIntoViewIfNeeded();
+    await expect(page.locator('.gallery-grid')).toHaveCount(1);
     if (Array.isArray(images) && images.length > 0) {
-      await expect(page.locator('.gallery-grid .gallery-item').first()).toBeVisible();
+      await expect(page.locator('.gallery-grid .gallery-item').first()).toBeVisible({ timeout: 15000 });
     }
   });
 

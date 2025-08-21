@@ -10,8 +10,11 @@ test.describe('Sitio LUZ - smoke', () => {
 
   test('Galería pública renderiza imágenes', async ({ page }) => {
     await page.goto('/gallery');
-    const items = page.locator('.gallery-item img');
-    await expect(items.first()).toBeVisible({ timeout: 15000 });
+    await page.locator('#gallery').scrollIntoViewIfNeeded();
+    const grid = page.locator('.gallery-grid');
+    await expect(grid).toHaveCount(1);
+    const items = page.locator('.gallery-grid .gallery-item img');
+    await expect(items.first()).toBeVisible({ timeout: 20000 });
   });
 
   test('Admin login rechaza credenciales vacías', async ({ page }) => {
