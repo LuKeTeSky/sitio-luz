@@ -445,7 +445,12 @@ app.get('/api/metrics/summary', async (req, res) => {
     // Top 5
     const topArray = (obj) => Object.entries(obj || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>({ key:k, count:v }));
     const topFailedLogins = topArray(failedLoginAgg);
-    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topArray(photoViewsAgg), linkClicks: linkClicksAgg, topFailedLogins });
+    const topPhotos = topArray(photoViewsAgg);
+    const topPhotosWithUrl = await Promise.all((topPhotos || []).map(async (it) => ({
+      ...it,
+      url: await getPublicUrlForFilename(it.key)
+    })));
+    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topPhotosWithUrl, linkClicks: linkClicksAgg, topFailedLogins });
   } catch (e) {
     console.error('GET /api/metrics/summary error:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -497,7 +502,12 @@ app.get('/admin/metrics-data', async (req, res) => {
     }
     const topArray = (obj) => Object.entries(obj || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>({ key:k, count:v }));
     const topFailedLogins = topArray(failedLoginAgg);
-    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topArray(photoViewsAgg), linkClicks: linkClicksAgg, topFailedLogins });
+    const topPhotos = topArray(photoViewsAgg);
+    const topPhotosWithUrl = await Promise.all((topPhotos || []).map(async (it) => ({
+      ...it,
+      url: await getPublicUrlForFilename(it.key)
+    })));
+    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topPhotosWithUrl, linkClicks: linkClicksAgg, topFailedLogins });
   } catch (e) {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
