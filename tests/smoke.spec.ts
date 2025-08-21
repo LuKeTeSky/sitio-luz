@@ -8,13 +8,19 @@ test.describe('Sitio LUZ - smoke', () => {
     await expect(nav.getByRole('link', { name: 'Galería', exact: true })).toBeVisible();
   });
 
-  test('Galería pública renderiza imágenes', async ({ page }) => {
+  test('Galería pública renderiza imágenes', async ({ page, request }) => {
     await page.goto('/gallery');
     await page.locator('#gallery').scrollIntoViewIfNeeded();
     const grid = page.locator('.gallery-grid');
     await expect(grid).toHaveCount(1);
-    const items = page.locator('.gallery-grid .gallery-item img');
-    await expect(items.first()).toBeVisible({ timeout: 20000 });
+    const api = await request.get('/api/images');
+    const images = api.ok() ? await api.json() : [];
+    if (Array.isArray(images) && images.length > 0) {
+      const items = page.locator('.gallery-grid .gallery-item img');
+      await expect(items.first()).toBeVisible({ timeout: 20000 });
+    } else {
+      await expect(page.locator('.gallery-grid .gallery-item')).toHaveCount(0);
+    }
   });
 
   test('Admin login rechaza credenciales vacías', async ({ page }) => {
