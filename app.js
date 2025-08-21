@@ -299,13 +299,13 @@ async function getDailyMetrics(dateKey) {
     if (kv && typeof kv.get === 'function') {
       const data = await kv.get(`metrics:daily:${dateKey}`);
       if (data && typeof data === 'object') return data;
-      return { date: dateKey, visits: 0, uniques: 0, events: {}, countries: {}, photoViews: {}, linkClicks: {} };
+      return { date: dateKey, visits: 0, uniques: 0, events: {}, countries: {}, photoViews: {}, linkClicks: {}, failedLoginsByIp: {} };
     }
   } catch (e) {
     console.warn('KV get metrics error:', e.message);
   }
   // Fallback memoria
-  if (!metricsMemory.daily[dateKey]) metricsMemory.daily[dateKey] = { date: dateKey, visits: 0, uniques: 0, events: {}, countries: {}, photoViews: {}, linkClicks: {} };
+  if (!metricsMemory.daily[dateKey]) metricsMemory.daily[dateKey] = { date: dateKey, visits: 0, uniques: 0, events: {}, countries: {}, photoViews: {}, linkClicks: {}, failedLoginsByIp: {} };
   return metricsMemory.daily[dateKey];
 }
 
@@ -409,6 +409,8 @@ app.get('/api/metrics/summary', async (req, res) => {
     const countriesAgg = {};
     const photoViewsAgg = {};
     const linkClicksAgg = {};
+    const failedLoginAgg = {};
+    const failedLoginAgg = {};
     const eventsTotals = {}; // por tipo
     const seriesByType = {}; // opcional por día
     for (let i = days - 1; i >= 0; i--) {
@@ -429,6 +431,10 @@ app.get('/api/metrics/summary', async (req, res) => {
         eventsTotals[t] = (eventsTotals[t] || 0) + (ev[t] || 0);
         if (!seriesByType[t]) seriesByType[t] = [];
       }
+      const fails = daily.failedLoginsByIp || {};
+      for (const ip of Object.keys(fails)) failedLoginAgg[ip] = (failedLoginAgg[ip] || 0) + (fails[ip] || 0);
+      const fails = daily.failedLoginsByIp || {};
+      for (const ip of Object.keys(fails)) failedLoginAgg[ip] = (failedLoginAgg[ip] || 0) + (fails[ip] || 0);
     }
     // Reconstruir series por tipo en el mismo orden de labels
     for (const t of Object.keys(seriesByType)) {
@@ -441,7 +447,8 @@ app.get('/api/metrics/summary', async (req, res) => {
     }
     // Top 5
     const topArray = (obj) => Object.entries(obj || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>({ key:k, count:v }));
-    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topArray(photoViewsAgg), linkClicks: linkClicksAgg });
+    const topFailedLogins = topArray(failedLoginAgg);
+    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topArray(photoViewsAgg), linkClicks: linkClicksAgg, topFailedLogins });
   } catch (e) {
     console.error('GET /api/metrics/summary error:', e);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -489,7 +496,8 @@ app.get('/admin/metrics-data', async (req, res) => {
       }
     }
     const topArray = (obj) => Object.entries(obj || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>({ key:k, count:v }));
-    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topArray(photoViewsAgg), linkClicks: linkClicksAgg });
+    const topFailedLogins = topArray(failedLoginAgg);
+    res.json({ labels, visits, uniques, eventsTotals, seriesByType, topCountries: topArray(countriesAgg), topPhotos: topArray(photoViewsAgg), linkClicks: linkClicksAgg, topFailedLogins });
   } catch (e) {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
@@ -655,6 +663,14 @@ app.post('/login', loginLimiter, express.urlencoded({ extended: true }), async (
       if (process.env.DEBUG_LOGS === '1') {
         console.warn(`[RID ${rid}] LOGIN failed ip=${ip} reason=Invalid password`);
       }
+      // Métrica: failed login by IP
+      try {
+        const key = getDateKey(0);
+        const daily = await getDailyMetrics(key);
+        daily.failedLoginsByIp = daily.failedLoginsByIp || {};
+        daily.failedLoginsByIp[ip] = (daily.failedLoginsByIp[ip] || 0) + 1;
+        await saveDailyMetrics(key, daily);
+      } catch(_){}
       throw new Error('Invalid password');
     }
   } catch (error) {

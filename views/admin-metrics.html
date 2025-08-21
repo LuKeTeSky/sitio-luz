@@ -27,6 +27,7 @@
       const tbCountries = document.getElementById('tb-countries');
       const tbPhotos = document.getElementById('tb-photos');
       const tbLinks = document.getElementById('tb-links');
+      const tbFailed = document.getElementById('tb-failed');
       try{
         const r = await fetch('/admin/metrics-data',{headers:{'accept':'application/json'}});
         if(!r.ok) throw new Error('HTTP '+r.status);
@@ -45,6 +46,8 @@
         // Links
         const links = j.linkClicks||{}; const rows = Object.entries(links).sort((a,b)=>b[1]-a[1]);
         tbLinks.innerHTML = rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')||'<tr><td colspan="2" class="muted">Sin datos</td></tr>';
+        // Failed logins top 5
+        tbFailed.innerHTML = (j.topFailedLogins||[]).map((r,i)=>`<tr><td>${i+1}</td><td>${r.key}</td><td>${r.count}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Sin datos</td></tr>';
       }catch(e){
         console.warn(e);
       }
@@ -80,6 +83,15 @@
         <thead><tr><th>Enlace</th><th>Clicks</th></tr></thead>
         <tbody id="tb-links"></tbody>
       </table>
+    </div>
+
+    <div class="section">
+      <h3>Top 5 intentos de acceso fallidos (por IP)</h3>
+      <table>
+        <thead><tr><th>#</th><th>IP</th><th>Intentos</th></tr></thead>
+        <tbody id="tb-failed"></tbody>
+      </table>
+      <div class="muted">Se agregan por día y se agregan al total en los últimos N días.</div>
     </div>
   </div>
 </body>
