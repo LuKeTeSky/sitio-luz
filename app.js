@@ -410,7 +410,6 @@ app.get('/api/metrics/summary', async (req, res) => {
     const photoViewsAgg = {};
     const linkClicksAgg = {};
     const failedLoginAgg = {};
-    const failedLoginAgg = {};
     const eventsTotals = {}; // por tipo
     const seriesByType = {}; // opcional por día
     for (let i = days - 1; i >= 0; i--) {
@@ -431,8 +430,6 @@ app.get('/api/metrics/summary', async (req, res) => {
         eventsTotals[t] = (eventsTotals[t] || 0) + (ev[t] || 0);
         if (!seriesByType[t]) seriesByType[t] = [];
       }
-      const fails = daily.failedLoginsByIp || {};
-      for (const ip of Object.keys(fails)) failedLoginAgg[ip] = (failedLoginAgg[ip] || 0) + (fails[ip] || 0);
       const fails = daily.failedLoginsByIp || {};
       for (const ip of Object.keys(fails)) failedLoginAgg[ip] = (failedLoginAgg[ip] || 0) + (fails[ip] || 0);
     }
@@ -467,6 +464,7 @@ app.get('/admin/metrics-data', async (req, res) => {
     const countriesAgg = {};
     const photoViewsAgg = {};
     const linkClicksAgg = {};
+    const failedLoginAgg = {};
     const eventsTotals = {};
     const seriesByType = {};
     for (let i = days - 1; i >= 0; i--) {
@@ -486,6 +484,8 @@ app.get('/admin/metrics-data', async (req, res) => {
         eventsTotals[t] = (eventsTotals[t] || 0) + (ev[t] || 0);
         if (!seriesByType[t]) seriesByType[t] = [];
       }
+      const fails = daily.failedLoginsByIp || {};
+      for (const ip of Object.keys(fails)) failedLoginAgg[ip] = (failedLoginAgg[ip] || 0) + (fails[ip] || 0);
     }
     for (const t of Object.keys(seriesByType)) {
       seriesByType[t] = [];
