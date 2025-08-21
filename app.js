@@ -257,6 +257,7 @@ app.use((req, res, next) => {
     '/js',
     '/api/images', // API pública para obtener imágenes
     '/api/hero', // API pública para obtener configuración del hero
+    '/api/metrics/event', // Permitir envío de métricas desde páginas públicas
     '/gallery' // Ruta pública para la galería
   ];
   
