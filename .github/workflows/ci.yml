@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: |
+          npm ci
+          npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npm test -- --reporter=html,github
+
+      - name: Upload Playwright report (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.ref_name }}-${{ github.run_number }}
+          path: playwright-report/**
+          if-no-files-found: ignore
+
+      - name: Upload traces (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traces-${{ github.ref_name }}-${{ github.run_number }}
+          path: test-results/**
+          if-no-files-found: ignore
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps (for build)
+        run: npm ci
+
+      - name: Vercel pull (prod)
+        if: env.VERCEL_TOKEN != ''
+        run: npx vercel pull --yes --environment=production --token $VERCEL_TOKEN
+
+      - name: Vercel build (prebuilt)
+        if: env.VERCEL_TOKEN != ''
+        run: npx vercel build --prod --token $VERCEL_TOKEN
+
+      - name: Vercel deploy (only if tests passed)
+        if: env.VERCEL_TOKEN != ''
+        run: npx vercel deploy --prebuilt --prod --token $VERCEL_TOKEN
+
+
