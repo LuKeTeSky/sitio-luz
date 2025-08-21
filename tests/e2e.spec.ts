@@ -10,8 +10,9 @@ test.describe('Sitio Luz - E2E mínimos', () => {
     await expect(page.locator('#hero-title')).toBeVisible();
     // Solo exigir src si hay URL pública definida
     if (cfg.heroImageUrl) {
-      const src = await page.locator('#hero-image').getAttribute('src');
-      expect(src).toBeTruthy();
+      const img = page.locator('#hero-image');
+      await expect(img).toBeVisible();
+      await expect(img).toHaveAttribute('src', /.+/, { timeout: 5000 });
     }
   });
 
