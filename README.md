@@ -7,12 +7,12 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 ### 🆕 Cambios recientes (ago 2025)
 - Hero: configuración persistida en KV y sincronizada con la Portada; `GET/POST /api/hero` ahora leen/escriben desde KV en producción.
 - Modo Atenuado: estabilidad del modo Automático (evita carreras entre callbacks y cambios manuales); control Sol/Luna/Auto consistente.
-- Admin: eliminado el enlace “Atenuar” del navbar.
+- Admin: eliminado el enlace "Atenuar" del navbar.
 
 ### 📊 Métricas en Admin (Issue #13)
 - Backend: `POST /api/metrics/event`, `GET /api/metrics/summary?days=7` con Vercel KV y fallback en memoria.
 - Conteo diario por tipo + totales y series; auto-conteo `api_error` desde middleware de errores.
-- Admin UI: sección “Métricas” con gráfico (canvas nativo compatible CSP), tarjetas (Visitas, Eventos, Uploads, Errores API) y desglose por tipo.
+- Admin UI: sección "Métricas" con gráfico (canvas nativo compatible CSP), tarjetas (Visitas, Eventos, Uploads, Errores API) y desglose por tipo.
 - Instrumentación en frontend: `upload`, `delete`, `cover_toggle`, `lightbox_open`, `hero_set`, `album_create/update/delete`.
 
 ### 📚 Álbumes – UX y página pública
@@ -28,14 +28,14 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Logs de troubleshooting opcionales con RID en `/api/cover`, `/api/hero`, POST `/api/cover` y `/uploads/:filename` (ver "Debug logging opcional" más abajo).
 
 ### 📚 Álbumes – Edición y reordenamiento
-- Botón visible “Editar” en cada álbum (además de doble clic).
+- Botón visible "Editar" en cada álbum (además de doble clic).
 - Modal con campos: `name`, `description`, `campaign`, `coverImage`, `featured` y `slug` (autogenerado y editable con unicidad).
-- Selector “Agregar a álbum”: portal al `body` (no se corta), reposicionamiento seguro, marca ✓ si la foto ya pertenece y permite alternar agregar/remover.
+- Selector "Agregar a álbum": portal al `body` (no se corta), reposicionamiento seguro, marca ✓ si la foto ya pertenece y permite alternar agregar/remover.
 - Reordenamiento: endpoint `PUT /api/albums/reorder` robustecido (acepta `albumsOrder`, `order`, array, form-encoded y querystring). Rutas `/api/albums/:id` ya no interceptan `/reorder`.
 
 ### 🎛️ UI/UX
 - Overlay de acciones con mayor contraste y botones responsivos.
-- En Admin, el enlace “Galería” resetea a “Ver todas las fotos” y hace scroll confiable.
+- En Admin, el enlace "Galería" resetea a "Ver todas las fotos" y hace scroll confiable.
 - Galería sin blur ni textos superpuestos; se prioriza la foto limpia.
 - Marca de agua ligera por CSS (© LUZ) aplicada sobre miniaturas y grandes via clase `.watermark`.
   - Próximo: editable desde Admin (ver [#26](https://github.com/LuKeTeSky/sitio-luz/issues/26)).
@@ -53,7 +53,7 @@ Un portfolio elegante y moderno para modelos de moda, con sistema de gestión de
 - Nuevo endpoint de reparación de URLs públicas (evita 403 de Blob):
   - `POST /api/images/repair-urls` (requiere sesión). Parámetro opcional `dryRun=1`.
   - Relee `@vercel/blob` y actualiza `images.url` en KV.
-- Álbum “Portada” se sincroniza automáticamente con la lista de cover en `POST /api/cover` (álbum con nombre o slug `portada`).
+- Álbum "Portada" se sincroniza automáticamente con la lista de cover en `POST /api/cover` (álbum con nombre o slug `portada`).
 
 ### 🔜 Próximo
 - RUM (TTFB/LCP/CLS), navegación lightbox (`next/prev`, dwell), reordenamientos (galería/álbumes), top listas (imágenes/álbumes) y selector 7/30 días.
@@ -124,11 +124,11 @@ Para desactivar: eliminar la variable o poner `DEBUG_LOGS=0` y redeploy. Por def
 
 ## 🖼️ Submenú de acciones y selector de álbumes (UX)
 - Overlay de acciones: mayor contraste, blur y botones más grandes (responsive).
-- Menú “Agregar a álbum”: ahora se monta en `document.body` con posición fija para evitar recortes; se reposiciona si no hay espacio.
+- Menú "Agregar a álbum": ahora se monta en `document.body` con posición fija para evitar recortes; se reposiciona si no hay espacio.
 - En el selector, los álbumes que ya contienen la foto se marcan con ✓ y estilo `selected`; permite alternar agregar/remover.
 
 ## 🧭 Navegación en Admin
-- En el navbar, “Galería” realiza el mismo comportamiento que “Ver todas las fotos”: resetea filtros/álbum seleccionado y hace scroll a la sección (con reintentos si está cargando).
+- En el navbar, "Galería" realiza el mismo comportamiento que "Ver todas las fotos": resetea filtros/álbum seleccionado y hace scroll a la sección (con reintentos si está cargando).
 
 ---
 
@@ -249,7 +249,7 @@ Para desactivar: eliminar la variable o poner `DEBUG_LOGS=0` y redeploy. Por def
 ### 🧹 **Limpieza Completa del Repositorio**
 - **Repositorio completamente limpio** sin fotos de prueba
 - **Eliminadas todas las fotos** de `Photos-1-001/` y `public/uploads/`
-- **Solo queda `.gitkeep`** para mantener estructura del directorio
+- **Solo queda `.gitkeep** para mantener estructura del directorio
 - **Base sólida** para implementar Gitflow correctamente
 - **Control total** sobre qué fotos se suben al sitio
 
@@ -380,7 +380,7 @@ Para desactivar: eliminar la variable o poner `DEBUG_LOGS=0` y redeploy. Por def
 ## 🚀 Instalación y Configuración
 
 ### Prerrequisitos
-- Node.js (versión 14 o superior)
+- Node.js (versión 18 o superior)
 - npm o yarn
 
 ### 🔧 **Configuración de Vercel KV (Producción)**
@@ -813,7 +813,7 @@ En los archivos HTML, modifica los enlaces de Google Fonts:
 - ✅ **Tablets**: iPad, Android tablets
 - ✅ **Escritorio**: Windows, macOS, Linux
 
-## 🔒 Seguridaddd
+## 🔒 Seguridad
 
 ### 🛡️ **Medidas Implementadas**
 - **Autenticación de sesiones** para el panel de administración
@@ -909,7 +909,7 @@ Utilizamos **MAJOR.MINOR.PATCH** (ej: 1.2.3):
 | **v1.6.0** | 09 Ago 2025 | Stable | **Subida múltiple + Auto-agregado + Drag & drop** |
 | **v1.7.0** | 09 Ago 2025 | Stable | **Mejoras en sistema de álbumes y navegación** |
 | **v1.8.0** | 09 Ago 2025 | Stable | **Drag & drop en galería + Efectos visuales + Contacto actualizado** |
-| **v1.15.0** | 12 Ago 2025 | **🟢 ACTUAL** | **Imágenes persistentes en Vercel Blob + CSP/COEP/CORP ajustado + Frontend usando URLs públicas** |
+| **v1.15.0** | 12 Ago 2025 | ✅ Stable | **Imágenes persistentes en Vercel Blob + CSP/COEP/CORP ajustado + Frontend usando URLs públicas** |
 | **v1.14.0** | 11 Ago 2025 | ✅ Stable | **Login corregido (bcrypt/llano), vercel.json rutas a app.js, mejoras en upload UI** |
 | **v1.13.0** | 10 Ago 2025 | ✅ Stable | **LOOPS INFINITOS COMPLETAMENTE CORREGIDOS + Protección total contra ejecuciones múltiples** |
 | **v1.12.2** | 10 Ago 2025 | ✅ Stable | **Configuración de Vercel CORREGIDA + Endpoint de uploads funcional en producción** |
